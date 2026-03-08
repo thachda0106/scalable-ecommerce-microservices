@@ -1,0 +1,16 @@
+{
+  "name": "ecommerce-platform",
+  "version": "1.0.0",
+  "description": "Amazon-scale Distributed Ecommerce Platform using Microservices",
+  "private": true,
+  "scripts": {
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^10.0.0",
+    "typescript": "^5.1.3",
+    "rimraf": "^5.0.0"
+  }
+}

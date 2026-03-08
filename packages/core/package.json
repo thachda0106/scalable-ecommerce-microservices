@@ -1,0 +1,23 @@
+{
+  "name": "@ecommerce/core",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@nestjs/common": "^10.0.0",
+    "@nestjs/core": "^10.0.0",
+    "@opentelemetry/sdk-node": "^0.41.2",
+    "@opentelemetry/api": "^1.4.1",
+    "@opentelemetry/auto-instrumentations-node": "^0.39.1",
+    "nestjs-pino": "^3.5.0",
+    "pino-http": "^8.5.1",
+    "@willsoto/nestjs-prometheus": "^5.1.1",
+    "prom-client": "^14.2.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.1.3"
+  }
+}
