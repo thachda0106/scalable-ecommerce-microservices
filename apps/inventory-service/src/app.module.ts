@@ -16,7 +16,9 @@ import { OutboxEvent } from './outbox/entities/outbox-event.entity';
     ScheduleModule.forRoot(),
     TypeOrmModule.forRoot({
       type: 'postgres',
-      url: process.env.DATABASE_URL || 'postgres://postgres:postgres@localhost:5432/ecommerce',
+      url:
+        process.env.DATABASE_URL ||
+        'postgres://postgres:postgres@localhost:5432/ecommerce',
       entities: [Stock, OutboxEvent],
       synchronize: true, // Use only for development!
     }),

@@ -19,14 +19,20 @@ export class InventoryService {
   async createOrUpdateStock(productId: string, quantity: number) {
     let stock = await this.stockRepository.findOneBy({ productId });
     if (!stock) {
-      stock = this.stockRepository.create({ productId, availableQuantity: quantity });
+      stock = this.stockRepository.create({
+        productId,
+        availableQuantity: quantity,
+      });
     } else {
       stock.availableQuantity += quantity;
     }
     return this.stockRepository.save(stock);
   }
 
-  async reserveStock(orderId: string, items: { productId: string; quantity: number }[]) {
+  async reserveStock(
+    orderId: string,
+    items: { productId: string; quantity: number }[],
+  ) {
     // For simplicity, we process one item type here. In a real system you'd loop or use a more robust batch reservation
     const item = items[0]; // simplistic assumption
     if (!item) return;
@@ -40,7 +46,9 @@ export class InventoryService {
     try {
       // Find stock with OCC lock check by loading it inside transaction.
       // TypeORM's save() handles the VersionColumn increment and check automatically.
-      const stock = await queryRunner.manager.findOneBy(Stock, { productId: item.productId });
+      const stock = await queryRunner.manager.findOneBy(Stock, {
+        productId: item.productId,
+      });
 
       if (stock && stock.availableQuantity >= item.quantity) {
         stock.availableQuantity -= item.quantity;
@@ -52,24 +60,37 @@ export class InventoryService {
       // Record outbox event in the same transaction
       const outboxEvent = new OutboxEvent();
       outboxEvent.id = uuidv4();
-      outboxEvent.type = success ? 'InventoryReserved' : 'InventoryReservationFailed';
-      outboxEvent.payload = { orderId, productId: item.productId, quantity: item.quantity, success };
-      
+      outboxEvent.type = success
+        ? 'InventoryReserved'
+        : 'InventoryReservationFailed';
+      outboxEvent.payload = {
+        orderId,
+        productId: item.productId,
+        quantity: item.quantity,
+        success,
+      };
+
       await queryRunner.manager.save(OutboxEvent, outboxEvent);
       await queryRunner.commitTransaction();
 
-      this.logger.log(`Reservation for order ${orderId} ${success ? 'successful' : 'failed'}`);
+      this.logger.log(
+        `Reservation for order ${orderId} ${success ? 'successful' : 'failed'}`,
+      );
     } catch (err) {
       await queryRunner.rollbackTransaction();
       this.logger.error(`OCC or DB Error during reservation: ${err.message}`);
-      
+
       // We could try to save a failure event outside transaction here if needed.
     } finally {
       await queryRunner.release();
     }
   }
 
-  async compensateReservation(orderId: string, productId: string, quantity: number) {
+  async compensateReservation(
+    orderId: string,
+    productId: string,
+    quantity: number,
+  ) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -84,7 +105,7 @@ export class InventoryService {
         this.logger.log(`Compensated stock for order ${orderId}`);
       }
       await queryRunner.commitTransaction();
-    } catch(err) {
+    } catch (err) {
       await queryRunner.rollbackTransaction();
       this.logger.error(`Error compensating stock: ${err.message}`);
     } finally {

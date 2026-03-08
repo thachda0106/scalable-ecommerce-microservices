@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+  OnModuleDestroy,
+} from '@nestjs/common';
 import { Kafka, Consumer } from 'kafkajs';
 import { InventoryService } from '../inventory/inventory.service';
 
@@ -15,17 +20,22 @@ export class InventoryConsumerService implements OnModuleInit, OnModuleDestroy {
       clientId: 'inventory-service-consumer',
       brokers: KAFKA_BROKERS.split(','),
     });
-    this.consumer = this.kafka.consumer({ groupId: 'inventory-service-orders' });
+    this.consumer = this.kafka.consumer({
+      groupId: 'inventory-service-orders',
+    });
   }
 
   async onModuleInit() {
     await this.consumer.connect();
-    await this.consumer.subscribe({ topic: 'order.events', fromBeginning: true });
+    await this.consumer.subscribe({
+      topic: 'order.events',
+      fromBeginning: true,
+    });
 
     await this.consumer.run({
       eachMessage: async ({ topic, partition, message }) => {
         if (!message.value) return;
-        
+
         try {
           const event = JSON.parse(message.value.toString());
           await this.handleEvent(event);
@@ -50,10 +60,16 @@ export class InventoryConsumerService implements OnModuleInit, OnModuleDestroy {
       // Hardcode an item lookup for simulation as our simplistic order payload lacks items
       // In reality, an order should contain order lines with product IDs.
       this.logger.log(`Attempting reservation for order ${payload.id}`);
-      await this.inventoryService.reserveStock(payload.id, [{ productId: 'FAKE_PRODUCT', quantity: 1 }]);
+      await this.inventoryService.reserveStock(payload.id, [
+        { productId: 'FAKE_PRODUCT', quantity: 1 },
+      ]);
     } else if (type === 'OrderFailed') {
       this.logger.log(`Attempting compensation for order ${payload.id}`);
-      await this.inventoryService.compensateReservation(payload.id, 'FAKE_PRODUCT', 1);
+      await this.inventoryService.compensateReservation(
+        payload.id,
+        'FAKE_PRODUCT',
+        1,
+      );
     }
   }
 }

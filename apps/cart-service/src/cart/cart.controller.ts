@@ -16,7 +16,10 @@ export class CartController {
   }
 
   @Delete(':userId/items/:productId')
-  removeItem(@Param('userId') userId: string, @Param('productId') productId: string) {
+  removeItem(
+    @Param('userId') userId: string,
+    @Param('productId') productId: string,
+  ) {
     return this.cartService.removeItem(userId, productId);
   }
 

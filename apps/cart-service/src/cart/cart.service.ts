@@ -31,7 +31,9 @@ export class CartService implements OnModuleInit, OnModuleDestroy {
 
   async addItem(userId: string, item: AddItemDto) {
     const cart = await this.getCart(userId);
-    const existingItem = cart.items.find((i: any) => i.productId === item.productId);
+    const existingItem = cart.items.find(
+      (i: any) => i.productId === item.productId,
+    );
 
     if (existingItem) {
       existingItem.quantity += item.quantity;
@@ -46,7 +48,7 @@ export class CartService implements OnModuleInit, OnModuleDestroy {
   async removeItem(userId: string, productId: string) {
     const cart = await this.getCart(userId);
     cart.items = cart.items.filter((i: any) => i.productId !== productId);
-    
+
     await this.redisClient.set(`cart:${userId}`, JSON.stringify(cart));
     return cart;
   }
