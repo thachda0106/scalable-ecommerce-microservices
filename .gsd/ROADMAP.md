@@ -22,7 +22,7 @@
 **Objective**: Implement Product Service and Search Service. Model the event-driven synchronization between Product (writers) and Search (readers via OpenSearch) using Kafka to handle 50M products.
 
 ### Phase 5: Transactional Core (Saga Pattern)
-**Status**: ⏳ In Progress
+**Status**: ✅ Completed
 **Objective**: Implement Cart, Order, Inventory, and Payment services. Orchestrate or choreograph the complex checkout Saga handling reservations, payments, and compensation logic to prevent over-selling and double charging.
 
 ### Phase 6: Notifications & CI/CD Finalization
