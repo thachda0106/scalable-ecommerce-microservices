@@ -23,8 +23,12 @@
     "@ecommerce/core": "workspace:*",
     "@ecommerce/events": "workspace:*",
     "@nestjs/common": "^11.0.1",
+    "@nestjs/config": "^4.0.3",
     "@nestjs/core": "^10.0.0",
+    "@nestjs/microservices": "^11.1.16",
     "@nestjs/platform-express": "^10.0.0",
+    "@opensearch-project/opensearch": "^3.5.1",
+    "kafkajs": "^2.2.4",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.1"
   },
