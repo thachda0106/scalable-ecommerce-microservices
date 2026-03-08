@@ -10,7 +10,7 @@
 **Objective**: Document the high-level system architecture, service boundaries, domain models, database schemas, Kafka event architecture, Saga flows, infrastructure design, observability, CI/CD, and failure recovery.
 
 ### Phase 2: Infrastructure as Code (Terraform)
-**Status**: ⬜ Not Started
+**Status**: ✅ Complete
 **Objective**: Write modular Terraform code to provision AWS VPC, ECS cluster, RDS instances, Redis, MSK (Kafka), OpenSearch, ALB, and baseline IAM/Monitoring.
 
 ### Phase 3: Foundation Services & API Gateway
