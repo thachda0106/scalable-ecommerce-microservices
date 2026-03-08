@@ -41,7 +41,7 @@ export class ProductSyncService implements OnModuleInit, OnModuleDestroy {
           await this.handleEvent(event);
         } catch (error) {
           this.logger.error(
-            `Error processing message from partition ${partition}: ${error.message}`,
+            `Error processing message: ${(error as Error).message}`,
           );
         }
       },
@@ -87,7 +87,7 @@ export class ProductSyncService implements OnModuleInit, OnModuleDestroy {
         default:
           this.logger.warn(`Unknown event type: ${type}`);
       }
-    } catch (err) {
+    } catch (err: any) {
       if (
         err.meta &&
         err.meta.statusCode === 404 &&
