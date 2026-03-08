@@ -60,7 +60,10 @@ export class ProductsService {
     return this.productsRepository.findOneBy({ id });
   }
 
-  async update(id: string, updateProductDto: UpdateProductDto): Promise<Product> {
+  async update(
+    id: string,
+    updateProductDto: UpdateProductDto,
+  ): Promise<Product> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -71,8 +74,15 @@ export class ProductsService {
         throw new Error('Product not found');
       }
 
-      const updatedProduct = queryRunner.manager.merge(Product, product, updateProductDto);
-      const savedProduct = await queryRunner.manager.save(Product, updatedProduct);
+      const updatedProduct = queryRunner.manager.merge(
+        Product,
+        product,
+        updateProductDto,
+      );
+      const savedProduct = await queryRunner.manager.save(
+        Product,
+        updatedProduct,
+      );
 
       const outboxEvent = new OutboxEvent();
       outboxEvent.id = uuidv4();
@@ -92,31 +102,31 @@ export class ProductsService {
   }
 
   async remove(id: string): Promise<void> {
-      const queryRunner = this.dataSource.createQueryRunner();
-      await queryRunner.connect();
-      await queryRunner.startTransaction();
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-      try {
-        const product = await queryRunner.manager.findOneBy(Product, { id });
-        if (!product) {
-          throw new Error('Product not found');
-        }
-
-        await queryRunner.manager.remove(Product, product);
-
-        const outboxEvent = new OutboxEvent();
-        outboxEvent.id = uuidv4();
-        outboxEvent.type = 'ProductDeleted';
-        outboxEvent.payload = { id };
-
-        await queryRunner.manager.save(OutboxEvent, outboxEvent);
-
-        await queryRunner.commitTransaction();
-      } catch (err) {
-        await queryRunner.rollbackTransaction();
-        throw err;
-      } finally {
-        await queryRunner.release();
+    try {
+      const product = await queryRunner.manager.findOneBy(Product, { id });
+      if (!product) {
+        throw new Error('Product not found');
       }
+
+      await queryRunner.manager.remove(Product, product);
+
+      const outboxEvent = new OutboxEvent();
+      outboxEvent.id = uuidv4();
+      outboxEvent.type = 'ProductDeleted';
+      outboxEvent.payload = { id };
+
+      await queryRunner.manager.save(OutboxEvent, outboxEvent);
+
+      await queryRunner.commitTransaction();
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      throw err;
+    } finally {
+      await queryRunner.release();
+    }
   }
 }

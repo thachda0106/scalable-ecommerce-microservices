@@ -71,9 +71,9 @@ export class OutboxRelayService
       }
       await this.outboxRepository.save(events);
 
-      this.logger.log(`Relayed ${events.length} inventory events to Kafka`);
+      this.logger.log(`Relayed ${events.length} order events to Kafka`);
     } catch (error) {
-      this.logger.error(`Failed to relay events: ${error.message}`);
+      this.logger.error(`Failed to relay events: ${(error as Error).message}`);
     }
   }
 }

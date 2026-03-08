@@ -9,6 +9,6 @@ import { OutboxEvent } from '../outbox/entities/outbox-event.entity';
   imports: [TypeOrmModule.forFeature([Order, OutboxEvent])],
   controllers: [OrdersController],
   providers: [OrdersService],
-  exports: [OrdersService]
+  exports: [OrdersService],
 })
 export class OrdersModule {}

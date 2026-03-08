@@ -7,7 +7,8 @@ export class OpenSearchService implements OnModuleInit {
   private readonly logger = new Logger(OpenSearchService.name);
 
   constructor() {
-    const OPENSEARCH_URL = process.env.OPENSEARCH_URL || 'http://localhost:9200';
+    const OPENSEARCH_URL =
+      process.env.OPENSEARCH_URL || 'http://localhost:9200';
     const OPENSEARCH_USERNAME = process.env.OPENSEARCH_USERNAME || 'admin';
     const OPENSEARCH_PASSWORD = process.env.OPENSEARCH_PASSWORD || 'admin';
 
@@ -52,7 +53,9 @@ export class OpenSearchService implements OnModuleInit {
         this.logger.log(`Index ${indexName} already exists.`);
       }
     } catch (error) {
-      this.logger.error(`Error initializing OpenSearch indices: ${error.message}`);
+      this.logger.error(
+        `Error initializing OpenSearch indices: ${error.message}`,
+      );
     }
   }
 

@@ -78,7 +78,9 @@ export class InventoryService {
       );
     } catch (err) {
       await queryRunner.rollbackTransaction();
-      this.logger.error(`OCC or DB Error during reservation: ${err.message}`);
+      this.logger.error(
+        `OCC or DB Error during reservation: ${(err as Error).message}`,
+      );
 
       // We could try to save a failure event outside transaction here if needed.
     } finally {
@@ -107,7 +109,7 @@ export class InventoryService {
       await queryRunner.commitTransaction();
     } catch (err) {
       await queryRunner.rollbackTransaction();
-      this.logger.error(`Error compensating stock: ${err.message}`);
+      this.logger.error(`Error compensating stock: ${(err as Error).message}`);
     } finally {
       await queryRunner.release();
     }

@@ -33,14 +33,16 @@ export class InventoryConsumerService implements OnModuleInit, OnModuleDestroy {
     });
 
     await this.consumer.run({
-      eachMessage: async ({ topic, partition, message }) => {
+      eachMessage: async ({ message }) => {
         if (!message.value) return;
 
         try {
           const event = JSON.parse(message.value.toString());
           await this.handleEvent(event);
         } catch (error) {
-          this.logger.error(`Error processing message: ${error.message}`);
+          this.logger.error(
+            `Error processing message: ${(error as Error).message}`,
+          );
         }
       },
     });

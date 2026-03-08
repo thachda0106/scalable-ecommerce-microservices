@@ -4,7 +4,8 @@ import { Logger } from '@ecommerce/core';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
-  app.useLogger(app.get(Logger));
-  await app.listen(process.env.PORT ?? 3000);
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+  app.useLogger(app.get(Logger as any));
+  await app.listen(process.env.PORT ?? 3001);
 }
-bootstrap();
+void bootstrap();

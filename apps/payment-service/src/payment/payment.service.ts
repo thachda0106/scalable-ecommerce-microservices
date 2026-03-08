@@ -1,7 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
-import { PaymentTransaction, PaymentStatus } from './entities/payment-transaction.entity';
+import {
+  PaymentTransaction,
+  PaymentStatus,
+} from './entities/payment-transaction.entity';
 import { OutboxEvent } from '../outbox/entities/outbox-event.entity';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -22,6 +25,7 @@ export class PaymentService {
 
     let success = false;
     let reason = '';
+    this.logger.debug(`Processing payment of $${amount}`);
 
     try {
       // Mocking 3rd party processing: 90% success
@@ -34,25 +38,32 @@ export class PaymentService {
         failReason: reason,
       });
 
-      const savedTx = await queryRunner.manager.save(PaymentTransaction, transaction);
+      const savedTx = await queryRunner.manager.save(
+        PaymentTransaction,
+        transaction,
+      );
 
       const outboxEvent = new OutboxEvent();
       outboxEvent.id = uuidv4();
       outboxEvent.type = success ? 'PaymentProcessed' : 'PaymentFailed';
-      outboxEvent.payload = { 
-        orderId, 
-        transactionId: savedTx.id, 
-        success, 
-        reason 
+      outboxEvent.payload = {
+        orderId,
+        transactionId: savedTx.id,
+        success,
+        reason,
       };
 
       await queryRunner.manager.save(OutboxEvent, outboxEvent);
       await queryRunner.commitTransaction();
 
-      this.logger.log(`Payment for order ${orderId} ${success ? 'PROCESSED' : 'FAILED'}`);
+      this.logger.log(
+        `Payment for order ${orderId} ${success ? 'PROCESSED' : 'FAILED'}`,
+      );
     } catch (err) {
       await queryRunner.rollbackTransaction();
-      this.logger.error(`Payment processing error for order ${orderId}: ${err.message}`);
+      this.logger.error(
+        `Payment processing error for order ${orderId}: ${err.message}`,
+      );
     } finally {
       await queryRunner.release();
     }

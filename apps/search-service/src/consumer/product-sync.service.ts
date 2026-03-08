@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+  OnModuleDestroy,
+} from '@nestjs/common';
 import { Kafka, Consumer } from 'kafkajs';
 import { OpenSearchService } from '../opensearch/opensearch.service';
 
@@ -15,22 +20,29 @@ export class ProductSyncService implements OnModuleInit, OnModuleDestroy {
       clientId: 'search-service-consumer',
       brokers: KAFKA_BROKERS.split(','),
     });
-    this.consumer = this.kafka.consumer({ groupId: 'search-service-product-sync' });
+    this.consumer = this.kafka.consumer({
+      groupId: 'search-service-product-sync',
+    });
   }
 
   async onModuleInit() {
     await this.consumer.connect();
-    await this.consumer.subscribe({ topic: 'product.events', fromBeginning: true });
+    await this.consumer.subscribe({
+      topic: 'product.events',
+      fromBeginning: true,
+    });
 
     await this.consumer.run({
-      eachMessage: async ({ topic, partition, message }) => {
+      eachMessage: async ({ message }) => {
         if (!message.value) return;
-        
+
         try {
           const event = JSON.parse(message.value.toString());
           await this.handleEvent(event);
         } catch (error) {
-          this.logger.error(`Error processing message from partition ${partition}: ${error.message}`);
+          this.logger.error(
+            `Error processing message from partition ${partition}: ${error.message}`,
+          );
         }
       },
     });
@@ -76,10 +88,14 @@ export class ProductSyncService implements OnModuleInit, OnModuleDestroy {
           this.logger.warn(`Unknown event type: ${type}`);
       }
     } catch (err) {
-      if (err.meta && err.meta.statusCode === 404 && type === 'ProductDeleted') {
-         // ignore 404 on delete
+      if (
+        err.meta &&
+        err.meta.statusCode === 404 &&
+        type === 'ProductDeleted'
+      ) {
+        // ignore 404 on delete
       } else {
-         throw err;
+        throw err;
       }
     }
   }
