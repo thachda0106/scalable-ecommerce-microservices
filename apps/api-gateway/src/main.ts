@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { Logger } from 'nestjs-pino';
+import { Logger } from '@ecommerce/core';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
