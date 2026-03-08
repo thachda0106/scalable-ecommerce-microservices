@@ -37,8 +37,6 @@ resource "aws_elasticache_replication_group" "main" {
   subnet_group_name          = aws_elasticache_subnet_group.main.name
   security_group_ids         = [aws_security_group.redis.id]
 
-  cluster_mode {
-    replicas_per_node_group = 1
-    num_node_groups         = 2
-  }
+  replicas_per_node_group = 1
+  num_node_groups         = 2
 }
