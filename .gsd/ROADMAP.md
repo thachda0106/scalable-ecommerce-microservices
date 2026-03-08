@@ -26,5 +26,5 @@
 **Objective**: Implement Cart, Order, Inventory, and Payment services. Orchestrate or choreograph the complex checkout Saga handling reservations, payments, and compensation logic to prevent over-selling and double charging.
 
 ### Phase 6: Notifications & CI/CD Finalization
-**Status**: ⏳ In Progress
+**Status**: ✅ Completed
 **Objective**: Implement Notification service for order updates. Finalize GitHub Actions/GitLab CI pipelines for automated testing, Docker build/push, and deployment to ECS.
