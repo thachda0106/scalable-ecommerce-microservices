@@ -3,7 +3,7 @@ terraform {
 
   backend "s3" {
     bucket         = "ecommerce-platform-terraform-state"
-    key            = "ecommerce-platform/dev/terraform.tfstate"
+    key            = "ecommerce-platform/prod/terraform.tfstate"
     region         = "us-east-1"
     encrypt        = true
     dynamodb_table = "ecommerce-platform-terraform-locks"
@@ -27,7 +27,7 @@ provider "aws" {
 }
 
 # ---------------------------------------------------------------------------
-# IAM Roles (deployed first — VPC and other modules depend on outputs)
+# IAM Roles
 # ---------------------------------------------------------------------------
 
 module "iam" {
@@ -48,11 +48,12 @@ module "vpc" {
   public_subnets_cidr      = var.public_subnets_cidr
   private_subnets_cidr     = var.private_subnets_cidr
   flow_logs_role_arn       = module.iam.flow_logs_role_arn
-  flow_logs_retention_days = 30
+  flow_logs_retention_days = 90
 }
 
 # ---------------------------------------------------------------------------
 # Application Load Balancer
+# Deletion protection enabled in prod.
 # ---------------------------------------------------------------------------
 
 module "alb" {
@@ -76,15 +77,18 @@ module "ecs_cluster" {
 }
 
 # ---------------------------------------------------------------------------
-# Observability (SNS + CloudWatch alarms + dashboard)
+# Observability — tighter thresholds, multiple alert recipients
 # ---------------------------------------------------------------------------
 
 module "observability" {
   source = "../../modules/observability"
 
-  environment           = var.environment
-  alb_arn_suffix        = module.alb.alb_arn_suffix
-  alarm_email_endpoints = var.alarm_email_endpoints
+  environment                   = var.environment
+  alb_arn_suffix                = module.alb.alb_arn_suffix
+  alarm_email_endpoints         = var.alarm_email_endpoints
+  alb_5xx_threshold             = 5
+  alb_4xx_threshold             = 50
+  alb_latency_threshold_seconds = 1
 
   rds_cluster_ids = {
     orders   = module.rds_orders.cluster_endpoint
@@ -94,8 +98,8 @@ module "observability" {
 }
 
 # ---------------------------------------------------------------------------
-# RDS Aurora Serverless v2 — one cluster per service domain
-# Passwords are managed by AWS Secrets Manager (manage_master_user_password).
+# RDS Aurora Serverless v2 — production settings
+# deletion_protection = true, skip_final_snapshot = false, 30-day retention.
 # ---------------------------------------------------------------------------
 
 module "rds_orders" {
@@ -108,11 +112,11 @@ module "rds_orders" {
   db_name                 = "orders_db"
   db_username             = "orders_admin"
   ecs_security_group_id   = module.ecs_cluster.cluster_security_group_id
-  skip_final_snapshot     = true
-  deletion_protection     = false
-  backup_retention_period = 3
-  min_capacity            = 0.5
-  max_capacity            = 2.0
+  skip_final_snapshot     = false
+  deletion_protection     = true
+  backup_retention_period = 30
+  min_capacity            = 1.0
+  max_capacity            = 8.0
 }
 
 module "rds_users" {
@@ -125,11 +129,11 @@ module "rds_users" {
   db_name                 = "users_db"
   db_username             = "users_admin"
   ecs_security_group_id   = module.ecs_cluster.cluster_security_group_id
-  skip_final_snapshot     = true
-  deletion_protection     = false
-  backup_retention_period = 3
-  min_capacity            = 0.5
-  max_capacity            = 2.0
+  skip_final_snapshot     = false
+  deletion_protection     = true
+  backup_retention_period = 30
+  min_capacity            = 1.0
+  max_capacity            = 8.0
 }
 
 module "rds_products" {
@@ -142,15 +146,15 @@ module "rds_products" {
   db_name                 = "products_db"
   db_username             = "products_admin"
   ecs_security_group_id   = module.ecs_cluster.cluster_security_group_id
-  skip_final_snapshot     = true
-  deletion_protection     = false
-  backup_retention_period = 3
-  min_capacity            = 0.5
-  max_capacity            = 2.0
+  skip_final_snapshot     = false
+  deletion_protection     = true
+  backup_retention_period = 30
+  min_capacity            = 1.0
+  max_capacity            = 8.0
 }
 
 # ---------------------------------------------------------------------------
-# MSK Kafka — event streaming bus
+# MSK Kafka — production-grade m5.large brokers
 # ---------------------------------------------------------------------------
 
 module "msk" {
@@ -162,13 +166,13 @@ module "msk" {
   private_subnets        = module.vpc.private_subnet_ids
   ecs_security_group_id  = module.ecs_cluster.cluster_security_group_id
   number_of_broker_nodes = 3
-  instance_type          = "kafka.t3.small"
-  ebs_volume_size        = 100
-  log_retention_days     = 14
+  instance_type          = "kafka.m5.large"
+  ebs_volume_size        = 500
+  log_retention_days     = 30
 }
 
 # ---------------------------------------------------------------------------
-# ElastiCache Redis — session store and caching layer
+# ElastiCache Redis — production cache nodes
 # ---------------------------------------------------------------------------
 
 module "redis" {
@@ -180,13 +184,13 @@ module "redis" {
   private_subnets         = module.vpc.private_subnet_ids
   ecs_security_group_id   = module.ecs_cluster.cluster_security_group_id
   auth_token              = var.redis_auth_token
-  node_type               = "cache.t4g.micro"
-  num_node_groups         = 2
-  replicas_per_node_group = 1
+  node_type               = "cache.r7g.large"
+  num_node_groups         = 3
+  replicas_per_node_group = 2
 }
 
 # ---------------------------------------------------------------------------
-# OpenSearch — full-text search domain
+# OpenSearch — production data nodes
 # ---------------------------------------------------------------------------
 
 module "opensearch" {
@@ -199,9 +203,9 @@ module "opensearch" {
   aws_region                 = var.aws_region
   ecs_security_group_id      = module.ecs_cluster.cluster_security_group_id
   opensearch_access_role_arn = module.iam.opensearch_access_role_arn
-  instance_type              = "t3.small.search"
+  instance_type              = "m5.large.search"
   instance_count             = 3
-  ebs_volume_size            = 20
+  ebs_volume_size            = 100
 }
 
 # ---------------------------------------------------------------------------
@@ -209,12 +213,12 @@ module "opensearch" {
 # ---------------------------------------------------------------------------
 
 output "alb_dns_name" {
-  description = "ALB DNS name — point your dev domain CNAME here"
+  description = "ALB DNS name — create a Route 53 alias or CNAME pointing here"
   value       = module.alb.alb_dns_name
 }
 
 output "acm_validation_records" {
-  description = "DNS records to create in your registrar to validate the ACM certificate"
+  description = "DNS records required to validate the ACM certificate"
   value       = module.alb.acm_certificate_domain_validation_options
 }
 

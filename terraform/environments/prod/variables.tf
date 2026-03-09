@@ -6,32 +6,32 @@ variable "aws_region" {
 
 variable "environment" {
   type        = string
-  default     = "dev"
+  default     = "prod"
   description = "Environment name — propagated to all resource names and tags"
 }
 
 variable "vpc_cidr" {
   type        = string
-  default     = "10.0.0.0/16"
-  description = "Primary CIDR block for the VPC"
+  default     = "10.2.0.0/16"
+  description = "Primary CIDR block for the VPC — must not overlap with other environments"
 }
 
 variable "public_subnets_cidr" {
   type    = list(string)
-  default = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
+  default = ["10.2.1.0/24", "10.2.2.0/24", "10.2.3.0/24"]
   description = "CIDR blocks for public subnets — one per AZ"
 }
 
 variable "private_subnets_cidr" {
   type    = list(string)
-  default = ["10.0.4.0/24", "10.0.5.0/24", "10.0.6.0/24"]
+  default = ["10.2.4.0/24", "10.2.5.0/24", "10.2.6.0/24"]
   description = "CIDR blocks for private subnets — one per AZ"
 }
 
 variable "domain_name" {
   type        = string
-  default     = "dev.example.com"
-  description = "Base domain name for the ACM certificate and HTTPS listener (e.g. dev.myapp.com)"
+  default     = "api.example.com"
+  description = "Base domain name for the ACM certificate and HTTPS listener"
 }
 
 variable "redis_auth_token" {
