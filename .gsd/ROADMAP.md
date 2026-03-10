@@ -28,3 +28,16 @@
 ### Phase 6: Notifications & CI/CD Finalization
 **Status**: ✅ Completed
 **Objective**: Implement Notification service for order updates. Finalize GitHub Actions/GitLab CI pipelines for automated testing, Docker build/push, and deployment to ECS.
+
+---
+
+### Phase 7: Production-Grade API Gateway
+**Status**: ⬜ Not Started
+**Objective**: Upgrade the existing API Gateway from a minimal health-check service into a fully production-ready API Gateway for the ecommerce microservices platform. Handle request routing, authentication, Redis rate limiting, observability, resilience patterns, standardized errors, and API aggregation.
+**Depends on**: Phase 6
+
+**Tasks**:
+- [ ] TBD (run /plan 7 to populate implementation tasks)
+
+**Verification**:
+- TBD
