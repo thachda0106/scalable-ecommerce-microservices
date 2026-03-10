@@ -1,11 +1,40 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerStorageRedisService } from 'nestjs-throttler-storage-redis';
 import { getLoggerModule } from '@ecommerce/core';
+import { GatewayConfig } from './config/gateway.config';
+import { ProxyModule } from './modules/proxy/proxy.module';
+import { AggregationModule } from './modules/aggregation/aggregation.module';
+import { JwtStrategy } from './common/guards/jwt.strategy';
 
 @Module({
-  imports: [getLoggerModule()],
-  controllers: [AppController],
-  providers: [AppService],
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      load: [GatewayConfig],
+    }),
+    ThrottlerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        throttlers: [{ ttl: 60000, limit: 100 }],
+        storage: new ThrottlerStorageRedisService(
+          `redis://${config.get<string>('redis.host', 'localhost')}:${config.get<number>('redis.port', 6379)}`,
+        ),
+      }),
+    }),
+    getLoggerModule(),
+    ProxyModule,
+    AggregationModule,
+  ],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+    JwtStrategy,
+  ],
 })
 export class AppModule {}
