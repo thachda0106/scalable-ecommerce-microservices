@@ -15,7 +15,9 @@ export const KAFKA_SERVICE = 'KAFKA_SERVICE';
           options: {
             client: {
               clientId: 'auth-service',
-              brokers: [process.env.KAFKA_BROKERS || 'localhost:9092'],
+              brokers: (process.env.KAFKA_BROKERS || 'localhost:9092').split(
+                ',',
+              ),
             },
             producer: {
               createPartitioner: Partitioners.LegacyPartitioner, // Prevent breaking changes on NestJS/KafkaJS

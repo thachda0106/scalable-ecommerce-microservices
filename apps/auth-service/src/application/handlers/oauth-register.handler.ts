@@ -1,17 +1,16 @@
-import { CommandHandler, ICommandHandler } from "@nestjs/cqrs";
-import { OAuthRegisterCommand } from "../commands/oauth-register.command";
-import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
-import { UserOrmEntity } from "../../infrastructure/database/user.orm-entity";
-import { Role } from "../../domain/value-objects/role.enum";
-import { Logger } from "@ecommerce/core";
-import { KAFKA_SERVICE } from "../../infrastructure/kafka/kafka-producer.module";
-import { Inject } from "@nestjs/common";
-import { ClientKafka } from "@nestjs/microservices";
+import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { OAuthRegisterCommand } from '../commands/oauth-register.command';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { UserOrmEntity } from '../../infrastructure/database/user.orm-entity';
+import { Role } from '../../domain/value-objects/role.enum';
+import { Logger } from '@ecommerce/core';
+import { KAFKA_SERVICE } from '../../infrastructure/kafka/kafka-producer.module';
+import { Inject } from '@nestjs/common';
+import { ClientKafka } from '@nestjs/microservices';
 
 @CommandHandler(OAuthRegisterCommand)
-export class OAuthRegisterHandler
-  implements ICommandHandler<OAuthRegisterCommand> {
+export class OAuthRegisterHandler implements ICommandHandler<OAuthRegisterCommand> {
   constructor(
     @InjectRepository(UserOrmEntity)
     private readonly userRepository: Repository<UserOrmEntity>,
@@ -23,14 +22,8 @@ export class OAuthRegisterHandler
   async execute(
     command: OAuthRegisterCommand,
   ): Promise<{ id: string; email: string }> {
-    const {
-      email,
-      provider,
-      providerId,
-      firstName,
-      lastName,
-      picture,
-    } = command.dto;
+    const { email, provider, providerId, firstName, lastName, picture } =
+      command.dto;
 
     const newUser = this.userRepository.create({
       id: crypto.randomUUID(),
@@ -45,8 +38,8 @@ export class OAuthRegisterHandler
 
     // Fire & Forget: Emit integration event
     try {
-      this.kafkaClient.emit("identity", {
-        type: "user.registered",
+      this.kafkaClient.emit('identity', {
+        type: 'user.registered',
         data: {
           userId: savedUser.id,
           email: savedUser.email,
@@ -56,7 +49,7 @@ export class OAuthRegisterHandler
         },
       });
     } catch (err) {
-      this.logger.error("Failed to emit user.registered event (OAuth)", err);
+      this.logger.error('Failed to emit user.registered event (OAuth)', err);
     }
 
     return { id: savedUser.id, email: savedUser.email };

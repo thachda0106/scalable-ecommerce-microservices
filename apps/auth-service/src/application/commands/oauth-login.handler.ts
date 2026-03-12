@@ -1,16 +1,16 @@
-import { CommandHandler, ICommandHandler } from "@nestjs/cqrs";
-import { OAuthLoginCommand } from "../commands/oauth-login.command";
-import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
-import { UserOrmEntity } from "../../infrastructure/database/user.orm-entity";
+import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { OAuthLoginCommand } from '../commands/oauth-login.command';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { UserOrmEntity } from '../../infrastructure/database/user.orm-entity';
 import {
   JwtAdapterService,
   AuthTokens,
-} from "../../infrastructure/jwt/jwt-adapter.service";
-import { TokenStoreService } from "../../infrastructure/redis/token-store.service";
-import { Role } from "../../domain/value-objects/role.enum";
-import { OAuthRegisterCommand } from "./oauth-register.command";
-import { CommandBus } from "@nestjs/cqrs";
+} from '../../infrastructure/jwt/jwt-adapter.service';
+import { TokenStoreService } from '../../infrastructure/redis/token-store.service';
+import { Role } from '../../domain/value-objects/role.enum';
+import { OAuthRegisterCommand } from './oauth-register.command';
+import { CommandBus } from '@nestjs/cqrs';
 
 export class OAuthLoginHandler implements ICommandHandler<OAuthLoginCommand> {
   constructor(
@@ -22,14 +22,8 @@ export class OAuthLoginHandler implements ICommandHandler<OAuthLoginCommand> {
   ) {}
 
   async execute(command: OAuthLoginCommand): Promise<AuthTokens> {
-    const {
-      email,
-      provider,
-      providerId,
-      firstName,
-      lastName,
-      picture,
-    } = command.profile;
+    const { email, provider, providerId, firstName, lastName, picture } =
+      command.profile;
 
     // 1. Find or create the user
     let user = await this.userRepository.findOne({ where: { email } });
@@ -50,7 +44,7 @@ export class OAuthLoginHandler implements ICommandHandler<OAuthLoginCommand> {
     }
 
     if (!user || !user.isActive) {
-      throw new Error("OAuth login failed: user account is inactive");
+      throw new Error('OAuth login failed: user account is inactive');
     }
 
     // 2. Generate tokens

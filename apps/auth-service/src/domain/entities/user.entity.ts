@@ -5,7 +5,7 @@ import { Role } from '../value-objects/role.enum';
 export interface UserProps {
   id: string;
   email: Email;
-  password: Password;
+  password: Password | null; // null for OAuth-only users
   role: Role;
   isEmailVerified: boolean;
   isActive: boolean;
@@ -28,7 +28,7 @@ export class User {
     return this.props.email;
   }
 
-  get password(): Password {
+  get password(): Password | null {
     return this.props.password;
   }
 

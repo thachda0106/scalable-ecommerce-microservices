@@ -1,32 +1,32 @@
-import { Controller, Get, Req, Res, UseGuards } from "@nestjs/common";
-import { AuthGuard } from "@nestjs/passport";
-import { CommandBus } from "@nestjs/cqrs";
-import { OAuthLoginCommand } from "../../application/commands/oauth-login.command";
+import { Controller, Get, Req, Res, UseGuards } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+import { CommandBus } from '@nestjs/cqrs';
+import { OAuthLoginCommand } from '../../application/commands/oauth-login.command';
 
-@Controller("auth")
+@Controller('auth')
 export class OAuthController {
   constructor(private readonly commandBus: CommandBus) {}
 
-  @Get("google")
-  @UseGuards(AuthGuard("google"))
+  @Get('google')
+  @UseGuards(AuthGuard('google'))
   async googleAuth() {
     // Passport initiates the Google OAuth redirect — no body needed
   }
 
-  @Get("google/callback")
-  @UseGuards(AuthGuard("google"))
+  @Get('google/callback')
+  @UseGuards(AuthGuard('google'))
   async googleAuthRedirect(@Req() req, @Res() res) {
     await this.handleOAuthCallback(req.user, res);
   }
 
-  @Get("github")
-  @UseGuards(AuthGuard("github"))
+  @Get('github')
+  @UseGuards(AuthGuard('github'))
   async githubAuth() {
     // Passport initiates the GitHub OAuth redirect
   }
 
-  @Get("github/callback")
-  @UseGuards(AuthGuard("github"))
+  @Get('github/callback')
+  @UseGuards(AuthGuard('github'))
   async githubAuthRedirect(@Req() req, @Res() res) {
     await this.handleOAuthCallback(req.user, res);
   }

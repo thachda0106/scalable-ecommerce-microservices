@@ -1,7 +1,7 @@
-import { Injectable, Inject } from "@nestjs/common";
-import { Redis } from "ioredis";
+import { Injectable, Inject } from '@nestjs/common';
+import { Redis } from 'ioredis';
 
-export const REDIS_CLIENT = "REDIS_CLIENT";
+export const REDIS_CLIENT = 'REDIS_CLIENT';
 
 @Injectable()
 export class TokenStoreService {
@@ -14,7 +14,7 @@ export class TokenStoreService {
   /** Store token → userId mapping with 7-day TTL */
   async storeRefreshToken(tokenId: string, userId: string): Promise<void> {
     const key = this.getTokenKey(tokenId);
-    await this.redis.set(key, userId, "EX", 604800);
+    await this.redis.set(key, userId, 'EX', 604800);
   }
 
   /** Retrieve the userId for a given refresh token (null if not found/expired) */
@@ -35,14 +35,14 @@ export class TokenStoreService {
    */
   async revokeAllUserTokens(userId: string): Promise<void> {
     const keysToDelete: string[] = [];
-    let cursor = "0";
+    let cursor = '0';
 
     do {
       const [nextCursor, keys] = await this.redis.scan(
         cursor,
-        "MATCH",
-        "refresh:*",
-        "COUNT",
+        'MATCH',
+        'refresh:*',
+        'COUNT',
         100,
       );
       cursor = nextCursor;
@@ -55,7 +55,7 @@ export class TokenStoreService {
           }
         });
       }
-    } while (cursor !== "0");
+    } while (cursor !== '0');
 
     if (keysToDelete.length > 0) {
       await this.redis.del(...keysToDelete);
