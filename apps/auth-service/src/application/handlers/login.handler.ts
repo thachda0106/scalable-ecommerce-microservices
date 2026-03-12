@@ -5,17 +5,21 @@ import { Repository } from "typeorm";
 import * as argon2 from "argon2";
 import { UnauthorizedException } from "@nestjs/common";
 import { UserOrmEntity } from "../../infrastructure/database/user.orm-entity";
+import {
+  JwtAdapterService,
+  AuthTokens,
+} from "../../infrastructure/jwt/jwt-adapter.service";
+import { Role } from "../../domain/value-objects/role.enum";
 
 @QueryHandler(LoginQuery)
 export class LoginHandler implements IQueryHandler<LoginQuery> {
   constructor(
     @InjectRepository(UserOrmEntity)
     private readonly userRepository: Repository<UserOrmEntity>,
+    private readonly jwtAdapterService: JwtAdapterService,
   ) {}
 
-  async execute(
-    query: LoginQuery,
-  ): Promise<{ id: string; email: string; role: string }> {
+  async execute(query: LoginQuery): Promise<AuthTokens> {
     const { email, password } = query.dto;
 
     const user = await this.userRepository.findOne({ where: { email } });
@@ -28,11 +32,12 @@ export class LoginHandler implements IQueryHandler<LoginQuery> {
       throw new UnauthorizedException("Invalid credentials");
     }
 
-    // TODO: Generate JWT here in Task 2. For now just return the verified user identifier
-    return {
+    const role = user.role as Role;
+
+    return this.jwtAdapterService.generateTokens({
       id: user.id,
       email: user.email,
-      role: user.role,
-    };
+      role: role,
+    });
   }
 }

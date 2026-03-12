@@ -6,6 +6,7 @@ import { getLoggerModule } from "@ecommerce/core";
 import { DatabaseModule } from "./infrastructure/database/database.module";
 import { RedisModule } from "./infrastructure/redis/redis.module";
 import { KafkaProducerModule } from "./infrastructure/kafka/kafka-producer.module";
+import { AuthJwtModule } from "./infrastructure/jwt/jwt.module";
 import { RegisterHandler } from "./application/handlers/register.handler";
 import { LoginHandler } from "./application/handlers/login.handler";
 
@@ -19,6 +20,7 @@ const QueryHandlers = [LoginHandler];
     DatabaseModule,
     RedisModule,
     KafkaProducerModule,
+    AuthJwtModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, ...CommandHandlers, ...QueryHandlers],
