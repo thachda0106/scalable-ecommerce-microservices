@@ -85,7 +85,7 @@ export class ProxyController {
    */
   private injectIdentityHeaders(req: Request) {
     if (req.user) {
-      const u = req.user as any;
+      const u = req.user as { userId: string; roles?: string | string[] };
       req.headers['x-user-id'] = u.userId;
       if (u.roles) {
         req.headers['x-user-roles'] = Array.isArray(u.roles)

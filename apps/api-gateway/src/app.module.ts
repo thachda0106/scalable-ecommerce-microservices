@@ -25,6 +25,7 @@ import { JwtStrategy } from './common/guards/jwt.strategy';
         ),
       }),
     }),
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
     getLoggerModule(),
     ProxyModule,
     AggregationModule,

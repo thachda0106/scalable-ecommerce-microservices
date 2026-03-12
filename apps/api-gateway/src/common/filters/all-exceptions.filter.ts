@@ -23,7 +23,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
         ? exception.getStatus()
         : HttpStatus.INTERNAL_SERVER_ERROR;
 
-    const errorMessage =
+    const errorMessage: unknown =
       exception instanceof HttpException
         ? exception.getResponse()
         : { message: (exception as Error).message || 'Internal Server Error' };
@@ -31,10 +31,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const errorResponse = {
       statusCode: httpStatus,
       timestamp: new Date().toISOString(),
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       path: httpAdapter.getRequestUrl(ctx.getRequest()),
       ...(typeof errorMessage === 'string'
         ? { message: errorMessage }
-        : errorMessage),
+        : (errorMessage as Record<string, unknown>)),
     };
 
     if (httpStatus >= 500) {

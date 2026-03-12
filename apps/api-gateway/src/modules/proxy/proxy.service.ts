@@ -20,7 +20,12 @@ export class ProxyService {
   ) {}
 
   async forwardRequest(req: Request, res: Response, serviceUrl: string) {
-    const { method, url, body, headers } = req;
+    const { method, url, body, headers } = req as {
+      method: string;
+      url: string;
+      body: unknown;
+      headers: Record<string, string | string[] | undefined>;
+    };
     const targetUrl = `${serviceUrl}${url}`;
 
     this.logger.debug(`Forwarding ${method} ${url} to ${targetUrl}`);
@@ -35,9 +40,11 @@ export class ProxyService {
       const response = await lastValueFrom(
         this.httpService
           .request({
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             method: method as any,
             url: targetUrl,
             data: body,
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             headers: forwardHeaders as any,
             // Axios doesn't throw on 4xx/5xx by default if we want to pipe response,
             // but we'll let it throw so we can normalize via the gateway filter.
@@ -45,11 +52,14 @@ export class ProxyService {
           .pipe(
             catchError((error) => {
               this.logger.error(
-                `Error proxying to ${targetUrl}: ${error.message}`,
+                `Error proxying to ${targetUrl}: ${(error as Error).message}`,
               );
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
               if (error.response) {
                 throw new HttpException(
+                  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
                   error.response.data,
+                  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
                   error.response.status,
                 );
               }

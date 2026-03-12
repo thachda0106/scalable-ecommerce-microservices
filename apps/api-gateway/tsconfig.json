@@ -14,6 +14,12 @@
     "sourceMap": true,
     "outDir": "./dist",
     "baseUrl": "./",
+    "paths": {
+      "@ecommerce/core": ["../../packages/core/src"],
+      "@ecommerce/core/*": ["../../packages/core/src/*"],
+      "@ecommerce/events": ["../../packages/events/src"],
+      "@ecommerce/events/*": ["../../packages/events/src/*"]
+    },
     "incremental": true,
     "skipLibCheck": true,
     "strictNullChecks": true,

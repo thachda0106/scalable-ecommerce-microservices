@@ -17,10 +17,13 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     return super.canActivate(context);
   }
 
-  handleRequest(err: any, user: any, info: any) {
+  handleRequest(err: unknown, user: unknown) {
     if (err || !user) {
-      throw err || new UnauthorizedException('Authentication failed');
+      throw err instanceof Error
+        ? err
+        : new UnauthorizedException('Authentication failed');
     }
-    return user;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return user as any;
   }
 }

@@ -10,7 +10,7 @@ export class UserDashboardController {
   @UseGuards(JwtAuthGuard)
   @Get()
   async getDashboard(@Req() req: Request) {
-    const user = req.user as any;
+    const user = req.user as { userId: string };
     return this.dashboardService.getAggregatedDashboard(user.userId);
   }
 }

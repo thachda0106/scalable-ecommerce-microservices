@@ -24,17 +24,20 @@ export class DashboardService {
     const [userResult, ordersResult, notificationsResult] =
       await Promise.allSettled([
         lastValueFrom(
-          this.httpService.get(`${userServiceUrl}/users/${userId}`, {
+          this.httpService.get<unknown>(`${userServiceUrl}/users/${userId}`, {
             headers,
           }),
         ),
         lastValueFrom(
-          this.httpService.get(`${orderServiceUrl}/orders?userId=${userId}`, {
-            headers,
-          }),
+          this.httpService.get<unknown>(
+            `${orderServiceUrl}/orders?userId=${userId}`,
+            {
+              headers,
+            },
+          ),
         ),
         lastValueFrom(
-          this.httpService.get(
+          this.httpService.get<unknown>(
             `${notificationServiceUrl}/notifications?userId=${userId}`,
             { headers },
           ),
@@ -51,14 +54,16 @@ export class DashboardService {
           : [],
       errors: {
         user:
-          userResult.status === 'rejected' ? userResult.reason.message : null,
+          userResult.status === 'rejected'
+            ? (userResult.reason as Error).message
+            : null,
         orders:
           ordersResult.status === 'rejected'
-            ? ordersResult.reason.message
+            ? (ordersResult.reason as Error).message
             : null,
         notifications:
           notificationsResult.status === 'rejected'
-            ? notificationsResult.reason.message
+            ? (notificationsResult.reason as Error).message
             : null,
       },
     };
