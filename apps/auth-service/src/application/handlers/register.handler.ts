@@ -1,13 +1,13 @@
-import { CommandHandler, ICommandHandler } from "@nestjs/cqrs";
-import { RegisterCommand } from "../commands/register.command";
-import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
-import * as argon2 from "argon2";
-import { ConflictException, Inject } from "@nestjs/common";
-import { UserOrmEntity } from "../../infrastructure/database/user.orm-entity";
-import { Role } from "../../domain/value-objects/role.enum";
-import { KAFKA_SERVICE } from "../../infrastructure/kafka/kafka-producer.module";
-import { ClientKafka } from "@nestjs/microservices";
+import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { RegisterCommand } from '../commands/register.command';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import * as argon2 from 'argon2';
+import { ConflictException, Inject } from '@nestjs/common';
+import { UserOrmEntity } from '../../infrastructure/database/user.orm-entity';
+import { Role } from '../../domain/value-objects/role.enum';
+import { KAFKA_SERVICE } from '../../infrastructure/kafka/kafka-producer.module';
+import { ClientKafka } from '@nestjs/microservices';
 
 @CommandHandler(RegisterCommand)
 export class RegisterHandler implements ICommandHandler<RegisterCommand> {
@@ -28,7 +28,7 @@ export class RegisterHandler implements ICommandHandler<RegisterCommand> {
       where: { email },
     });
     if (existingUser) {
-      throw new ConflictException("Email already exists");
+      throw new ConflictException('Email already exists');
     }
 
     // Hash password with Argon2
@@ -49,8 +49,8 @@ export class RegisterHandler implements ICommandHandler<RegisterCommand> {
 
     // Fire & Forget: Emit integration event
     try {
-      this.kafkaClient.emit("identity", {
-        type: "user.registered",
+      this.kafkaClient.emit('identity', {
+        type: 'user.registered',
         data: {
           userId: savedUser.id,
           email: savedUser.email,
@@ -59,7 +59,7 @@ export class RegisterHandler implements ICommandHandler<RegisterCommand> {
       });
     } catch (err) {
       // In production, log this centrally. Don't block the user registration on event failures.
-      console.error("Failed to emit user.registered event", err);
+      console.error('Failed to emit user.registered event', err);
     }
 
     return {

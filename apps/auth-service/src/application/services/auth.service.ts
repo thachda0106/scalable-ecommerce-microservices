@@ -1,8 +1,8 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class AuthService {
   getHello(): string {
-    return "Auth Service Running!";
+    return 'Auth Service Running!';
   }
 }

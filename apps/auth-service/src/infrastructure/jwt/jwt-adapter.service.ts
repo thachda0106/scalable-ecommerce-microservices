@@ -1,8 +1,7 @@
-import { Injectable } from "@nestjs/common";
-import { JwtService } from "@nestjs/jwt";
-import { User } from "../../domain/entities/user.entity";
-import { Role } from "../../domain/value-objects/role.enum";
-import * as crypto from "crypto";
+import { Injectable } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { Role } from '../../domain/value-objects/role.enum';
+import * as crypto from 'crypto';
 
 export interface TokenPayload {
   sub: string;
@@ -31,11 +30,11 @@ export class JwtAdapterService {
     };
 
     const accessToken = this.jwtService.sign(payload, {
-      expiresIn: "15m",
+      expiresIn: '15m',
     });
 
     // Refresh token is an opaque high-entropy string
-    const refreshToken = crypto.randomBytes(40).toString("hex");
+    const refreshToken = crypto.randomBytes(40).toString('hex');
 
     return {
       accessToken,

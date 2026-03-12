@@ -1,15 +1,15 @@
-import { Controller, Get, Req, Res, UseGuards } from "@nestjs/common";
-import { AuthGuard } from "@nestjs/passport";
-import { CommandBus } from "@nestjs/cqrs";
-import { RegisterCommand } from "../../application/commands/register.command";
-import { JwtAdapterService } from "../../infrastructure/jwt/jwt-adapter.service";
-import { TokenStoreService } from "../../infrastructure/redis/token-store.service";
-import { InjectRepository } from "@nestjs/typeorm";
-import { UserOrmEntity } from "../../infrastructure/database/user.orm-entity";
-import { Repository } from "typeorm";
-import { Role } from "../../domain/value-objects/role.enum";
+import { Controller, Get, Req, Res, UseGuards } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+import { CommandBus } from '@nestjs/cqrs';
+import { RegisterCommand } from '../../application/commands/register.command';
+import { JwtAdapterService } from '../../infrastructure/jwt/jwt-adapter.service';
+import { TokenStoreService } from '../../infrastructure/redis/token-store.service';
+import { InjectRepository } from '@nestjs/typeorm';
+import { UserOrmEntity } from '../../infrastructure/database/user.orm-entity';
+import { Repository } from 'typeorm';
+import { Role } from '../../domain/value-objects/role.enum';
 
-@Controller("auth")
+@Controller('auth')
 export class OAuthController {
   constructor(
     private readonly commandBus: CommandBus,
@@ -19,26 +19,26 @@ export class OAuthController {
     private readonly userRepository: Repository<UserOrmEntity>,
   ) {}
 
-  @Get("google")
-  @UseGuards(AuthGuard("google"))
+  @Get('google')
+  @UseGuards(AuthGuard('google'))
   async googleAuth(@Req() req) {
     // Initiates Google OAuth flow
   }
 
-  @Get("google/callback")
-  @UseGuards(AuthGuard("google"))
+  @Get('google/callback')
+  @UseGuards(AuthGuard('google'))
   async googleAuthRedirect(@Req() req, @Res() res) {
     return this.handleOAuthLogin(req.user, res);
   }
 
-  @Get("github")
-  @UseGuards(AuthGuard("github"))
+  @Get('github')
+  @UseGuards(AuthGuard('github'))
   async githubAuth(@Req() req) {
     // Initiates Github OAuth flow
   }
 
-  @Get("github/callback")
-  @UseGuards(AuthGuard("github"))
+  @Get('github/callback')
+  @UseGuards(AuthGuard('github'))
   async githubAuthRedirect(@Req() req, @Res() res) {
     return this.handleOAuthLogin(req.user, res);
   }

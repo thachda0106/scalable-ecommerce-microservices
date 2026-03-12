@@ -5,15 +5,18 @@ The Identity & Authentication Service for the eCommerce microservices platform.
 ## Description
 
 This microservice handles:
-- User authentication and authorization
-- JWT token generation and validation
-- Identity provisioning and propagation
+- User authentication and authorization (Email/Password & OAuth via Google/GitHub)
+- JWT token generation and validation with Argon2 password hashing
+- Secure Refresh Token rotation stored dynamically via Redis
+- Role-Based Access Control (RBAC) mapping policies
+- Identity provisioning and propagation using CQRS & Event Sourcing (Kafka)
+- Application-level rate limiting (`@nestjs/throttler`) to prevent brute-force attacks
 
-It is built with NestJS and uses `@nestjs/passport` and `@nestjs/jwt`.
+It is built with NestJS and extensively uses `@nestjs/passport`, `@nestjs/jwt`, `@nestjs/cqrs`, and `@nestjs/microservices`.
 
 ## Requirements
 
-You must run the core infrastructure (like Redis & PostgreSQL) via Docker Compose before starting this service if they are needed plugins.
+You must run the core infrastructure (Redis, PostgreSQL, Kafka) via Docker Compose before starting this service.
 
 ```bash
 cd ../../docker
@@ -37,7 +40,7 @@ $ pnpm run start:prod
 
 ### Port Conflicts
 
-By default, this service attempts to run on **Port 3001**.
+By default, this service integrates on **Port 3001**.
 If you encounter an `EADDRINUSE` error, ensure no other processes are using port 3001:
 
 ```bash
@@ -51,4 +54,8 @@ pnpm run start:dev
 | -------- | ----------- | ------- |
 | `PORT` | The port the service runs on | `3001` |
 | `JWT_SECRET` | Secret key for signing tokens | `super-secret-key-change-in-prod` |
-
+| `REDIS_HOST` | Redis cache storage URI | `localhost` |
+| `REDIS_PORT` | Redis cache port | `6379` |
+| `KAFKA_BROKERS` | CSV List of Bootstrap servers | `localhost:9092` |
+| `GOOGLE_CLIENT_ID` | OAuth2 Google ID | - |
+| `GITHUB_CLIENT_ID` | OAuth2 GitHub ID | - |

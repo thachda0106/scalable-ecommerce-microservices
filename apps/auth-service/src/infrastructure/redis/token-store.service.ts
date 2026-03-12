@@ -1,6 +1,7 @@
 import { Injectable, Inject } from "@nestjs/common";
 import { Redis } from "ioredis";
-import { REDIS_CLIENT } from "./redis.module";
+
+export const REDIS_CLIENT = "REDIS_CLIENT";
 
 @Injectable()
 export class TokenStoreService {

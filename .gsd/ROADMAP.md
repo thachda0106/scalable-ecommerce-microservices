@@ -45,7 +45,7 @@
 ---
 
 ### Phase 8: Production-Grade Auth & Identity Service
-**Status**: ⬜ Not Started
+**Status**: ✅ Completed
 **Objective**: Upgrade the Auth Service into a production-grade identity and authentication system, handling JWT access/refresh tokens, Redis-backed token rotation, role-based access control (RBAC), OAuth (Google/GitHub), identity management (registration, email verification, password reset), and security hardening. Publish Kafka events (`user.registered`, `user.logged_in`, etc.) for downstream consumption.
 **Depends on**: Phase 7
 

@@ -1,4 +1,5 @@
 import { Module } from "@nestjs/common";
+import { ConfigModule } from "@nestjs/config";
 import { CqrsModule } from "@nestjs/cqrs";
 import { AuthController } from "./interfaces/controllers/auth.controller";
 import { AuthService } from "./application/services/auth.service";
@@ -21,6 +22,7 @@ const QueryHandlers = [LoginHandler];
 
 @Module({
   imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
     CqrsModule,
     getLoggerModule(),
     DatabaseModule,

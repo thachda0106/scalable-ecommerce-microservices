@@ -1,8 +1,6 @@
 import { Module, Global } from "@nestjs/common";
 import { Redis } from "ioredis";
-import { TokenStoreService } from "./token-store.service";
-
-export const REDIS_CLIENT = "REDIS_CLIENT";
+import { TokenStoreService, REDIS_CLIENT } from "./token-store.service";
 
 @Global()
 @Module({
@@ -18,6 +16,6 @@ export const REDIS_CLIENT = "REDIS_CLIENT";
     },
     TokenStoreService,
   ],
-  exports: [REDIS_CLIENT, TokenStoreService],
+  exports: ["REDIS_CLIENT", TokenStoreService],
 })
 export class RedisModule {}

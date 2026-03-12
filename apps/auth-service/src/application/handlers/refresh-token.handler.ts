@@ -1,19 +1,18 @@
-import { CommandHandler, ICommandHandler } from "@nestjs/cqrs";
-import { RefreshTokenCommand } from "../commands/refresh-token.command";
-import { UnauthorizedException } from "@nestjs/common";
+import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { RefreshTokenCommand } from '../commands/refresh-token.command';
+import { UnauthorizedException } from '@nestjs/common';
 import {
   JwtAdapterService,
   AuthTokens,
-} from "../../infrastructure/jwt/jwt-adapter.service";
-import { TokenStoreService } from "../../infrastructure/redis/token-store.service";
-import { InjectRepository } from "@nestjs/typeorm";
-import { UserOrmEntity } from "../../infrastructure/database/user.orm-entity";
-import { Repository } from "typeorm";
-import { Role } from "../../domain/value-objects/role.enum";
+} from '../../infrastructure/jwt/jwt-adapter.service';
+import { TokenStoreService } from '../../infrastructure/redis/token-store.service';
+import { InjectRepository } from '@nestjs/typeorm';
+import { UserOrmEntity } from '../../infrastructure/database/user.orm-entity';
+import { Repository } from 'typeorm';
+import { Role } from '../../domain/value-objects/role.enum';
 
 @CommandHandler(RefreshTokenCommand)
-export class RefreshTokenHandler
-  implements ICommandHandler<RefreshTokenCommand> {
+export class RefreshTokenHandler implements ICommandHandler<RefreshTokenCommand> {
   constructor(
     private readonly jwtAdapterService: JwtAdapterService,
     private readonly tokenStoreService: TokenStoreService,
@@ -25,17 +24,16 @@ export class RefreshTokenHandler
     const { refreshToken } = command.dto;
 
     // 1. Verify token exists in Redis
-    const userId = await this.tokenStoreService.getUserIdByRefreshToken(
-      refreshToken,
-    );
+    const userId =
+      await this.tokenStoreService.getUserIdByRefreshToken(refreshToken);
     if (!userId) {
-      throw new UnauthorizedException("Invalid or expired refresh token");
+      throw new UnauthorizedException('Invalid or expired refresh token');
     }
 
     // 2. Fetch user to ensure they are still active
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user || !user.isActive) {
-      throw new UnauthorizedException("User is not active");
+      throw new UnauthorizedException('User is not active');
     }
 
     // 3. Revoke the old refresh token (Rotation)
