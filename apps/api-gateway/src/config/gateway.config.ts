@@ -1,5 +1,9 @@
-export const GatewayConfig = () => ({
+import { registerAs } from '@nestjs/config';
+
+export const GatewayConfig = registerAs('gateway', () => ({
   port: parseInt(process.env.PORT || '3000', 10),
+  corsOrigin: process.env.CORS_ORIGIN || '*',
+  timeout: parseInt(process.env.REQUEST_TIMEOUT || '5000', 10),
   redis: {
     host: process.env.REDIS_HOST || 'localhost',
     port: parseInt(process.env.REDIS_PORT || '6379', 10),
@@ -19,4 +23,4 @@ export const GatewayConfig = () => ({
   jwt: {
     secret: process.env.JWT_SECRET || 'super-secret-key-change-in-prod',
   },
-});
+}));

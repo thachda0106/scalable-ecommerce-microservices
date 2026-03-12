@@ -3,24 +3,25 @@ import { ConfigModule, ConfigService } from "@nestjs/config";
 import { ThrottlerModule, ThrottlerGuard } from "@nestjs/throttler";
 import { APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
 import { HttpModule } from "@nestjs/axios";
+import { PassportModule } from "@nestjs/passport";
 import { ThrottlerStorageRedisService } from "nestjs-throttler-storage-redis";
 import { getLoggerModule } from "@ecommerce/core";
 import { GatewayConfig } from "./config/gateway.config";
-import { ServicesConfig } from "./config/services.config";
-import { ProxyModule } from "./modules/proxy/proxy.module";
 import { AggregationModule } from "./modules/aggregation/aggregation.module";
 import { JwtStrategy } from "./common/guards/jwt.strategy";
 import { RequestIdMiddleware } from "./middleware/request-id.middleware";
-import { BaseHttpClient } from "./common/http-client";
+import { HttpClientModule } from "./common/http-client.module";
 import { GatewayController } from "./controllers/gateway.controller";
-import { TimeoutInterceptor } from "./interceptors/timeout.interceptor";
+import { TimeoutInterceptor } from "./common/interceptors/timeout.interceptor";
+import { HealthController } from "./controllers/health.controller";
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [GatewayConfig, ServicesConfig],
+      load: [GatewayConfig],
     }),
+    PassportModule.register({ defaultStrategy: "jwt" }),
     ThrottlerModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -28,19 +29,18 @@ import { TimeoutInterceptor } from "./interceptors/timeout.interceptor";
         throttlers: [{ ttl: 60000, limit: 100 }],
         storage: new ThrottlerStorageRedisService(
           `redis://${config.get<string>(
-            "redis.host",
+            "gateway.redis.host",
             "localhost",
-          )}:${config.get<number>("redis.port", 6379)}`,
+          )}:${config.get<number>("gateway.redis.port", 6379)}`,
         ),
       }),
     }),
-    HttpModule,
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+    HttpClientModule,
+
     getLoggerModule(),
-    ProxyModule,
     AggregationModule,
   ],
-  controllers: [GatewayController],
+  controllers: [GatewayController, HealthController],
   providers: [
     {
       provide: APP_GUARD,
@@ -48,10 +48,15 @@ import { TimeoutInterceptor } from "./interceptors/timeout.interceptor";
     },
     {
       provide: APP_INTERCEPTOR,
-      useClass: TimeoutInterceptor,
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => {
+        return new TimeoutInterceptor(
+          config.get<number>("gateway.timeout", 5000),
+        );
+      },
     },
     JwtStrategy,
-    BaseHttpClient,
+    JwtStrategy,
   ],
 })
 export class AppModule implements NestModule {

@@ -1,7 +1,8 @@
-import { Injectable, HttpException } from "@nestjs/common";
-import { BaseHttpClient } from "../../common/http-client";
-import { ConfigService } from "@nestjs/config";
-import type { Request } from "express";
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument */
+import { Injectable, HttpException } from '@nestjs/common';
+import { BaseHttpClient } from '../../common/http-client';
+import { ConfigService } from '@nestjs/config';
+import type { GatewayRequest } from '../../common/types';
 
 @Injectable()
 export class ProductPageService {
@@ -10,13 +11,17 @@ export class ProductPageService {
     private readonly configService: ConfigService,
   ) {}
 
-  async getPage(productId: string, req: any) {
-    const productUrl = this.configService.get<string>("services.product");
-    const inventoryUrl = this.configService.get<string>("services.inventory");
+  async getPage(productId: string, req: GatewayRequest) {
+    const productUrl = this.configService.get<string>(
+      'gateway.services.product',
+    );
+    const inventoryUrl = this.configService.get<string>(
+      'gateway.services.inventory',
+    );
 
     if (!productUrl || !inventoryUrl) {
       throw new HttpException(
-        "Aggregation dependencies not fully configured",
+        'Aggregation dependencies not fully configured',
         503,
       );
     }
@@ -26,7 +31,7 @@ export class ProductPageService {
         `${productUrl}/products/${productId}`,
         {
           ...req,
-          method: "GET",
+          method: 'GET',
           url: `/products/${productId}`,
           body: undefined,
         } as any,
@@ -35,7 +40,7 @@ export class ProductPageService {
         `${inventoryUrl}/inventory/${productId}`,
         {
           ...req,
-          method: "GET",
+          method: 'GET',
           url: `/inventory/${productId}`,
           body: undefined,
         } as any,
@@ -43,7 +48,7 @@ export class ProductPageService {
       const reviewsP = this.httpClient
         .forwardRequest(`${productUrl}/reviews/product/${productId}`, {
           ...req,
-          method: "GET",
+          method: 'GET',
           url: `/reviews/product/${productId}`,
           body: undefined,
         } as any)
@@ -60,8 +65,8 @@ export class ProductPageService {
         inventory,
         reviews,
       };
-    } catch (error) {
-      throw new HttpException("Product Aggregation Failed", 500);
+    } catch {
+      throw new HttpException('Product Aggregation Failed', 500);
     }
   }
 }

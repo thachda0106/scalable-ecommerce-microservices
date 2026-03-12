@@ -1,9 +1,10 @@
-import { Injectable, HttpException } from "@nestjs/common";
-import { HttpService } from "@nestjs/axios";
-import { Request } from "express";
-import { firstValueFrom } from "rxjs";
-import { AxiosRequestConfig, AxiosError } from "axios";
-import CircuitBreaker from "opossum";
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
+import { Injectable, HttpException } from '@nestjs/common';
+import { HttpService } from '@nestjs/axios';
+import { Request } from 'express';
+import { firstValueFrom } from 'rxjs';
+import { AxiosRequestConfig } from 'axios';
+import CircuitBreaker from 'opossum';
 
 @Injectable()
 export class BaseHttpClient {
@@ -21,7 +22,7 @@ export class BaseHttpClient {
       this.executeRequest.bind(this),
       breakerOptions,
     );
-    this.breaker.fallback(() => Promise.reject(new Error("Breaker is open")));
+    this.breaker.fallback(() => Promise.reject(new Error('Breaker is open')));
   }
 
   /**
@@ -37,8 +38,8 @@ export class BaseHttpClient {
     };
 
     // Propagate x-request-id from middleware
-    if (req.headers["x-request-id"]) {
-      headers["x-request-id"] = req.headers["x-request-id"] as string;
+    if (req.headers['x-request-id']) {
+      headers['x-request-id'] = req.headers['x-request-id'] as string;
     }
 
     // Propagate Authorization header if present
@@ -50,11 +51,11 @@ export class BaseHttpClient {
     if (req.user) {
       const user = req.user as any;
       if (user.userId) {
-        headers["x-user-id"] = user.userId;
+        headers['x-user-id'] = user.userId;
       }
       if (user.roles) {
-        headers["x-user-roles"] = Array.isArray(user.roles)
-          ? user.roles.join(",")
+        headers['x-user-roles'] = Array.isArray(user.roles)
+          ? user.roles.join(',')
           : user.roles;
       }
     }
@@ -63,7 +64,7 @@ export class BaseHttpClient {
       method: req.method,
       url: targetUrl,
       headers,
-      data: req.method !== "GET" ? req.body : undefined,
+      data: req.method !== 'GET' ? req.body : undefined,
       params: req.query,
     };
 
@@ -72,16 +73,16 @@ export class BaseHttpClient {
       const response: any = await this.breaker.fire(config);
       return response.data;
     } catch (error) {
-      if (error instanceof Error && error.message === "Breaker is open") {
+      if (error instanceof Error && error.message === 'Breaker is open') {
         throw new HttpException(
-          "Service Temporarily Unavailable (Fast Fallback)",
+          'Service Temporarily Unavailable (Fast Fallback)',
           503,
         );
       }
       if (error.response) {
         throw new HttpException(error.response.data, error.response.status);
       }
-      throw new HttpException("Internal Gateway Error", 500);
+      throw new HttpException('Internal Gateway Error', 500);
     }
   }
 

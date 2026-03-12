@@ -1,56 +1,62 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument */
 import { Injectable, Logger } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
+import { BaseHttpClient } from '../../common/http-client';
 import { ConfigService } from '@nestjs/config';
-import { lastValueFrom } from 'rxjs';
 
 @Injectable()
 export class DashboardService {
   private readonly logger = new Logger(DashboardService.name);
 
   constructor(
-    private readonly httpService: HttpService,
+    private readonly httpClient: BaseHttpClient,
     private readonly configService: ConfigService,
   ) {}
 
   async getAggregatedDashboard(userId: string) {
-    const userServiceUrl = this.configService.get<string>('services.user');
-    const orderServiceUrl = this.configService.get<string>('services.order');
+    const userServiceUrl = this.configService.get<string>(
+      'gateway.services.user',
+    );
+    const orderServiceUrl = this.configService.get<string>(
+      'gateway.services.order',
+    );
     const notificationServiceUrl = this.configService.get<string>(
-      'services.notification',
+      'gateway.services.notification',
     );
 
     const headers = { 'x-user-id': userId };
 
     const [userResult, ordersResult, notificationsResult] =
       await Promise.allSettled([
-        lastValueFrom(
-          this.httpService.get<unknown>(`${userServiceUrl}/users/${userId}`, {
+        this.httpClient.forwardRequest(`${userServiceUrl}/users/${userId}`, {
+          method: 'GET',
+          url: `/users/${userId}`,
+          headers,
+        } as any),
+        this.httpClient.forwardRequest(
+          `${orderServiceUrl}/orders?userId=${userId}`,
+          {
+            method: 'GET',
+            url: `/orders?userId=${userId}`,
             headers,
-          }),
+          } as any,
         ),
-        lastValueFrom(
-          this.httpService.get<unknown>(
-            `${orderServiceUrl}/orders?userId=${userId}`,
-            {
-              headers,
-            },
-          ),
-        ),
-        lastValueFrom(
-          this.httpService.get<unknown>(
-            `${notificationServiceUrl}/notifications?userId=${userId}`,
-            { headers },
-          ),
+        this.httpClient.forwardRequest(
+          `${notificationServiceUrl}/notifications?userId=${userId}`,
+          {
+            method: 'GET',
+            url: `/notifications?userId=${userId}`,
+            headers,
+          } as any,
         ),
       ]);
 
     return {
-      user: userResult.status === 'fulfilled' ? userResult.value.data : null,
+      user: userResult.status === 'fulfilled' ? userResult.value : null,
       recentOrders:
-        ordersResult.status === 'fulfilled' ? ordersResult.value.data : [],
+        ordersResult.status === 'fulfilled' ? ordersResult.value : [],
       notifications:
         notificationsResult.status === 'fulfilled'
-          ? notificationsResult.value.data
+          ? notificationsResult.value
           : [],
       errors: {
         user:

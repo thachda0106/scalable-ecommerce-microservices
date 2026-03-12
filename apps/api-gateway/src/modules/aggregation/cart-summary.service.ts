@@ -1,7 +1,8 @@
-import { Injectable, HttpException } from "@nestjs/common";
-import { BaseHttpClient } from "../../common/http-client";
-import { ConfigService } from "@nestjs/config";
-import type { Request } from "express";
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-argument */
+import { Injectable, HttpException } from '@nestjs/common';
+import { BaseHttpClient } from '../../common/http-client';
+import { ConfigService } from '@nestjs/config';
+import type { GatewayRequest } from '../../common/types';
 
 @Injectable()
 export class CartSummaryService {
@@ -10,14 +11,18 @@ export class CartSummaryService {
     private readonly configService: ConfigService,
   ) {}
 
-  async getSummary(req: any) {
-    const cartUrl = this.configService.get<string>("services.cart");
-    const productUrl = this.configService.get<string>("services.product");
-    const inventoryUrl = this.configService.get<string>("services.inventory");
+  async getSummary(req: GatewayRequest) {
+    const cartUrl = this.configService.get<string>('gateway.services.cart');
+    const productUrl = this.configService.get<string>(
+      'gateway.services.product',
+    );
+    const inventoryUrl = this.configService.get<string>(
+      'gateway.services.inventory',
+    );
 
     if (!cartUrl || !productUrl || !inventoryUrl) {
       throw new HttpException(
-        "Aggregation dependencies not fully configured",
+        'Aggregation dependencies not fully configured',
         503,
       );
     }
@@ -37,7 +42,7 @@ export class CartSummaryService {
           `${productUrl}/products/${item.productId}`,
           {
             ...req,
-            method: "GET",
+            method: 'GET',
             url: `/products/${item.productId}`,
             body: undefined,
           } as any,
@@ -46,7 +51,7 @@ export class CartSummaryService {
           `${inventoryUrl}/inventory/${item.productId}`,
           {
             ...req,
-            method: "GET",
+            method: 'GET',
             url: `/inventory/${item.productId}`,
             body: undefined,
           } as any,
@@ -58,13 +63,13 @@ export class CartSummaryService {
             inventoryP,
           ]);
           return { item, product, inventory };
-        } catch (err) {
+        } catch {
           // Graceful degradation for partial failures
           return {
             item,
             product: null,
             inventory: null,
-            error: "Enrichment failed",
+            error: 'Enrichment failed',
           };
         }
       });
@@ -75,8 +80,8 @@ export class CartSummaryService {
         cart: cartData,
         enrichments,
       };
-    } catch (error) {
-      throw new HttpException("Cart Aggregation Failed", 500);
+    } catch {
+      throw new HttpException('Cart Aggregation Failed', 500);
     }
   }
 }
