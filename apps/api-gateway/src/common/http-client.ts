@@ -30,6 +30,19 @@ export class BaseHttpClient {
       headers.authorization = req.headers.authorization;
     }
 
+    // Propagate decoded Identity headers from JwtAuthGuard
+    if (req.user) {
+      const user = req.user as any;
+      if (user.userId) {
+        headers["x-user-id"] = user.userId;
+      }
+      if (user.roles) {
+        headers["x-user-roles"] = Array.isArray(user.roles)
+          ? user.roles.join(",")
+          : user.roles;
+      }
+    }
+
     const config: AxiosRequestConfig = {
       method: req.method,
       url: targetUrl,

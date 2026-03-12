@@ -5,11 +5,13 @@ import {
   Inject,
   HttpException,
   HttpStatus,
+  UseGuards,
 } from "@nestjs/common";
 import { Request } from "express";
 import { ConfigType } from "@nestjs/config";
 import { BaseHttpClient } from "../common/http-client";
 import { ServicesConfig } from "../config/services.config";
+import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
 
 @Controller()
 export class GatewayController {
@@ -25,6 +27,7 @@ export class GatewayController {
   }
 
   @All("users/*")
+  @UseGuards(JwtAuthGuard)
   async routeUsers(@Req() req: any) {
     return this.forward(this.servicesConfig.user, req, "users");
   }
@@ -40,26 +43,31 @@ export class GatewayController {
   }
 
   @All("cart/*")
+  @UseGuards(JwtAuthGuard)
   async routeCart(@Req() req: any) {
     return this.forward(this.servicesConfig.cart, req, "cart");
   }
 
   @All("inventory/*")
+  @UseGuards(JwtAuthGuard)
   async routeInventory(@Req() req: any) {
     return this.forward(this.servicesConfig.inventory, req, "inventory");
   }
 
   @All("orders/*")
+  @UseGuards(JwtAuthGuard)
   async routeOrders(@Req() req: any) {
     return this.forward(this.servicesConfig.order, req, "orders");
   }
 
   @All("payments/*")
+  @UseGuards(JwtAuthGuard)
   async routePayments(@Req() req: any) {
     return this.forward(this.servicesConfig.payment, req, "payments");
   }
 
   @All("notifications/*")
+  @UseGuards(JwtAuthGuard)
   async routeNotifications(@Req() req: any) {
     return this.forward(this.servicesConfig.notification, req, "notifications");
   }
