@@ -1,12 +1,21 @@
-import { Controller, Post, Body, HttpCode, HttpStatus } from "@nestjs/common";
+import {
+  Controller,
+  Post,
+  Body,
+  HttpCode,
+  HttpStatus,
+  UseGuards,
+} from "@nestjs/common";
 import { CommandBus, QueryBus } from "@nestjs/cqrs";
 import { RegisterDto, LoginDto } from "../dto/auth.dto";
 import { RefreshTokenDto } from "../dto/refresh-token.dto";
 import { RegisterCommand } from "../../application/commands/register.command";
 import { LoginQuery } from "../../application/queries/login.query";
 import { RefreshTokenCommand } from "../../application/commands/refresh-token.command";
+import { ThrottlerGuard } from "@nestjs/throttler";
 
 @Controller("auth")
+@UseGuards(ThrottlerGuard)
 export class AuthController {
   constructor(
     private readonly commandBus: CommandBus,
