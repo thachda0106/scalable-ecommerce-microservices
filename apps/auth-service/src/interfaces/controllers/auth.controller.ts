@@ -1,8 +1,10 @@
 import { Controller, Post, Body, HttpCode, HttpStatus } from "@nestjs/common";
 import { CommandBus, QueryBus } from "@nestjs/cqrs";
 import { RegisterDto, LoginDto } from "../dto/auth.dto";
+import { RefreshTokenDto } from "../dto/refresh-token.dto";
 import { RegisterCommand } from "../../application/commands/register.command";
 import { LoginQuery } from "../../application/queries/login.query";
+import { RefreshTokenCommand } from "../../application/commands/refresh-token.command";
 
 @Controller("auth")
 export class AuthController {
@@ -20,5 +22,11 @@ export class AuthController {
   @Post("login")
   async login(@Body() loginDto: LoginDto) {
     return this.queryBus.execute(new LoginQuery(loginDto));
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post("refresh")
+  async refresh(@Body() refreshTokenDto: RefreshTokenDto) {
+    return this.commandBus.execute(new RefreshTokenCommand(refreshTokenDto));
   }
 }

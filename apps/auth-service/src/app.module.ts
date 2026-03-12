@@ -9,8 +9,9 @@ import { KafkaProducerModule } from "./infrastructure/kafka/kafka-producer.modul
 import { AuthJwtModule } from "./infrastructure/jwt/jwt.module";
 import { RegisterHandler } from "./application/handlers/register.handler";
 import { LoginHandler } from "./application/handlers/login.handler";
+import { RefreshTokenHandler } from "./application/handlers/refresh-token.handler";
 
-const CommandHandlers = [RegisterHandler];
+const CommandHandlers = [RegisterHandler, RefreshTokenHandler];
 const QueryHandlers = [LoginHandler];
 
 @Module({
