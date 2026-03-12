@@ -1,7 +1,7 @@
 import { Module, MiddlewareConsumer, NestModule } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { ThrottlerModule, ThrottlerGuard } from "@nestjs/throttler";
-import { APP_GUARD } from "@nestjs/core";
+import { APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
 import { HttpModule } from "@nestjs/axios";
 import { ThrottlerStorageRedisService } from "nestjs-throttler-storage-redis";
 import { getLoggerModule } from "@ecommerce/core";
@@ -13,6 +13,7 @@ import { JwtStrategy } from "./common/guards/jwt.strategy";
 import { RequestIdMiddleware } from "./middleware/request-id.middleware";
 import { BaseHttpClient } from "./common/http-client";
 import { GatewayController } from "./controllers/gateway.controller";
+import { TimeoutInterceptor } from "./interceptors/timeout.interceptor";
 
 @Module({
   imports: [
@@ -44,6 +45,10 @@ import { GatewayController } from "./controllers/gateway.controller";
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: TimeoutInterceptor,
     },
     JwtStrategy,
     BaseHttpClient,

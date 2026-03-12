@@ -1,0 +1,4 @@
+apps/api-gateway/src/modules/aggregation/cart-summary.service.ts(2,32): error TS2307: Cannot find module '../common/http-client' or its corresponding type declarations.
+apps/api-gateway/src/modules/aggregation/order-details.service.ts(2,32): error TS2307: Cannot find module '../common/http-client' or its corresponding type declarations.
+apps/api-gateway/src/modules/aggregation/order-details.service.ts(46,9): error TS2322: Type '{ status: string; }' is not assignable to type 'null'.
+apps/api-gateway/src/modules/aggregation/product-page.service.ts(2,32): error TS2307: Cannot find module '../common/http-client' or its corresponding type declarations.

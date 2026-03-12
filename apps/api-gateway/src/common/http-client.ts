@@ -3,10 +3,26 @@ import { HttpService } from "@nestjs/axios";
 import { Request } from "express";
 import { firstValueFrom } from "rxjs";
 import { AxiosRequestConfig, AxiosError } from "axios";
+import CircuitBreaker from "opossum";
 
 @Injectable()
 export class BaseHttpClient {
-  constructor(private readonly httpService: HttpService) {}
+  private breaker: CircuitBreaker;
+
+  constructor(private readonly httpService: HttpService) {
+    const breakerOptions = {
+      timeout: 4000, // Timeout slightly under the global 5000ms interceptor
+      errorThresholdPercentage: 50, // Open breaker if 50% operations fail
+      resetTimeout: 10000, // Retry after 10 seconds
+    };
+
+    // Bind executeRequest context correctly to this instance
+    this.breaker = new CircuitBreaker(
+      this.executeRequest.bind(this),
+      breakerOptions,
+    );
+    this.breaker.fallback(() => Promise.reject(new Error("Breaker is open")));
+  }
 
   /**
    * Forwards a request to a downstream service, preserving traceability headers.
@@ -52,13 +68,27 @@ export class BaseHttpClient {
     };
 
     try {
-      const response = await firstValueFrom(this.httpService.request(config));
+      // Execute the request via the initialized circuit breaker
+      const response: any = await this.breaker.fire(config);
       return response.data;
     } catch (error) {
-      if (error instanceof AxiosError && error.response) {
+      if (error instanceof Error && error.message === "Breaker is open") {
+        throw new HttpException(
+          "Service Temporarily Unavailable (Fast Fallback)",
+          503,
+        );
+      }
+      if (error.response) {
         throw new HttpException(error.response.data, error.response.status);
       }
       throw new HttpException("Internal Gateway Error", 500);
     }
+  }
+
+  /**
+   * Actual HTTP call wrapped by the circuit breaker.
+   */
+  private async executeRequest(config: AxiosRequestConfig): Promise<any> {
+    return firstValueFrom(this.httpService.request(config));
   }
 }

@@ -1,5 +1,7 @@
 import {
   Controller,
+  Get,
+  Param,
   All,
   Req,
   Inject,
@@ -13,13 +15,37 @@ import { BaseHttpClient } from "../common/http-client";
 import { ServicesConfig } from "../config/services.config";
 import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
 
+import { ProductPageService } from "../modules/aggregation/product-page.service";
+import { CartSummaryService } from "../modules/aggregation/cart-summary.service";
+import { OrderDetailsService } from "../modules/aggregation/order-details.service";
+
 @Controller()
 export class GatewayController {
   constructor(
     private readonly httpClient: BaseHttpClient,
     @Inject(ServicesConfig.KEY)
     private readonly servicesConfig: Record<string, string>,
+    private readonly productPageService: ProductPageService,
+    private readonly cartSummaryService: CartSummaryService,
+    private readonly orderDetailsService: OrderDetailsService,
   ) {}
+
+  @Get("product-page/:id")
+  async getProductPage(@Param("id") id: string, @Req() req: any) {
+    return this.productPageService.getPage(id, req);
+  }
+
+  @Get("cart-summary")
+  @UseGuards(JwtAuthGuard)
+  async getCartSummary(@Req() req: any) {
+    return this.cartSummaryService.getSummary(req);
+  }
+
+  @Get("order-details/:id")
+  @UseGuards(JwtAuthGuard)
+  async getOrderDetails(@Param("id") id: string, @Req() req: any) {
+    return this.orderDetailsService.getDetails(id, req);
+  }
 
   @All("auth/*")
   async routeAuth(@Req() req: any) {
