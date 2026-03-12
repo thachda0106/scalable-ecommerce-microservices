@@ -13,6 +13,8 @@ import { RefreshTokenHandler } from "./application/handlers/refresh-token.handle
 import { ThrottlerModule } from "@nestjs/throttler";
 import { ThrottlerStorageRedisService } from "nestjs-throttler-storage-redis";
 import Redis from "ioredis";
+import { OAuthModule } from "./infrastructure/oauth/oauth.module";
+import { OAuthController } from "./interfaces/controllers/oauth.controller";
 
 const CommandHandlers = [RegisterHandler, RefreshTokenHandler];
 const QueryHandlers = [LoginHandler];
@@ -25,6 +27,7 @@ const QueryHandlers = [LoginHandler];
     RedisModule,
     KafkaProducerModule,
     AuthJwtModule,
+    OAuthModule,
     ThrottlerModule.forRootAsync({
       useFactory: () => ({
         // Login and Auth generic throttling: max 10 requests per 1 minute
@@ -38,7 +41,7 @@ const QueryHandlers = [LoginHandler];
       }),
     }),
   ],
-  controllers: [AuthController],
+  controllers: [AuthController, OAuthController],
   providers: [AuthService, ...CommandHandlers, ...QueryHandlers],
 })
 export class AppModule {}
