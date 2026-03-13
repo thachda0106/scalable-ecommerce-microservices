@@ -22,8 +22,7 @@ export class OAuthRegisterHandler implements ICommandHandler<OAuthRegisterComman
   async execute(
     command: OAuthRegisterCommand,
   ): Promise<{ id: string; email: string }> {
-    const { email, provider, providerId, firstName, lastName, picture } =
-      command.dto;
+    const { email, provider, providerId } = command.dto;
 
     const newUser = this.userRepository.create({
       id: crypto.randomUUID(),
@@ -48,8 +47,12 @@ export class OAuthRegisterHandler implements ICommandHandler<OAuthRegisterComman
           timestamp: new Date().toISOString(),
         },
       });
-    } catch (err) {
-      this.logger.error('Failed to emit user.registered event (OAuth)', err);
+    } catch (err: unknown) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      this.logger.error(
+        'Failed to emit user.registered event (OAuth)',
+        err instanceof Error ? err.message : String(err),
+      );
     }
 
     return { id: savedUser.id, email: savedUser.email };

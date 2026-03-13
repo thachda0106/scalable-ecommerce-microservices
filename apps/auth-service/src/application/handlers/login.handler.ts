@@ -52,8 +52,12 @@ export class LoginHandler implements IQueryHandler<LoginQuery> {
           timestamp: new Date().toISOString(),
         },
       });
-    } catch (err) {
-      this.logger.error('Failed to emit user.logged_in event', err);
+    } catch (err: unknown) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      this.logger.error(
+        'Failed to emit user.logged_in event',
+        err instanceof Error ? err.message : String(err),
+      );
     }
 
     const tokens = this.jwtAdapterService.generateTokens({

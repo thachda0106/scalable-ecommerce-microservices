@@ -1,14 +1,14 @@
-import { Test, TestingModule } from "@nestjs/testing";
-import { UnauthorizedException } from "@nestjs/common";
-import { RefreshTokenHandler } from "../refresh-token.handler";
-import { RefreshTokenCommand } from "../../commands/refresh-token.command";
-import { JwtAdapterService } from "../../../infrastructure/jwt/jwt-adapter.service";
-import { TokenStoreService } from "../../../infrastructure/redis/token-store.service";
-import { getRepositoryToken } from "@nestjs/typeorm";
-import { UserOrmEntity } from "../../../infrastructure/database/user.orm-entity";
-import { Role } from "../../../domain/value-objects/role.enum";
+import { Test, TestingModule } from '@nestjs/testing';
+import { UnauthorizedException } from '@nestjs/common';
+import { RefreshTokenHandler } from '../refresh-token.handler';
+import { RefreshTokenCommand } from '../../commands/refresh-token.command';
+import { JwtAdapterService } from '../../../infrastructure/jwt/jwt-adapter.service';
+import { TokenStoreService } from '../../../infrastructure/redis/token-store.service';
+import { getRepositoryToken } from '@nestjs/typeorm';
+import { UserOrmEntity } from '../../../infrastructure/database/user.orm-entity';
+import { Role } from '../../../domain/value-objects/role.enum';
 
-describe("RefreshTokenHandler", () => {
+describe('RefreshTokenHandler', () => {
   let handler: RefreshTokenHandler;
   let jwtAdapter: { generateTokens: jest.Mock };
   let tokenStore: {
@@ -19,12 +19,12 @@ describe("RefreshTokenHandler", () => {
   let userRepository: { findOne: jest.Mock };
 
   const mockUser: Partial<UserOrmEntity> = {
-    id: "user-id-1",
-    email: "test@example.com",
+    id: 'user-id-1',
+    email: 'test@example.com',
     role: Role.CUSTOMER,
     isActive: true,
   };
-  const mockNewTokens = { accessToken: "new-at", refreshToken: "new-rt" };
+  const mockNewTokens = { accessToken: 'new-at', refreshToken: 'new-rt' };
 
   beforeEach(async () => {
     jwtAdapter = { generateTokens: jest.fn().mockReturnValue(mockNewTokens) };
@@ -50,47 +50,47 @@ describe("RefreshTokenHandler", () => {
     handler = module.get<RefreshTokenHandler>(RefreshTokenHandler);
   });
 
-  it("should rotate tokens on valid refresh token", async () => {
-    tokenStore.getUserIdByRefreshToken.mockResolvedValue("user-id-1");
+  it('should rotate tokens on valid refresh token', async () => {
+    tokenStore.getUserIdByRefreshToken.mockResolvedValue('user-id-1');
     userRepository.findOne.mockResolvedValue(mockUser);
 
-    const command = new RefreshTokenCommand({ refreshToken: "old-rt" });
+    const command = new RefreshTokenCommand({ refreshToken: 'old-rt' });
     const result = await handler.execute(command);
 
     expect(result).toEqual(mockNewTokens);
     // Old token revoked
-    expect(tokenStore.revokeRefreshToken).toHaveBeenCalledWith("old-rt");
+    expect(tokenStore.revokeRefreshToken).toHaveBeenCalledWith('old-rt');
     // New token stored
     expect(tokenStore.storeRefreshToken).toHaveBeenCalledWith(
-      "new-rt",
-      "user-id-1",
+      'new-rt',
+      'user-id-1',
     );
   });
 
-  it("should throw UnauthorizedException for invalid/expired token", async () => {
+  it('should throw UnauthorizedException for invalid/expired token', async () => {
     tokenStore.getUserIdByRefreshToken.mockResolvedValue(null);
 
-    const command = new RefreshTokenCommand({ refreshToken: "invalid-token" });
+    const command = new RefreshTokenCommand({ refreshToken: 'invalid-token' });
     await expect(handler.execute(command)).rejects.toThrow(
       UnauthorizedException,
     );
   });
 
-  it("should throw UnauthorizedException if user no longer active", async () => {
-    tokenStore.getUserIdByRefreshToken.mockResolvedValue("user-id-1");
+  it('should throw UnauthorizedException if user no longer active', async () => {
+    tokenStore.getUserIdByRefreshToken.mockResolvedValue('user-id-1');
     userRepository.findOne.mockResolvedValue({ ...mockUser, isActive: false });
 
-    const command = new RefreshTokenCommand({ refreshToken: "valid-rt" });
+    const command = new RefreshTokenCommand({ refreshToken: 'valid-rt' });
     await expect(handler.execute(command)).rejects.toThrow(
       UnauthorizedException,
     );
   });
 
-  it("should throw UnauthorizedException if user not found", async () => {
-    tokenStore.getUserIdByRefreshToken.mockResolvedValue("user-id-1");
+  it('should throw UnauthorizedException if user not found', async () => {
+    tokenStore.getUserIdByRefreshToken.mockResolvedValue('user-id-1');
     userRepository.findOne.mockResolvedValue(null);
 
-    const command = new RefreshTokenCommand({ refreshToken: "valid-rt" });
+    const command = new RefreshTokenCommand({ refreshToken: 'valid-rt' });
     await expect(handler.execute(command)).rejects.toThrow(
       UnauthorizedException,
     );

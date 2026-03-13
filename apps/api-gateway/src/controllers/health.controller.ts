@@ -1,16 +1,16 @@
-import { Controller, Get } from "@nestjs/common";
-import { SkipThrottle } from "@nestjs/throttler";
+import { Controller, Get } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 
 @SkipThrottle()
-@Controller("health")
+@Controller('health')
 export class HealthController {
   @Get()
   check() {
-    return { status: "ok", timestamp: new Date().toISOString() };
+    return { status: 'ok', timestamp: new Date().toISOString() };
   }
 
-  @Get("ready")
+  @Get('ready')
   readiness() {
-    return { status: "ready", timestamp: new Date().toISOString() };
+    return { status: 'ready', timestamp: new Date().toISOString() };
   }
 }

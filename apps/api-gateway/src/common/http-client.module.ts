@@ -1,6 +1,6 @@
-import { Module } from "@nestjs/common";
-import { HttpModule } from "@nestjs/axios";
-import { BaseHttpClient } from "./http-client";
+import { Module } from '@nestjs/common';
+import { HttpModule } from '@nestjs/axios';
+import { BaseHttpClient } from './http-client';
 
 @Module({
   imports: [

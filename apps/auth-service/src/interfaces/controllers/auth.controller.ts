@@ -25,25 +25,25 @@ export class AuthController {
   ) {}
 
   @Post('register')
-  async register(@Body() registerDto: RegisterDto) {
+  async register(@Body() registerDto: RegisterDto): Promise<unknown> {
     return this.commandBus.execute(new RegisterCommand(registerDto));
   }
 
   @HttpCode(HttpStatus.OK)
   @Post('login')
-  async login(@Body() loginDto: LoginDto) {
+  async login(@Body() loginDto: LoginDto): Promise<unknown> {
     return this.queryBus.execute(new LoginQuery(loginDto));
   }
 
   @HttpCode(HttpStatus.OK)
   @Post('refresh')
-  async refresh(@Body() refreshTokenDto: RefreshTokenDto) {
+  async refresh(@Body() refreshTokenDto: RefreshTokenDto): Promise<unknown> {
     return this.commandBus.execute(new RefreshTokenCommand(refreshTokenDto));
   }
 
   @HttpCode(HttpStatus.OK)
   @Post('logout')
-  async logout(@Body() logoutDto: LogoutDto) {
+  async logout(@Body() logoutDto: LogoutDto): Promise<unknown> {
     return this.commandBus.execute(new LogoutCommand(logoutDto.refreshToken));
   }
 }

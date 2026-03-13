@@ -1,9 +1,9 @@
-import { Test, TestingModule } from "@nestjs/testing";
-import { LogoutHandler } from "../logout.handler";
-import { LogoutCommand } from "../../commands/logout.command";
-import { TokenStoreService } from "../../../infrastructure/redis/token-store.service";
+import { Test, TestingModule } from '@nestjs/testing';
+import { LogoutHandler } from '../logout.handler';
+import { LogoutCommand } from '../../commands/logout.command';
+import { TokenStoreService } from '../../../infrastructure/redis/token-store.service';
 
-describe("LogoutHandler", () => {
+describe('LogoutHandler', () => {
   let handler: LogoutHandler;
   let tokenStore: { revokeRefreshToken: jest.Mock };
 
@@ -20,20 +20,20 @@ describe("LogoutHandler", () => {
     handler = module.get<LogoutHandler>(LogoutHandler);
   });
 
-  it("should call revokeRefreshToken with the provided token", async () => {
-    const command = new LogoutCommand("my-refresh-token");
+  it('should call revokeRefreshToken with the provided token', async () => {
+    const command = new LogoutCommand('my-refresh-token');
     const result = await handler.execute(command);
 
     expect(tokenStore.revokeRefreshToken).toHaveBeenCalledWith(
-      "my-refresh-token",
+      'my-refresh-token',
     );
-    expect(result).toEqual({ message: "Logged out successfully" });
+    expect(result).toEqual({ message: 'Logged out successfully' });
   });
 
-  it("should propagate errors from token store", async () => {
-    tokenStore.revokeRefreshToken.mockRejectedValue(new Error("Redis error"));
+  it('should propagate errors from token store', async () => {
+    tokenStore.revokeRefreshToken.mockRejectedValue(new Error('Redis error'));
 
-    const command = new LogoutCommand("any-token");
-    await expect(handler.execute(command)).rejects.toThrow("Redis error");
+    const command = new LogoutCommand('any-token');
+    await expect(handler.execute(command)).rejects.toThrow('Redis error');
   });
 });

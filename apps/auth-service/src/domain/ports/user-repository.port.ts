@@ -1,4 +1,4 @@
-import { User } from "../entities/user.entity";
+import { User } from '../entities/user.entity';
 
 /**
  * Domain port for user persistence.
@@ -11,4 +11,4 @@ export interface UserRepositoryPort {
   save(user: User): Promise<User>;
 }
 
-export const USER_REPOSITORY = "USER_REPOSITORY";
+export const USER_REPOSITORY = 'USER_REPOSITORY';

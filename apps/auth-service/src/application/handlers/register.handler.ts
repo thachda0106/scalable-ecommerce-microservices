@@ -70,8 +70,12 @@ export class RegisterHandler implements ICommandHandler<RegisterCommand> {
           timestamp: new Date().toISOString(),
         },
       });
-    } catch (err) {
-      this.logger.error('Failed to emit user.registered event', err);
+    } catch (err: unknown) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      this.logger.error(
+        'Failed to emit user.registered event',
+        err instanceof Error ? err.message : String(err),
+      );
     }
 
     return {

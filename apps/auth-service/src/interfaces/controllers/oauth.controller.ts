@@ -2,6 +2,16 @@ import { Controller, Get, Req, Res, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { CommandBus } from '@nestjs/cqrs';
 import { OAuthLoginCommand } from '../../application/commands/oauth-login.command';
+import type { Request, Response } from 'express';
+
+interface OAuthUser {
+  email: string;
+  provider: string;
+  providerId: string;
+  firstName: string;
+  lastName: string;
+  picture?: string;
+}
 
 @Controller('auth')
 export class OAuthController {
@@ -15,8 +25,11 @@ export class OAuthController {
 
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
-  async googleAuthRedirect(@Req() req, @Res() res) {
-    await this.handleOAuthCallback(req.user, res);
+  async googleAuthRedirect(
+    @Req() req: Request,
+    @Res() res: Response,
+  ): Promise<void> {
+    await this.handleOAuthCallback(req.user as OAuthUser, res);
   }
 
   @Get('github')
@@ -27,12 +40,18 @@ export class OAuthController {
 
   @Get('github/callback')
   @UseGuards(AuthGuard('github'))
-  async githubAuthRedirect(@Req() req, @Res() res) {
-    await this.handleOAuthCallback(req.user, res);
+  async githubAuthRedirect(
+    @Req() req: Request,
+    @Res() res: Response,
+  ): Promise<void> {
+    await this.handleOAuthCallback(req.user as OAuthUser, res);
   }
 
-  private async handleOAuthCallback(oauthUser: any, res: any): Promise<void> {
-    const tokens = await this.commandBus.execute(
+  private async handleOAuthCallback(
+    oauthUser: OAuthUser,
+    res: Response,
+  ): Promise<void> {
+    const tokens: unknown = await this.commandBus.execute(
       new OAuthLoginCommand({
         email: oauthUser.email,
         provider: oauthUser.provider,

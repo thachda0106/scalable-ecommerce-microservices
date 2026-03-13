@@ -1,4 +1,4 @@
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { ICommandHandler } from '@nestjs/cqrs';
 import { OAuthLoginCommand } from '../commands/oauth-login.command';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
