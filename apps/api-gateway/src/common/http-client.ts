@@ -1,14 +1,13 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
 import { Injectable, HttpException } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { Request } from 'express';
 import { firstValueFrom } from 'rxjs';
-import { AxiosRequestConfig } from 'axios';
+import { AxiosRequestConfig, AxiosError, AxiosResponse } from 'axios';
 import CircuitBreaker from 'opossum';
 
 @Injectable()
 export class BaseHttpClient {
-  private breaker: CircuitBreaker;
+  private breaker: CircuitBreaker<[AxiosRequestConfig], AxiosResponse>;
 
   constructor(private readonly httpService: HttpService) {
     const breakerOptions = {
@@ -17,12 +16,27 @@ export class BaseHttpClient {
       resetTimeout: 10000, // Retry after 10 seconds
     };
 
-    // Bind executeRequest context correctly to this instance
     this.breaker = new CircuitBreaker(
-      this.executeRequest.bind(this),
+      (config: AxiosRequestConfig) => this.executeRequest(config),
       breakerOptions,
     );
     this.breaker.fallback(() => Promise.reject(new Error('Breaker is open')));
+  }
+
+  /**
+   * Simple GET for aggregation services — avoids the need to pass a full Request object.
+   */
+  async directGet(
+    url: string,
+    headers: Record<string, string> = {},
+  ): Promise<unknown> {
+    const config: AxiosRequestConfig = {
+      method: 'GET',
+      url,
+      headers,
+    };
+
+    return this.execute(config);
   }
 
   /**
@@ -32,7 +46,7 @@ export class BaseHttpClient {
     targetUrl: string,
     req: Request,
     additionalHeaders: Record<string, string> = {},
-  ): Promise<any> {
+  ): Promise<unknown> {
     const headers: Record<string, string> = {
       ...additionalHeaders,
     };
@@ -49,7 +63,7 @@ export class BaseHttpClient {
 
     // Propagate decoded Identity headers from JwtAuthGuard
     if (req.user) {
-      const user = req.user as any;
+      const user = req.user as { userId?: string; roles?: string[] | string };
       if (user.userId) {
         headers['x-user-id'] = user.userId;
       }
@@ -64,23 +78,32 @@ export class BaseHttpClient {
       method: req.method,
       url: targetUrl,
       headers,
-      data: req.method !== 'GET' ? req.body : undefined,
+      data: req.method !== 'GET' ? (req.body as unknown) : undefined,
       params: req.query,
     };
 
+    return this.execute(config);
+  }
+
+  /**
+   * Executes a request through the circuit breaker with common error handling.
+   */
+  private async execute(config: AxiosRequestConfig): Promise<unknown> {
     try {
-      // Execute the request via the initialized circuit breaker
-      const response: any = await this.breaker.fire(config);
+      const response = await this.breaker.fire(config);
       return response.data;
-    } catch (error) {
+    } catch (error: unknown) {
       if (error instanceof Error && error.message === 'Breaker is open') {
         throw new HttpException(
           'Service Temporarily Unavailable (Fast Fallback)',
           503,
         );
       }
-      if (error.response) {
-        throw new HttpException(error.response.data, error.response.status);
+      if (error instanceof AxiosError && error.response) {
+        throw new HttpException(
+          error.response.data as Record<string, unknown>,
+          error.response.status,
+        );
       }
       throw new HttpException('Internal Gateway Error', 500);
     }
@@ -89,7 +112,9 @@ export class BaseHttpClient {
   /**
    * Actual HTTP call wrapped by the circuit breaker.
    */
-  private async executeRequest(config: AxiosRequestConfig): Promise<any> {
+  private async executeRequest(
+    config: AxiosRequestConfig,
+  ): Promise<AxiosResponse> {
     return firstValueFrom(this.httpService.request(config));
   }
 }

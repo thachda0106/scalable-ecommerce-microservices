@@ -1,8 +1,12 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-argument */
 import { Injectable, HttpException } from '@nestjs/common';
 import { BaseHttpClient } from '../../common/http-client';
 import { ConfigService } from '@nestjs/config';
 import type { GatewayRequest } from '../../common/types';
+
+export interface CartData {
+  items?: Array<{ productId: string }>;
+  [key: string]: unknown;
+}
 
 @Injectable()
 export class CartSummaryService {
@@ -27,34 +31,37 @@ export class CartSummaryService {
       );
     }
 
+    const headers: Record<string, string> = {};
+    if (req.headers['x-request-id']) {
+      headers['x-request-id'] = req.headers['x-request-id'] as string;
+    }
+    if (req.headers.authorization) {
+      headers.authorization = req.headers.authorization;
+    }
+    if (req.user?.userId) {
+      headers['x-user-id'] = req.user.userId;
+    }
+
     try {
       // 1. Fetch user's cart
-      const cartTarget = `${cartUrl}/cart`;
-      const cartData = await this.httpClient.forwardRequest(cartTarget, req);
+      const cartData = (await this.httpClient.forwardRequest(
+        `${cartUrl}/cart`,
+        req,
+      )) as CartData;
 
-      if (!cartData || !cartData.items || cartData.items.length === 0) {
+      if (!cartData?.items || cartData.items.length === 0) {
         return { cart: cartData, enrichments: [] };
       }
 
-      // 2. Concurrently fetch product details and inventory models
-      const itemPromises = cartData.items.map(async (item: any) => {
-        const productP = this.httpClient.forwardRequest(
+      // 2. Concurrently fetch product details and inventory
+      const itemPromises = cartData.items.map(async (item) => {
+        const productP = this.httpClient.directGet(
           `${productUrl}/products/${item.productId}`,
-          {
-            ...req,
-            method: 'GET',
-            url: `/products/${item.productId}`,
-            body: undefined,
-          } as any,
+          headers,
         );
-        const inventoryP = this.httpClient.forwardRequest(
+        const inventoryP = this.httpClient.directGet(
           `${inventoryUrl}/inventory/${item.productId}`,
-          {
-            ...req,
-            method: 'GET',
-            url: `/inventory/${item.productId}`,
-            body: undefined,
-          } as any,
+          headers,
         );
 
         try {

@@ -2,9 +2,11 @@ import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { TerminusModule } from '@nestjs/terminus';
 
 import { PassportModule } from '@nestjs/passport';
 import { ThrottlerStorageRedisService } from 'nestjs-throttler-storage-redis';
+import Redis from 'ioredis';
 import { getLoggerModule } from '@ecommerce/core';
 import { GatewayConfig } from './config/gateway.config';
 import { AggregationModule } from './modules/aggregation/aggregation.module';
@@ -14,6 +16,8 @@ import { HttpClientModule } from './common/http-client.module';
 import { GatewayController } from './controllers/gateway.controller';
 import { TimeoutInterceptor } from './common/interceptors/timeout.interceptor';
 import { HealthController } from './controllers/health.controller';
+
+export const REDIS_CLIENT = 'REDIS_CLIENT';
 
 @Module({
   imports: [
@@ -36,6 +40,7 @@ import { HealthController } from './controllers/health.controller';
       }),
     }),
     HttpClientModule,
+    TerminusModule,
 
     getLoggerModule(),
     AggregationModule,
@@ -56,7 +61,15 @@ import { HealthController } from './controllers/health.controller';
       },
     },
     JwtStrategy,
-    JwtStrategy,
+    {
+      provide: REDIS_CLIENT,
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => {
+        const host = config.get<string>('gateway.redis.host', 'localhost');
+        const port = config.get<number>('gateway.redis.port', 6379);
+        return new Redis({ host, port, lazyConnect: true });
+      },
+    },
   ],
 })
 export class AppModule implements NestModule {

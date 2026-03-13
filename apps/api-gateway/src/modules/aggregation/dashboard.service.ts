@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument */
 import { Injectable, Logger } from '@nestjs/common';
 import { BaseHttpClient } from '../../common/http-client';
 import { ConfigService } from '@nestjs/config';
@@ -27,26 +26,14 @@ export class DashboardService {
 
     const [userResult, ordersResult, notificationsResult] =
       await Promise.allSettled([
-        this.httpClient.forwardRequest(`${userServiceUrl}/users/${userId}`, {
-          method: 'GET',
-          url: `/users/${userId}`,
-          headers,
-        } as any),
-        this.httpClient.forwardRequest(
+        this.httpClient.directGet(`${userServiceUrl}/users/${userId}`, headers),
+        this.httpClient.directGet(
           `${orderServiceUrl}/orders?userId=${userId}`,
-          {
-            method: 'GET',
-            url: `/orders?userId=${userId}`,
-            headers,
-          } as any,
+          headers,
         ),
-        this.httpClient.forwardRequest(
+        this.httpClient.directGet(
           `${notificationServiceUrl}/notifications?userId=${userId}`,
-          {
-            method: 'GET',
-            url: `/notifications?userId=${userId}`,
-            headers,
-          } as any,
+          headers,
         ),
       ]);
 

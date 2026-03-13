@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument */
 import { Injectable, HttpException } from '@nestjs/common';
 import { BaseHttpClient } from '../../common/http-client';
 import { ConfigService } from '@nestjs/config';
@@ -24,6 +23,14 @@ export class OrderDetailsService {
       );
     }
 
+    const headers: Record<string, string> = {};
+    if (req.headers['x-request-id']) {
+      headers['x-request-id'] = req.headers['x-request-id'] as string;
+    }
+    if (req.headers.authorization) {
+      headers.authorization = req.headers.authorization;
+    }
+
     try {
       // Fetch Order first to guarantee existence before parallelizing
       const targetOrder = `${orderUrl}/orders/${orderId}`;
@@ -34,16 +41,11 @@ export class OrderDetailsService {
       }
 
       // Fetch payment details linked to an order safely
-      let paymentData: any = null;
+      let paymentData: unknown = null;
       try {
-        paymentData = await this.httpClient.forwardRequest(
+        paymentData = await this.httpClient.directGet(
           `${paymentUrl}/payments/order/${orderId}`,
-          {
-            ...req,
-            method: 'GET',
-            url: `/payments/order/${orderId}`,
-            body: undefined,
-          } as any,
+          headers,
         );
       } catch {
         paymentData = { status: 'payment tracking unavailable' };

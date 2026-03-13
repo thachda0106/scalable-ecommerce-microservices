@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument */
 import { Injectable, HttpException } from '@nestjs/common';
 import { BaseHttpClient } from '../../common/http-client';
 import { ConfigService } from '@nestjs/config';
@@ -26,32 +25,25 @@ export class ProductPageService {
       );
     }
 
+    const headers: Record<string, string> = {};
+    if (req.headers['x-request-id']) {
+      headers['x-request-id'] = req.headers['x-request-id'] as string;
+    }
+    if (req.headers.authorization) {
+      headers.authorization = req.headers.authorization;
+    }
+
     try {
-      const productP = this.httpClient.forwardRequest(
+      const productP = this.httpClient.directGet(
         `${productUrl}/products/${productId}`,
-        {
-          ...req,
-          method: 'GET',
-          url: `/products/${productId}`,
-          body: undefined,
-        } as any,
+        headers,
       );
-      const inventoryP = this.httpClient.forwardRequest(
+      const inventoryP = this.httpClient.directGet(
         `${inventoryUrl}/inventory/${productId}`,
-        {
-          ...req,
-          method: 'GET',
-          url: `/inventory/${productId}`,
-          body: undefined,
-        } as any,
+        headers,
       );
       const reviewsP = this.httpClient
-        .forwardRequest(`${productUrl}/reviews/product/${productId}`, {
-          ...req,
-          method: 'GET',
-          url: `/reviews/product/${productId}`,
-          body: undefined,
-        } as any)
+        .directGet(`${productUrl}/reviews/product/${productId}`, headers)
         .catch(() => []); // optional fallback
 
       const [product, inventory, reviews] = await Promise.all([
