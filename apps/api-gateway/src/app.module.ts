@@ -11,13 +11,13 @@ import { getLoggerModule } from '@ecommerce/core';
 import { GatewayConfig } from './config/gateway.config';
 import { AggregationModule } from './modules/aggregation/aggregation.module';
 import { JwtStrategy } from './common/guards/jwt.strategy';
+import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RequestIdMiddleware } from './middleware/request-id.middleware';
 import { HttpClientModule } from './common/http-client.module';
 import { GatewayController } from './controllers/gateway.controller';
 import { TimeoutInterceptor } from './common/interceptors/timeout.interceptor';
 import { HealthController } from './controllers/health.controller';
-
-export const REDIS_CLIENT = 'REDIS_CLIENT';
+import { REDIS_CLIENT } from './common/constants';
 
 @Module({
   imports: [
@@ -50,6 +50,10 @@ export const REDIS_CLIENT = 'REDIS_CLIENT';
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
     },
     {
       provide: APP_INTERCEPTOR,

@@ -1,5 +1,6 @@
 import { NestFactory, HttpAdapterHost } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { LoggerService } from '@nestjs/common';
 import { Logger } from '@ecommerce/core';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
@@ -9,8 +10,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
   const configService = app.get(ConfigService);
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-  app.useLogger(app.get(Logger as any));
+  app.useLogger(app.get<LoggerService>(Logger));
 
   app.enableCors({
     origin: configService.get<string>('gateway.corsOrigin', '*'),

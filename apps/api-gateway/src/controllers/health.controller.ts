@@ -6,8 +6,10 @@ import {
   HealthIndicatorResult,
 } from '@nestjs/terminus';
 import Redis from 'ioredis';
-import { REDIS_CLIENT } from '../app.module';
+import { REDIS_CLIENT } from '../common/constants';
+import { Public } from '../common/decorators/public.decorator';
 
+@Public()
 @SkipThrottle()
 @Controller('health')
 export class HealthController {

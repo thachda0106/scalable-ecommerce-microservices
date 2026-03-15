@@ -6,12 +6,11 @@ import {
   Req,
   HttpException,
   HttpStatus,
-  UseGuards,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { BaseHttpClient } from '../common/http-client';
 import type { GatewayRequest } from '../common/types';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { Public } from '../common/decorators/public.decorator';
 
 import { ProductPageService } from '../modules/aggregation/product-page.service';
 import { CartSummaryService } from '../modules/aggregation/cart-summary.service';
@@ -27,23 +26,28 @@ export class GatewayController {
     private readonly orderDetailsService: OrderDetailsService,
   ) {}
 
+  // ── Aggregation endpoints ──────────────────────────────────────────────────
+
+  @Public()
   @Get('product-page/:id')
   async getProductPage(@Param('id') id: string, @Req() req: GatewayRequest) {
     return this.productPageService.getPage(id, req);
   }
 
   @Get('cart-summary')
-  @UseGuards(JwtAuthGuard)
   async getCartSummary(@Req() req: GatewayRequest) {
     return this.cartSummaryService.getSummary(req);
   }
 
   @Get('order-details/:id')
-  @UseGuards(JwtAuthGuard)
   async getOrderDetails(@Param('id') id: string, @Req() req: GatewayRequest) {
     return this.orderDetailsService.getDetails(id, req);
   }
 
+  // ── Proxy / forwarding routes ──────────────────────────────────────────────
+
+  /** auth/* is public — login, register, refresh token, etc. */
+  @Public()
   @All('auth/*')
   async routeAuth(@Req() req: GatewayRequest) {
     return this.forward(
@@ -54,7 +58,6 @@ export class GatewayController {
   }
 
   @All('users/*')
-  @UseGuards(JwtAuthGuard)
   async routeUsers(@Req() req: GatewayRequest) {
     return this.forward(
       this.configService.get<string>('gateway.services.user'),
@@ -63,6 +66,8 @@ export class GatewayController {
     );
   }
 
+  /** products/* is public — browsing requires no account */
+  @Public()
   @All('products/*')
   async routeProducts(@Req() req: GatewayRequest) {
     return this.forward(
@@ -72,6 +77,8 @@ export class GatewayController {
     );
   }
 
+  /** search/* is public — searching requires no account */
+  @Public()
   @All('search/*')
   async routeSearch(@Req() req: GatewayRequest) {
     return this.forward(
@@ -82,7 +89,6 @@ export class GatewayController {
   }
 
   @All('cart/*')
-  @UseGuards(JwtAuthGuard)
   async routeCart(@Req() req: GatewayRequest) {
     return this.forward(
       this.configService.get<string>('gateway.services.cart'),
@@ -92,7 +98,6 @@ export class GatewayController {
   }
 
   @All('inventory/*')
-  @UseGuards(JwtAuthGuard)
   async routeInventory(@Req() req: GatewayRequest) {
     return this.forward(
       this.configService.get<string>('gateway.services.inventory'),
@@ -102,7 +107,6 @@ export class GatewayController {
   }
 
   @All('orders/*')
-  @UseGuards(JwtAuthGuard)
   async routeOrders(@Req() req: GatewayRequest) {
     return this.forward(
       this.configService.get<string>('gateway.services.order'),
@@ -112,7 +116,6 @@ export class GatewayController {
   }
 
   @All('payments/*')
-  @UseGuards(JwtAuthGuard)
   async routePayments(@Req() req: GatewayRequest) {
     return this.forward(
       this.configService.get<string>('gateway.services.payment'),
@@ -122,7 +125,6 @@ export class GatewayController {
   }
 
   @All('notifications/*')
-  @UseGuards(JwtAuthGuard)
   async routeNotifications(@Req() req: GatewayRequest) {
     return this.forward(
       this.configService.get<string>('gateway.services.notification'),

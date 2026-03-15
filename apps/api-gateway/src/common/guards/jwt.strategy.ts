@@ -3,6 +3,18 @@ import { PassportStrategy } from '@nestjs/passport';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
+export interface JwtPayload {
+  sub: string;
+  email: string;
+  roles: string[];
+}
+
+export interface AuthenticatedUser {
+  userId: string;
+  email: string;
+  roles: string[];
+}
+
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(configService: ConfigService) {
@@ -19,8 +31,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  // eslint-disable-next-line @typescript-eslint/require-await
-  async validate(payload: { sub: string; email: string; roles: string[] }) {
+  validate(payload: JwtPayload): AuthenticatedUser {
     if (!payload.sub) {
       throw new UnauthorizedException();
     }

@@ -31,8 +31,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const errorResponse = {
       statusCode: httpStatus,
       timestamp: new Date().toISOString(),
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      path: httpAdapter.getRequestUrl(ctx.getRequest()),
+      path: httpAdapter.getRequestUrl(ctx.getRequest()) as string,
       ...(typeof errorMessage === 'string'
         ? { message: errorMessage }
         : (errorMessage as Record<string, unknown>)),
