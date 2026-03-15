@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 import { Kafka, Producer } from 'kafkajs';
 import { ICartEventsProducer } from '../../application/ports/cart-events.port';
 import { BaseDomainEvent } from '../../domain/events/base-domain.event';
@@ -14,7 +19,7 @@ export class CartEventsProducer
   constructor() {
     this.kafka = new Kafka({
       clientId: 'cart-service',
-      brokers: [(process.env.KAFKA_BROKER ?? 'localhost:9092')],
+      brokers: [process.env.KAFKA_BROKER ?? 'localhost:9092'],
     });
     this.producer = this.kafka.producer();
   }
@@ -24,7 +29,9 @@ export class CartEventsProducer
       await this.producer.connect();
       this.logger.log('Kafka producer connected');
     } catch (err) {
-      this.logger.warn(`Kafka producer connect failed: ${err}. Events will be silently dropped.`);
+      this.logger.warn(
+        `Kafka producer connect failed: ${err}. Events will be silently dropped.`,
+      );
     }
   }
 
@@ -44,15 +51,18 @@ export class CartEventsProducer
   async publish(event: BaseDomainEvent): Promise<void> {
     try {
       const payload = JSON.stringify({
-        ...event,
+        eventId: event.eventId,
+        eventType: event.eventType,
+        userId: event.userId,
         occurredOn: event.occurredOn.toISOString(),
+        ...event,
       });
 
       await this.producer.send({
         topic: event.eventType,
         messages: [
           {
-            key: (event as any).userId ?? 'unknown',
+            key: event.userId,
             value: payload,
           },
         ],

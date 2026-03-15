@@ -5,6 +5,11 @@ import { BaseDomainEvent } from '../events/base-domain.event';
 import { ItemAddedEvent } from '../events/item-added.event';
 import { ItemRemovedEvent } from '../events/item-removed.event';
 import { CartClearedEvent } from '../events/cart-cleared.event';
+import { ItemQuantityUpdatedEvent } from '../events/item-quantity-updated.event';
+import { ItemNotInCartException, CartFullException } from '../exceptions';
+
+/** Maximum number of distinct items allowed in a single cart. */
+export const MAX_CART_ITEMS = 50;
 
 interface CartProps {
   id: string;
@@ -69,6 +74,7 @@ export class Cart {
    *   - quantity must be 1-99 (enforced by Quantity VO)
    *   - if productId already exists, quantities are merged
    *   - merged quantity must not exceed 99 (enforced by Quantity.add)
+   *   - cart cannot exceed MAX_CART_ITEMS distinct products
    */
   public addItem(
     productId: ProductId,
@@ -81,10 +87,16 @@ export class Cart {
 
     if (existingIndex >= 0) {
       // Merge quantity — Quantity.add() throws if result > 99
-      const updated = this.props.items[existingIndex].increaseQuantity(quantity);
+      const updated =
+        this.props.items[existingIndex].increaseQuantity(quantity);
       this.props.items[existingIndex] = updated;
     } else {
-      this.props.items.push(CartItem.create(productId, quantity, snapshottedPrice));
+      if (this.props.items.length >= MAX_CART_ITEMS) {
+        throw new CartFullException(MAX_CART_ITEMS);
+      }
+      this.props.items.push(
+        CartItem.create(productId, quantity, snapshottedPrice),
+      );
     }
 
     this.props.domainEvents.push(
@@ -100,7 +112,7 @@ export class Cart {
 
   /**
    * Removes an item from the cart.
-   * Throws if the item does not exist.
+   * Throws ItemNotInCartException if the item does not exist.
    */
   public removeItem(productId: ProductId): void {
     const existingIndex = this.props.items.findIndex((item) =>
@@ -108,13 +120,45 @@ export class Cart {
     );
 
     if (existingIndex < 0) {
-      throw new Error('Item not found in cart');
+      throw new ItemNotInCartException(productId.getValue());
     }
 
     this.props.items.splice(existingIndex, 1);
 
     this.props.domainEvents.push(
-      new ItemRemovedEvent(this.props.id, this.props.userId, productId.getValue()),
+      new ItemRemovedEvent(
+        this.props.id,
+        this.props.userId,
+        productId.getValue(),
+      ),
+    );
+  }
+
+  /**
+   * Sets the quantity of an existing item.
+   * Throws ItemNotInCartException if the item does not exist.
+   */
+  public updateItemQuantity(productId: ProductId, newQuantity: Quantity): void {
+    const existingIndex = this.props.items.findIndex((item) =>
+      item.productId.equals(productId),
+    );
+
+    if (existingIndex < 0) {
+      throw new ItemNotInCartException(productId.getValue());
+    }
+
+    const oldQuantity = this.props.items[existingIndex].quantity.getValue();
+    this.props.items[existingIndex] =
+      this.props.items[existingIndex].withQuantity(newQuantity);
+
+    this.props.domainEvents.push(
+      new ItemQuantityUpdatedEvent(
+        this.props.id,
+        this.props.userId,
+        productId.getValue(),
+        oldQuantity,
+        newQuantity.getValue(),
+      ),
     );
   }
 
@@ -140,7 +184,11 @@ export class Cart {
 
   // ─── Serialisation ───────────────────────────────────────────────────────
 
-  public toJSON(): { id: string; userId: string; items: ReturnType<CartItem['toJSON']>[] } {
+  public toJSON(): {
+    id: string;
+    userId: string;
+    items: ReturnType<CartItem['toJSON']>[];
+  } {
     return {
       id: this.props.id,
       userId: this.props.userId,

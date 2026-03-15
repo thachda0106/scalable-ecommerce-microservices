@@ -1,7 +1,10 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { GetCartQuery } from '../queries/get-cart.query';
-import { CART_REPOSITORY, ICartRepository } from '../ports/cart-repository.port';
+import {
+  CART_REPOSITORY,
+  ICartRepository,
+} from '../ports/cart-repository.port';
 import { CART_CACHE, ICartCache } from '../ports/cart-cache.port';
 import { Cart } from '../../domain/entities/cart.entity';
 

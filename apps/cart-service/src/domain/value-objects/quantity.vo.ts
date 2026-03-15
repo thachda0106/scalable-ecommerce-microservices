@@ -1,3 +1,5 @@
+import { InvalidQuantityException } from '../exceptions';
+
 export const MAX_QUANTITY = 99;
 export const MIN_QUANTITY = 1;
 
@@ -5,10 +7,12 @@ export class Quantity {
   private constructor(private readonly value: number) {}
 
   public static create(value: number): Quantity {
-    if (!Number.isInteger(value) || value < MIN_QUANTITY || value > MAX_QUANTITY) {
-      throw new Error(
-        `Invalid quantity: must be integer ${MIN_QUANTITY}-${MAX_QUANTITY}`,
-      );
+    if (
+      !Number.isInteger(value) ||
+      value < MIN_QUANTITY ||
+      value > MAX_QUANTITY
+    ) {
+      throw new InvalidQuantityException(value);
     }
     return new Quantity(value);
   }

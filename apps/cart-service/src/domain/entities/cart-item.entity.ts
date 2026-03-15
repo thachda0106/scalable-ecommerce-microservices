@@ -36,10 +36,29 @@ export class CartItem {
    */
   public increaseQuantity(additional: Quantity): CartItem {
     const newQuantity = this.props.quantity.add(additional);
-    return CartItem.create(this.props.productId, newQuantity, this.props.snapshottedPrice);
+    return CartItem.create(
+      this.props.productId,
+      newQuantity,
+      this.props.snapshottedPrice,
+    );
   }
 
-  public toJSON(): { productId: string; quantity: number; snapshottedPrice: number } {
+  /**
+   * Returns a new CartItem with the given quantity (replace, not add).
+   */
+  public withQuantity(newQuantity: Quantity): CartItem {
+    return CartItem.create(
+      this.props.productId,
+      newQuantity,
+      this.props.snapshottedPrice,
+    );
+  }
+
+  public toJSON(): {
+    productId: string;
+    quantity: number;
+    snapshottedPrice: number;
+  } {
     return {
       productId: this.props.productId.getValue(),
       quantity: this.props.quantity.getValue(),

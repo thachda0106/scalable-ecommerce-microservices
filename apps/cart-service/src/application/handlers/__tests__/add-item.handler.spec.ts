@@ -57,9 +57,17 @@ describe('AddItemHandler', () => {
   it('should merge quantity for duplicate items in existing cart', async () => {
     const existingCart = Cart.create('user-1');
     // Pre-populate with 2 of the same product
-    const { ProductId } = jest.requireActual('../../../domain/value-objects/product-id.vo');
-    const { Quantity } = jest.requireActual('../../../domain/value-objects/quantity.vo');
-    existingCart.addItem(ProductId.create(VALID_UUID), Quantity.create(2), 9.99);
+    const { ProductId } = jest.requireActual(
+      '../../../domain/value-objects/product-id.vo',
+    );
+    const { Quantity } = jest.requireActual(
+      '../../../domain/value-objects/quantity.vo',
+    );
+    existingCart.addItem(
+      ProductId.create(VALID_UUID),
+      Quantity.create(2),
+      9.99,
+    );
     existingCart.pullEvents(); // drain pre-existing events
 
     mockRepo.findByUserId.mockResolvedValue(existingCart);

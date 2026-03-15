@@ -1,4 +1,10 @@
-import { Injectable, Inject, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  Inject,
+  Logger,
+  OnModuleInit,
+  OnModuleDestroy,
+} from '@nestjs/common';
 import Redis from 'ioredis';
 import { ICartCache } from '../../application/ports/cart-cache.port';
 import { Cart } from '../../domain/entities/cart.entity';
@@ -9,10 +15,31 @@ import { Quantity } from '../../domain/value-objects/quantity.vo';
 const CART_TTL_SECONDS = 604800; // 7 days (per ARCHITECTURE.md)
 
 @Injectable()
-export class CartCacheRepository implements ICartCache {
+export class CartCacheRepository
+  implements ICartCache, OnModuleInit, OnModuleDestroy
+{
   private readonly logger = new Logger(CartCacheRepository.name);
 
   constructor(@Inject('REDIS_CLIENT') private readonly redis: Redis) {}
+
+  async onModuleInit(): Promise<void> {
+    try {
+      await this.redis.connect();
+      this.logger.log('Redis cache connected');
+    } catch (err) {
+      this.logger.warn(
+        `Redis connect failed: ${err}. Cache will be unavailable.`,
+      );
+    }
+  }
+
+  async onModuleDestroy(): Promise<void> {
+    try {
+      await this.redis.quit();
+    } catch {
+      // Ignore disconnect errors during shutdown
+    }
+  }
 
   async get(userId: string): Promise<Cart | null> {
     try {
@@ -22,7 +49,11 @@ export class CartCacheRepository implements ICartCache {
       const parsed = JSON.parse(raw) as {
         id: string;
         userId: string;
-        items: { productId: string; quantity: number; snapshottedPrice: number }[];
+        items: {
+          productId: string;
+          quantity: number;
+          snapshottedPrice: number;
+        }[];
       };
 
       const items = parsed.items.map((i) =>

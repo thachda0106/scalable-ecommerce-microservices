@@ -1,6 +1,6 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
-import { ClearCartCommand } from '../commands/clear-cart.command';
+import { UpdateItemQuantityCommand } from '../commands/update-item-quantity.command';
 import {
   CART_REPOSITORY,
   ICartRepository,
@@ -10,10 +10,13 @@ import {
   CART_EVENTS_PRODUCER,
   ICartEventsProducer,
 } from '../ports/cart-events.port';
+import { Cart } from '../../domain/entities/cart.entity';
+import { ProductId } from '../../domain/value-objects/product-id.vo';
+import { Quantity } from '../../domain/value-objects/quantity.vo';
 import { CartNotFoundException } from '../../domain/exceptions';
 
-@CommandHandler(ClearCartCommand)
-export class ClearCartHandler implements ICommandHandler<ClearCartCommand> {
+@CommandHandler(UpdateItemQuantityCommand)
+export class UpdateItemQuantityHandler implements ICommandHandler<UpdateItemQuantityCommand> {
   constructor(
     @Inject(CART_REPOSITORY) private readonly cartRepository: ICartRepository,
     @Inject(CART_CACHE) private readonly cartCache: ICartCache,
@@ -21,13 +24,19 @@ export class ClearCartHandler implements ICommandHandler<ClearCartCommand> {
     private readonly eventsProducer: ICartEventsProducer,
   ) {}
 
-  async execute(command: ClearCartCommand): Promise<{ message: string }> {
+  async execute(
+    command: UpdateItemQuantityCommand,
+  ): Promise<ReturnType<Cart['toJSON']>> {
     const cart = await this.cartRepository.findByUserId(command.userId);
     if (!cart) {
       throw new CartNotFoundException(command.userId);
     }
 
-    cart.clear();
+    const productId = ProductId.create(command.productId);
+    const newQuantity = Quantity.create(command.quantity);
+
+    // Domain throws ItemNotInCartException if item doesn't exist
+    cart.updateItemQuantity(productId, newQuantity);
 
     await this.cartRepository.save(cart);
     await this.cartCache.invalidate(command.userId);
@@ -35,6 +44,6 @@ export class ClearCartHandler implements ICommandHandler<ClearCartCommand> {
     const events = cart.pullEvents();
     await Promise.all(events.map((e) => this.eventsProducer.publish(e)));
 
-    return { message: 'Cart cleared successfully' };
+    return cart.toJSON();
   }
 }

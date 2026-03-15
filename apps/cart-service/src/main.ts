@@ -10,11 +10,14 @@ async function bootstrap() {
   // Global validation pipe — enforces DTO constraints across all routes
   app.useGlobalPipes(
     new ValidationPipe({
-      transform: true,      // auto-transform payloads to DTO class instances
-      whitelist: true,      // strip unknown properties
+      transform: true, // auto-transform payloads to DTO class instances
+      whitelist: true, // strip unknown properties
       forbidNonWhitelisted: false,
     }),
   );
+
+  // Enable graceful shutdown — ensures OnModuleDestroy hooks fire (Redis, Kafka)
+  app.enableShutdownHooks();
 
   await app.listen(process.env.PORT ?? 3004);
 }

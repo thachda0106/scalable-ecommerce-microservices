@@ -19,7 +19,8 @@ export class AddItemHandler implements ICommandHandler<AddItemCommand> {
   constructor(
     @Inject(CART_REPOSITORY) private readonly cartRepository: ICartRepository,
     @Inject(CART_CACHE) private readonly cartCache: ICartCache,
-    @Inject(CART_EVENTS_PRODUCER) private readonly eventsProducer: ICartEventsProducer,
+    @Inject(CART_EVENTS_PRODUCER)
+    private readonly eventsProducer: ICartEventsProducer,
   ) {}
 
   async execute(command: AddItemCommand): Promise<ReturnType<Cart['toJSON']>> {

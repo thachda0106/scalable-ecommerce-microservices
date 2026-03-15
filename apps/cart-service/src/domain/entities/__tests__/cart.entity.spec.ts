@@ -1,6 +1,9 @@
 import { Cart } from '../cart.entity';
 import { ProductId } from '../../value-objects/product-id.vo';
 import { Quantity } from '../../value-objects/quantity.vo';
+import { ItemNotInCartException } from '../../exceptions';
+import { InvalidProductIdException } from '../../exceptions';
+import { InvalidQuantityException } from '../../exceptions';
 
 const VALID_UUID = '550e8400-e29b-41d4-a716-446655440000';
 const VALID_UUID_2 = '660e8400-e29b-41d4-a716-446655440001';
@@ -79,9 +82,9 @@ describe('Cart Aggregate', () => {
     expect(events[0].eventType).toBe('cart.item_removed');
   });
 
-  it('should throw when removing an item not in cart', () => {
+  it('should throw ItemNotInCartException when removing an item not in cart', () => {
     const cart = Cart.create('user-123');
-    expect(() => cart.removeItem(pid)).toThrow('Item not found in cart');
+    expect(() => cart.removeItem(pid)).toThrow(ItemNotInCartException);
   });
 
   it('should clear all items', () => {
@@ -121,12 +124,16 @@ describe('ProductId VO', () => {
     expect(() => ProductId.create(VALID_UUID)).not.toThrow();
   });
 
-  it('should reject invalid UUID', () => {
-    expect(() => ProductId.create('not-a-uuid')).toThrow('Invalid productId');
+  it('should reject invalid UUID with InvalidProductIdException', () => {
+    expect(() => ProductId.create('not-a-uuid')).toThrow(
+      InvalidProductIdException,
+    );
   });
 
   it('should reject UUID v1', () => {
-    expect(() => ProductId.create('550e8400-e29b-11d4-a716-446655440000')).toThrow('Invalid productId');
+    expect(() =>
+      ProductId.create('550e8400-e29b-11d4-a716-446655440000'),
+    ).toThrow(InvalidProductIdException);
   });
 
   it('same value should be equal', () => {
@@ -139,10 +146,14 @@ describe('ProductId VO', () => {
 describe('Quantity VO', () => {
   it('should accept 1', () => expect(() => Quantity.create(1)).not.toThrow());
   it('should accept 99', () => expect(() => Quantity.create(99)).not.toThrow());
-  it('should reject 0', () => expect(() => Quantity.create(0)).toThrow());
-  it('should reject 100', () => expect(() => Quantity.create(100)).toThrow());
-  it('should reject decimals', () => expect(() => Quantity.create(1.5)).toThrow());
-  it('should reject negative', () => expect(() => Quantity.create(-1)).toThrow());
+  it('should reject 0', () =>
+    expect(() => Quantity.create(0)).toThrow(InvalidQuantityException));
+  it('should reject 100', () =>
+    expect(() => Quantity.create(100)).toThrow(InvalidQuantityException));
+  it('should reject decimals', () =>
+    expect(() => Quantity.create(1.5)).toThrow(InvalidQuantityException));
+  it('should reject negative', () =>
+    expect(() => Quantity.create(-1)).toThrow(InvalidQuantityException));
 
   it('Quantity.add should merge values', () => {
     const a = Quantity.create(10);

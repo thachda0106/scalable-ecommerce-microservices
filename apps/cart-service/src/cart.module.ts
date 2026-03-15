@@ -10,6 +10,7 @@ import { CartController } from './interfaces/controllers/cart.controller';
 import { AddItemHandler } from './application/handlers/add-item.handler';
 import { RemoveItemHandler } from './application/handlers/remove-item.handler';
 import { ClearCartHandler } from './application/handlers/clear-cart.handler';
+import { UpdateItemQuantityHandler } from './application/handlers/update-item-quantity.handler';
 
 // Query Handlers
 import { GetCartHandler } from './application/handlers/get-cart.handler';
@@ -28,7 +29,12 @@ import { CartEventsProducer } from './infrastructure/kafka/cart-events.producer'
 import { ProductServiceClient } from './infrastructure/http/product-service.client';
 import { InventoryServiceClient } from './infrastructure/http/inventory-service.client';
 
-const commandHandlers = [AddItemHandler, RemoveItemHandler, ClearCartHandler];
+const commandHandlers = [
+  AddItemHandler,
+  RemoveItemHandler,
+  ClearCartHandler,
+  UpdateItemQuantityHandler,
+];
 const queryHandlers = [GetCartHandler];
 
 @Module({
