@@ -4,3 +4,6 @@ export { ItemNotInCartException } from './item-not-in-cart.exception';
 export { InvalidQuantityException } from './invalid-quantity.exception';
 export { InvalidProductIdException } from './invalid-product-id.exception';
 export { CartFullException } from './cart-full.exception';
+export { VersionConflictException } from './version-conflict.exception';
+export { ProductNotFoundException } from './product-not-found.exception';
+export { InsufficientStockException } from './insufficient-stock.exception';

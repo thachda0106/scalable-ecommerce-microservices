@@ -1,12 +1,13 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { getLoggerModule } from '@ecommerce/core';
+import { TerminusModule } from '@nestjs/terminus';
+import { getLoggerModule, MetricsModule } from '@ecommerce/core';
 import { CartModule } from './cart.module';
+import { HealthController } from './interfaces/controllers/health.controller';
+import { RedisHealthIndicator } from './infrastructure/redis/redis-health.indicator';
 
 @Module({
-  imports: [getLoggerModule(), CartModule],
-  controllers: [AppController],
-  providers: [AppService],
+  imports: [getLoggerModule(), MetricsModule, TerminusModule, CartModule],
+  controllers: [HealthController],
+  providers: [RedisHealthIndicator],
 })
 export class AppModule {}

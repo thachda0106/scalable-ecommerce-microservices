@@ -11,11 +11,17 @@ import { ItemNotInCartException, CartFullException } from '../exceptions';
 /** Maximum number of distinct items allowed in a single cart. */
 export const MAX_CART_ITEMS = 50;
 
+/** Default cart expiration: 30 days in milliseconds. */
+const CART_EXPIRY_MS = 30 * 24 * 60 * 60 * 1000;
+
 interface CartProps {
   id: string;
   userId: string;
   items: CartItem[];
   domainEvents: BaseDomainEvent[];
+  version: number;
+  createdAt: Date;
+  expiresAt: Date;
 }
 
 export class Cart {
@@ -32,11 +38,15 @@ export class Cart {
    * Does NOT emit any domain events.
    */
   public static create(userId: string): Cart {
+    const now = new Date();
     return new Cart({
       id: crypto.randomUUID(),
       userId,
       items: [],
       domainEvents: [],
+      version: 0,
+      createdAt: now,
+      expiresAt: new Date(now.getTime() + CART_EXPIRY_MS),
     });
   }
 
@@ -48,8 +58,19 @@ export class Cart {
     id: string,
     userId: string,
     items: CartItem[],
+    version: number = 0,
+    createdAt: Date = new Date(),
+    expiresAt: Date = new Date(Date.now() + CART_EXPIRY_MS),
   ): Cart {
-    return new Cart({ id, userId, items, domainEvents: [] });
+    return new Cart({
+      id,
+      userId,
+      items,
+      domainEvents: [],
+      version,
+      createdAt,
+      expiresAt,
+    });
   }
 
   // ─── Getters ─────────────────────────────────────────────────────────────
@@ -64,6 +85,18 @@ export class Cart {
 
   get items(): CartItem[] {
     return [...this.props.items];
+  }
+
+  get version(): number {
+    return this.props.version;
+  }
+
+  get createdAt(): Date {
+    return this.props.createdAt;
+  }
+
+  get expiresAt(): Date {
+    return this.props.expiresAt;
   }
 
   // ─── Domain Behaviour ────────────────────────────────────────────────────
@@ -99,6 +132,7 @@ export class Cart {
       );
     }
 
+    this.refreshExpiry();
     this.props.domainEvents.push(
       new ItemAddedEvent(
         this.props.id,
@@ -125,6 +159,7 @@ export class Cart {
 
     this.props.items.splice(existingIndex, 1);
 
+    this.refreshExpiry();
     this.props.domainEvents.push(
       new ItemRemovedEvent(
         this.props.id,
@@ -151,6 +186,7 @@ export class Cart {
     this.props.items[existingIndex] =
       this.props.items[existingIndex].withQuantity(newQuantity);
 
+    this.refreshExpiry();
     this.props.domainEvents.push(
       new ItemQuantityUpdatedEvent(
         this.props.id,
@@ -167,9 +203,17 @@ export class Cart {
    */
   public clear(): void {
     this.props.items = [];
+    this.refreshExpiry();
     this.props.domainEvents.push(
       new CartClearedEvent(this.props.id, this.props.userId),
     );
+  }
+
+  /**
+   * Increments the version counter. Called by the repository after a successful save.
+   */
+  public incrementVersion(): void {
+    this.props.version += 1;
   }
 
   /**
@@ -182,17 +226,30 @@ export class Cart {
     return events;
   }
 
+  // ─── Private Helpers ────────────────────────────────────────────────────
+
+  /** Extends the cart expiry by 30 days from now on every mutation. */
+  private refreshExpiry(): void {
+    this.props.expiresAt = new Date(Date.now() + CART_EXPIRY_MS);
+  }
+
   // ─── Serialisation ───────────────────────────────────────────────────────
 
   public toJSON(): {
     id: string;
     userId: string;
     items: ReturnType<CartItem['toJSON']>[];
+    version: number;
+    createdAt: string;
+    expiresAt: string;
   } {
     return {
       id: this.props.id,
       userId: this.props.userId,
       items: this.props.items.map((item) => item.toJSON()),
+      version: this.props.version,
+      createdAt: this.props.createdAt.toISOString(),
+      expiresAt: this.props.expiresAt.toISOString(),
     };
   }
 }

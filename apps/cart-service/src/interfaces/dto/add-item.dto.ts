@@ -11,5 +11,6 @@ export class AddItemDto {
 
   @IsNumber({}, { message: 'snapshottedPrice must be a number' })
   @IsPositive({ message: 'snapshottedPrice must be positive' })
+  @Max(999999.99, { message: 'snapshottedPrice cannot exceed 999999.99' })
   snapshottedPrice: number;
 }

@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import { HttpModule } from '@nestjs/axios';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 import Redis from 'ioredis';
 
 // Controllers
@@ -18,12 +20,13 @@ import { GetCartHandler } from './application/handlers/get-cart.handler';
 // Port Tokens
 import { CART_REPOSITORY } from './application/ports/cart-repository.port';
 import { CART_CACHE } from './application/ports/cart-cache.port';
-import { CART_EVENTS_PRODUCER } from './application/ports/cart-events.port';
+import { CART_OUTBOX } from './application/ports/cart-outbox.port';
 
 // Infrastructure Adapters
-import { InMemoryCartRepository } from './infrastructure/repositories/cart.repository';
+import { RedisCartRepository } from './infrastructure/repositories/redis-cart.repository';
 import { CartCacheRepository } from './infrastructure/redis/cart-cache.repository';
-import { CartEventsProducer } from './infrastructure/kafka/cart-events.producer';
+import { RedisOutboxRepository } from './infrastructure/redis/redis-outbox.repository';
+import { OutboxRelayService } from './infrastructure/kafka/outbox-relay.service';
 
 // HTTP Clients
 import { ProductServiceClient } from './infrastructure/http/product-service.client';
@@ -38,17 +41,27 @@ const commandHandlers = [
 const queryHandlers = [GetCartHandler];
 
 @Module({
-  imports: [CqrsModule, HttpModule],
+  imports: [
+    CqrsModule,
+    HttpModule,
+    ThrottlerModule.forRoot([{ ttl: 60000, limit: 60 }]),
+  ],
   controllers: [CartController],
   providers: [
+    // Global rate limiting guard
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+
     // CQRS handlers
     ...commandHandlers,
     ...queryHandlers,
 
     // Port → Adapter bindings (Dependency Inversion)
-    { provide: CART_REPOSITORY, useClass: InMemoryCartRepository },
+    { provide: CART_REPOSITORY, useClass: RedisCartRepository },
     { provide: CART_CACHE, useClass: CartCacheRepository },
-    { provide: CART_EVENTS_PRODUCER, useClass: CartEventsProducer },
+    { provide: CART_OUTBOX, useClass: RedisOutboxRepository },
+
+    // Outbox relay worker (publishes Redis Stream events to Kafka)
+    OutboxRelayService,
 
     // Redis client factory
     {
@@ -58,6 +71,11 @@ const queryHandlers = [GetCartHandler];
           host: process.env.REDIS_HOST ?? 'localhost',
           port: parseInt(process.env.REDIS_PORT ?? '6379', 10),
           lazyConnect: true,
+          commandTimeout: 2000,
+          connectTimeout: 5000,
+          maxRetriesPerRequest: 1,
+          enableReadyCheck: true,
+          retryStrategy: (times) => Math.min(times * 100, 3000),
         });
       },
     },

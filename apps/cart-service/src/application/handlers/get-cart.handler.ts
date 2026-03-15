@@ -27,7 +27,14 @@ export class GetCartHandler implements IQueryHandler<GetCartQuery> {
 
     if (!cart) {
       // Return an empty cart representation without persisting
-      return { id: '', userId: query.userId, items: [] };
+      return {
+        id: '',
+        userId: query.userId,
+        items: [],
+        version: 0,
+        createdAt: new Date().toISOString(),
+        expiresAt: new Date().toISOString(),
+      };
     }
 
     // 3. Warm the cache for subsequent reads

@@ -22,6 +22,9 @@ export class DomainExceptionFilter implements ExceptionFilter {
     INVALID_QUANTITY: HttpStatus.BAD_REQUEST,
     INVALID_PRODUCT_ID: HttpStatus.BAD_REQUEST,
     CART_FULL: HttpStatus.UNPROCESSABLE_ENTITY,
+    VERSION_CONFLICT: HttpStatus.CONFLICT,
+    PRODUCT_NOT_FOUND: HttpStatus.UNPROCESSABLE_ENTITY,
+    INSUFFICIENT_STOCK: HttpStatus.UNPROCESSABLE_ENTITY,
   };
 
   catch(exception: DomainException, host: ArgumentsHost): void {

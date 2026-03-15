@@ -6,22 +6,20 @@ import {
   ICartRepository,
 } from '../ports/cart-repository.port';
 import { CART_CACHE, ICartCache } from '../ports/cart-cache.port';
-import {
-  CART_EVENTS_PRODUCER,
-  ICartEventsProducer,
-} from '../ports/cart-events.port';
+import { CART_OUTBOX, ICartOutbox } from '../ports/cart-outbox.port';
 import { Cart } from '../../domain/entities/cart.entity';
 import { ProductId } from '../../domain/value-objects/product-id.vo';
 import { Quantity } from '../../domain/value-objects/quantity.vo';
 import { CartNotFoundException } from '../../domain/exceptions';
 
 @CommandHandler(UpdateItemQuantityCommand)
-export class UpdateItemQuantityHandler implements ICommandHandler<UpdateItemQuantityCommand> {
+export class UpdateItemQuantityHandler
+  implements ICommandHandler<UpdateItemQuantityCommand>
+{
   constructor(
     @Inject(CART_REPOSITORY) private readonly cartRepository: ICartRepository,
     @Inject(CART_CACHE) private readonly cartCache: ICartCache,
-    @Inject(CART_EVENTS_PRODUCER)
-    private readonly eventsProducer: ICartEventsProducer,
+    @Inject(CART_OUTBOX) private readonly outbox: ICartOutbox,
   ) {}
 
   async execute(
@@ -39,10 +37,10 @@ export class UpdateItemQuantityHandler implements ICommandHandler<UpdateItemQuan
     cart.updateItemQuantity(productId, newQuantity);
 
     await this.cartRepository.save(cart);
-    await this.cartCache.invalidate(command.userId);
+    await this.cartCache.set(command.userId, cart);
 
     const events = cart.pullEvents();
-    await Promise.all(events.map((e) => this.eventsProducer.publish(e)));
+    await this.outbox.append(events);
 
     return cart.toJSON();
   }

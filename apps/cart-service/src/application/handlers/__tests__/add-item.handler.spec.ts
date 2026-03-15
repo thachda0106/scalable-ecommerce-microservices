@@ -2,8 +2,10 @@ import { AddItemHandler } from '../add-item.handler';
 import { AddItemCommand } from '../../commands/add-item.command';
 import { ICartRepository } from '../../ports/cart-repository.port';
 import { ICartCache } from '../../ports/cart-cache.port';
-import { ICartEventsProducer } from '../../ports/cart-events.port';
+import { ICartOutbox } from '../../ports/cart-outbox.port';
 import { Cart } from '../../../domain/entities/cart.entity';
+import { ProductServiceClient } from '../../../infrastructure/http/product-service.client';
+import { InventoryServiceClient } from '../../../infrastructure/http/inventory-service.client';
 
 const VALID_UUID = '550e8400-e29b-41d4-a716-446655440000';
 
@@ -11,7 +13,9 @@ describe('AddItemHandler', () => {
   let handler: AddItemHandler;
   let mockRepo: jest.Mocked<ICartRepository>;
   let mockCache: jest.Mocked<ICartCache>;
-  let mockProducer: jest.Mocked<ICartEventsProducer>;
+  let mockOutbox: jest.Mocked<ICartOutbox>;
+  let mockProductClient: jest.Mocked<Pick<ProductServiceClient, 'validateProduct'>>;
+  let mockInventoryClient: jest.Mocked<Pick<InventoryServiceClient, 'checkStock'>>;
 
   beforeEach(() => {
     mockRepo = {
@@ -23,11 +27,23 @@ describe('AddItemHandler', () => {
       set: jest.fn().mockResolvedValue(undefined),
       invalidate: jest.fn().mockResolvedValue(undefined),
     };
-    mockProducer = {
-      publish: jest.fn().mockResolvedValue(undefined),
+    mockOutbox = {
+      append: jest.fn().mockResolvedValue(undefined),
+    };
+    mockProductClient = {
+      validateProduct: jest.fn().mockResolvedValue(true),
+    };
+    mockInventoryClient = {
+      checkStock: jest.fn().mockResolvedValue(true),
     };
 
-    handler = new AddItemHandler(mockRepo, mockCache, mockProducer);
+    handler = new AddItemHandler(
+      mockRepo,
+      mockCache,
+      mockOutbox,
+      mockProductClient as any,
+      mockInventoryClient as any,
+    );
   });
 
   it('should create a new cart if one does not exist', async () => {
@@ -37,8 +53,8 @@ describe('AddItemHandler', () => {
     const result = await handler.execute(cmd);
 
     expect(mockRepo.save).toHaveBeenCalledTimes(1);
-    expect(mockCache.invalidate).toHaveBeenCalledWith('user-1');
-    expect(mockProducer.publish).toHaveBeenCalledTimes(1);
+    expect(mockCache.set).toHaveBeenCalledWith('user-1', expect.any(Object));
+    expect(mockOutbox.append).toHaveBeenCalledTimes(1);
     expect(result.items).toHaveLength(1);
     expect(result.items[0].quantity).toBe(2);
   });
@@ -56,7 +72,6 @@ describe('AddItemHandler', () => {
 
   it('should merge quantity for duplicate items in existing cart', async () => {
     const existingCart = Cart.create('user-1');
-    // Pre-populate with 2 of the same product
     const { ProductId } = jest.requireActual(
       '../../../domain/value-objects/product-id.vo',
     );
@@ -79,21 +94,36 @@ describe('AddItemHandler', () => {
     expect(result.items[0].quantity).toBe(5);
   });
 
-  it('should invalidate cache after save', async () => {
+  it('should write-through cache after save', async () => {
     mockRepo.findByUserId.mockResolvedValue(null);
     const cmd = new AddItemCommand('user-1', VALID_UUID, 1, 9.99);
     await handler.execute(cmd);
 
-    expect(mockCache.invalidate).toHaveBeenCalledWith('user-1');
+    expect(mockCache.set).toHaveBeenCalledWith('user-1', expect.any(Object));
   });
 
-  it('should publish exactly one ItemAddedEvent', async () => {
+  it('should append exactly one ItemAddedEvent to outbox', async () => {
     mockRepo.findByUserId.mockResolvedValue(null);
     const cmd = new AddItemCommand('user-1', VALID_UUID, 1, 9.99);
     await handler.execute(cmd);
 
-    expect(mockProducer.publish).toHaveBeenCalledTimes(1);
-    const publishedEvent = mockProducer.publish.mock.calls[0][0];
-    expect(publishedEvent.eventType).toBe('cart.item_added');
+    expect(mockOutbox.append).toHaveBeenCalledTimes(1);
+    const appendedEvents = mockOutbox.append.mock.calls[0][0];
+    expect(appendedEvents).toHaveLength(1);
+    expect(appendedEvents[0].eventType).toBe('cart.item_added');
+  });
+
+  it('should reject when product validation fails', async () => {
+    mockProductClient.validateProduct.mockResolvedValue(false);
+    const cmd = new AddItemCommand('user-1', VALID_UUID, 1, 9.99);
+
+    await expect(handler.execute(cmd)).rejects.toThrow('does not exist');
+  });
+
+  it('should reject when stock check fails', async () => {
+    mockInventoryClient.checkStock.mockResolvedValue(false);
+    const cmd = new AddItemCommand('user-1', VALID_UUID, 1, 9.99);
+
+    await expect(handler.execute(cmd)).rejects.toThrow('Insufficient stock');
   });
 });
