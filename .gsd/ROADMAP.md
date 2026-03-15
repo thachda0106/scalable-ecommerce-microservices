@@ -74,3 +74,24 @@
 
 **Verification**:
 - TBD
+
+---
+
+### Phase 10: Production-Grade Cart Service
+**Status**: 🔄 In Progress
+**Objective**: Transform the cart-service from a basic 3-file implementation into a production-grade microservice following DDD, Clean Architecture, CQRS, Redis caching, Kafka event publishing, external service integration, DTO validation, idempotency, unit tests, and architecture documentation.
+**Depends on**: Phase 9
+
+**Tasks**:
+- [ ] Task 1: Domain layer — Cart aggregate, CartItem entity, ProductId/Quantity VOs, domain events
+- [ ] Task 2: CQRS — Commands (AddItem, RemoveItem, ClearCart), Query (GetCart), port interfaces, handlers
+- [ ] Task 3: Infrastructure — Redis cache adapter, Kafka producer, in-memory repository, HTTP clients
+- [ ] Task 4: Interfaces — DTOs with class-validator, thin CartController, CartModule wiring, AppModule update
+- [ ] Task 5: Tests — Domain unit tests, AddItemHandler tests, GetCartHandler tests
+- [ ] Task 6: Docs — `docs/cart-service-architecture.md` with domain model, flows, cache and event architecture
+
+**Verification**:
+- `pnpm test` passes in cart-service
+- `npx tsc --noEmit` shows zero errors
+- No `@nestjs` import in any file under `src/domain/`
+- `CartController` delegates only to CommandBus/QueryBus
