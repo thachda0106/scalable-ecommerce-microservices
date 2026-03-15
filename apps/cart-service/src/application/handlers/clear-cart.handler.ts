@@ -1,9 +1,15 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject, NotFoundException } from '@nestjs/common';
 import { ClearCartCommand } from '../commands/clear-cart.command';
-import { CART_REPOSITORY, ICartRepository } from '../ports/cart-repository.port';
+import {
+  CART_REPOSITORY,
+  ICartRepository,
+} from '../ports/cart-repository.port';
 import { CART_CACHE, ICartCache } from '../ports/cart-cache.port';
-import { CART_EVENTS_PRODUCER, ICartEventsProducer } from '../ports/cart-events.port';
+import {
+  CART_EVENTS_PRODUCER,
+  ICartEventsProducer,
+} from '../ports/cart-events.port';
 
 @CommandHandler(ClearCartCommand)
 export class ClearCartHandler implements ICommandHandler<ClearCartCommand> {
