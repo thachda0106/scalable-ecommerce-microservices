@@ -1,6 +1,7 @@
 import { Module, Global, OnModuleDestroy, Inject } from '@nestjs/common';
 import { Redis } from 'ioredis';
 import { TokenStoreService, REDIS_CLIENT } from './token-store.service';
+import { LoginAttemptStore } from './login-attempt.store';
 
 @Global()
 @Module({
@@ -15,8 +16,9 @@ import { TokenStoreService, REDIS_CLIENT } from './token-store.service';
       },
     },
     TokenStoreService,
+    LoginAttemptStore,
   ],
-  exports: [REDIS_CLIENT, TokenStoreService],
+  exports: [REDIS_CLIENT, TokenStoreService, LoginAttemptStore],
 })
 export class RedisModule implements OnModuleDestroy {
   constructor(@Inject(REDIS_CLIENT) private readonly redis: Redis) {}

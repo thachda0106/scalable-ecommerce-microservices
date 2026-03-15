@@ -16,7 +16,7 @@ describe('RegisterHandler', () => {
   let kafkaClient: { emit: jest.Mock };
   let logger: { error: jest.Mock };
 
-  const makeUser = (overrides = {}) =>
+  const makeUser = () =>
     User.create({
       id: 'user-id-123',
       email: Email.create('test@example.com'),
@@ -26,7 +26,6 @@ describe('RegisterHandler', () => {
       isActive: true,
       createdAt: new Date(),
       updatedAt: new Date(),
-      ...overrides,
     });
 
   beforeEach(async () => {
@@ -49,14 +48,11 @@ describe('RegisterHandler', () => {
 
   it('should register a new user and return id and email', async () => {
     userRepository.findByEmail.mockResolvedValue(null);
-    const savedUser = makeUser();
-    userRepository.save.mockResolvedValue(savedUser);
+    userRepository.save.mockResolvedValue(makeUser());
 
-    const command = new RegisterCommand({
-      email: 'test@example.com',
-      password: 'Password123!',
-    });
-    const result = await handler.execute(command);
+    const result = await handler.execute(
+      new RegisterCommand({ email: 'test@example.com', password: 'Password123!' }),
+    );
 
     expect(result.email).toBe('test@example.com');
     expect(result.id).toBeDefined();
@@ -67,28 +63,26 @@ describe('RegisterHandler', () => {
   it('should throw ConflictException if email already exists', async () => {
     userRepository.findByEmail.mockResolvedValue(makeUser());
 
-    const command = new RegisterCommand({
-      email: 'test@example.com',
-      password: 'Password123!',
-    });
-
-    await expect(handler.execute(command)).rejects.toThrow(ConflictException);
+    await expect(
+      handler.execute(
+        new RegisterCommand({ email: 'test@example.com', password: 'Password123!' }),
+      ),
+    ).rejects.toThrow(ConflictException);
     expect(userRepository.save).not.toHaveBeenCalled();
   });
 
-  it('should emit user.registered Kafka event on success', async () => {
+  it('should emit user.registered event to dedicated topic', async () => {
     userRepository.findByEmail.mockResolvedValue(null);
     userRepository.save.mockResolvedValue(makeUser());
 
-    const command = new RegisterCommand({
-      email: 'test@example.com',
-      password: 'Password123!',
-    });
-    await handler.execute(command);
+    await handler.execute(
+      new RegisterCommand({ email: 'test@example.com', password: 'Password123!' }),
+    );
 
+    // Topic must be 'user.registered', not the old 'identity' topic
     expect(kafkaClient.emit).toHaveBeenCalledWith(
-      'identity',
-      expect.objectContaining({ type: 'user.registered' }),
+      'user.registered',
+      expect.objectContaining({ email: 'test@example.com' }),
     );
   });
 
@@ -99,11 +93,11 @@ describe('RegisterHandler', () => {
       throw new Error('Kafka down');
     });
 
-    const command = new RegisterCommand({
-      email: 'test@example.com',
-      password: 'Password123!',
-    });
-    await expect(handler.execute(command)).resolves.toBeDefined();
+    await expect(
+      handler.execute(
+        new RegisterCommand({ email: 'test@example.com', password: 'Password123!' }),
+      ),
+    ).resolves.toBeDefined();
     expect(logger.error).toHaveBeenCalled();
   });
 
@@ -115,13 +109,10 @@ describe('RegisterHandler', () => {
       return Promise.resolve(user);
     });
 
-    const command = new RegisterCommand({
-      email: 'test@example.com',
-      password: 'PlaintextPass1!',
-    });
-    await handler.execute(command);
+    await handler.execute(
+      new RegisterCommand({ email: 'test@example.com', password: 'PlaintextPass1!' }),
+    );
 
-    // The password stored should be an argon2 hash, not plaintext
     const storedHash = savedArgs?.password?.getValue();
     expect(storedHash).toBeDefined();
     expect(storedHash).not.toBe('PlaintextPass1!');

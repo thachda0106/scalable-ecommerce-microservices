@@ -6,50 +6,68 @@ import {
   AuthTokens,
 } from '../../infrastructure/jwt/jwt-adapter.service';
 import { TokenStoreService } from '../../infrastructure/redis/token-store.service';
-import { InjectRepository } from '@nestjs/typeorm';
-import { UserOrmEntity } from '../../infrastructure/database/user.orm-entity';
-import { Repository } from 'typeorm';
-import { Role } from '../../domain/value-objects/role.enum';
+import {
+  USER_REPOSITORY,
+  type UserRepositoryPort,
+} from '../../domain/ports/user-repository.port';
+import { Inject } from '@nestjs/common';
+
+/** Access token TTL in seconds — used to size the jti blocklist entry */
+const ACCESS_TOKEN_TTL_SECONDS = 15 * 60;
 
 @CommandHandler(RefreshTokenCommand)
-export class RefreshTokenHandler implements ICommandHandler<RefreshTokenCommand> {
+export class RefreshTokenHandler
+  implements ICommandHandler<RefreshTokenCommand>
+{
   constructor(
     private readonly jwtAdapterService: JwtAdapterService,
     private readonly tokenStoreService: TokenStoreService,
-    @InjectRepository(UserOrmEntity)
-    private readonly userRepository: Repository<UserOrmEntity>,
+    @Inject(USER_REPOSITORY)
+    private readonly userRepository: UserRepositoryPort,
   ) {}
 
   async execute(command: RefreshTokenCommand): Promise<AuthTokens> {
-    const { refreshToken } = command.dto;
+    const { userId, refreshToken, currentJti } = command.dto;
 
-    // 1. Verify token exists in Redis
-    const userId =
-      await this.tokenStoreService.getUserIdByRefreshToken(refreshToken);
-    if (!userId) {
+    // 1. Verify token exists in Redis (namespaced key)
+    const storedUserId = await this.tokenStoreService.getUserIdByRefreshToken(
+      userId,
+      refreshToken,
+    );
+    if (!storedUserId) {
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
 
-    // 2. Fetch user to ensure they are still active
-    const user = await this.userRepository.findOne({ where: { id: userId } });
+    // 2. Fetch user via domain port to ensure they are still active
+    const user = await this.userRepository.findById(userId);
     if (!user || !user.isActive) {
       throw new UnauthorizedException('User is not active');
     }
 
-    // 3. Revoke the old refresh token (Rotation)
-    await this.tokenStoreService.revokeRefreshToken(refreshToken);
+    // 3. Blocklist the old access token (jti) so it cannot be reused
+    if (currentJti) {
+      await this.tokenStoreService.blocklistJti(
+        currentJti,
+        ACCESS_TOKEN_TTL_SECONDS,
+      );
+    }
 
-    // 4. Generate new tokens
+    // 4. Revoke the old refresh token (rotation)
+    await this.tokenStoreService.revokeRefreshToken(userId, refreshToken);
+
+    // 5. Generate new tokens
     const newTokens = this.jwtAdapterService.generateTokens({
       id: user.id,
-      email: user.email,
-      role: user.role as Role,
+      email: user.email.getValue(),
+      role: user.role,
+      tenantId: user.tenantId,
+      orgId: user.orgId,
     });
 
-    // 5. Store the new refresh token
+    // 6. Store the new refresh token
     await this.tokenStoreService.storeRefreshToken(
-      newTokens.refreshToken,
       user.id,
+      newTokens.refreshToken,
     );
 
     return newTokens;

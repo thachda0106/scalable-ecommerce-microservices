@@ -25,13 +25,18 @@ export class UserRepository implements UserRepositoryPort {
     return orm ? this.toDomain(orm) : null;
   }
 
+  async findByProvider(provider: string, providerId: string): Promise<User | null> {
+    const orm = await this.ormRepo.findOne({ where: { provider, providerId } });
+    return orm ? this.toDomain(orm) : null;
+  }
+
   async save(user: User): Promise<User> {
     const orm = this.toOrm(user);
     const saved = await this.ormRepo.save(orm);
     return this.toDomain(saved);
   }
 
-  // ---- Mapping helpers ----
+  // ── Mapping helpers ──────────────────────────────────────────────────────
 
   private toDomain(orm: UserOrmEntity): User {
     const props: UserProps = {
@@ -43,6 +48,13 @@ export class UserRepository implements UserRepositoryPort {
       isActive: orm.isActive,
       createdAt: orm.createdAt,
       updatedAt: orm.updatedAt,
+      provider: orm.provider,
+      providerId: orm.providerId,
+      firstName: orm.firstName,
+      lastName: orm.lastName,
+      picture: orm.picture,
+      tenantId: orm.tenantId,
+      orgId: orm.orgId,
     };
     return User.create(props);
   }
@@ -55,6 +67,13 @@ export class UserRepository implements UserRepositoryPort {
     orm.role = user.role;
     orm.isEmailVerified = user.isEmailVerified;
     orm.isActive = user.isActive;
+    orm.provider = user.provider ?? null;
+    orm.providerId = user.providerId ?? null;
+    orm.firstName = user.firstName ?? null;
+    orm.lastName = user.lastName ?? null;
+    orm.picture = user.picture ?? null;
+    orm.tenantId = user.tenantId ?? null;
+    orm.orgId = user.orgId ?? null;
     return orm;
   }
 }

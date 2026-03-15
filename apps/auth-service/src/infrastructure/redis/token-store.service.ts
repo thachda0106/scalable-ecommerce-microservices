@@ -1,64 +1,96 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { Redis } from 'ioredis';
+import type { TokenStorePort } from '../../domain/ports/token-store.port';
 
 export const REDIS_CLIENT = 'REDIS_CLIENT';
 
+/** 7 days in seconds */
+const REFRESH_TOKEN_TTL = 7 * 24 * 60 * 60; // 604 800
+
 @Injectable()
-export class TokenStoreService {
+export class TokenStoreService implements TokenStorePort {
   constructor(@Inject(REDIS_CLIENT) private readonly redis: Redis) {}
 
-  private getTokenKey(tokenId: string): string {
-    return `refresh:${tokenId}`;
+  // ── Key helpers ──────────────────────────────────────────────────────────
+
+  private tokenKey(userId: string, tokenId: string): string {
+    return `refresh:${userId}:${tokenId}`;
   }
 
-  /** Store token → userId mapping with 7-day TTL */
-  async storeRefreshToken(tokenId: string, userId: string): Promise<void> {
-    const key = this.getTokenKey(tokenId);
-    await this.redis.set(key, userId, 'EX', 604800);
+  private sessionIndexKey(userId: string): string {
+    return `sessions:${userId}`;
   }
 
-  /** Retrieve the userId for a given refresh token (null if not found/expired) */
-  async getUserIdByRefreshToken(tokenId: string): Promise<string | null> {
-    const key = this.getTokenKey(tokenId);
-    return this.redis.get(key);
+  private jtiBlocklistKey(jti: string): string {
+    return `blocklist:jti:${jti}`;
   }
 
-  /** Revoke a single refresh token */
-  async revokeRefreshToken(tokenId: string): Promise<void> {
-    const key = this.getTokenKey(tokenId);
-    await this.redis.del(key);
+  // ── Refresh token lifecycle ──────────────────────────────────────────────
+
+  /**
+   * Store a refresh token under refresh:{userId}:{tokenId}.
+   * Also adds tokenId to the user's session index for O(1) full revocation.
+   */
+  async storeRefreshToken(
+    userId: string,
+    tokenId: string,
+    ttlSeconds = REFRESH_TOKEN_TTL,
+  ): Promise<void> {
+    const key = this.tokenKey(userId, tokenId);
+    await this.redis.set(key, userId, 'EX', ttlSeconds);
+
+    // Maintain a session index so revokeAllUserTokens is O(1)
+    await this.redis.sadd(this.sessionIndexKey(userId), tokenId);
+    await this.redis.expire(this.sessionIndexKey(userId), ttlSeconds);
   }
 
   /**
-   * Revoke all refresh tokens belonging to a user.
-   * Uses SCAN to avoid blocking the Redis server with KEYS.
+   * Returns the userId if the token exists and has not expired.
+   */
+  async getUserIdByRefreshToken(
+    userId: string,
+    tokenId: string,
+  ): Promise<string | null> {
+    return this.redis.get(this.tokenKey(userId, tokenId));
+  }
+
+  /**
+   * Revoke a single refresh token and remove it from the session index.
+   */
+  async revokeRefreshToken(userId: string, tokenId: string): Promise<void> {
+    await this.redis.del(this.tokenKey(userId, tokenId));
+    await this.redis.srem(this.sessionIndexKey(userId), tokenId);
+  }
+
+  /**
+   * Revoke all refresh tokens for a user using the session index.
+   * O(1) lookup vs the previous O(N) SCAN approach.
    */
   async revokeAllUserTokens(userId: string): Promise<void> {
-    const keysToDelete: string[] = [];
-    let cursor = '0';
+    const sessionKey = this.sessionIndexKey(userId);
+    const tokenIds = await this.redis.smembers(sessionKey);
 
-    do {
-      const [nextCursor, keys] = await this.redis.scan(
-        cursor,
-        'MATCH',
-        'refresh:*',
-        'COUNT',
-        100,
-      );
-      cursor = nextCursor;
-
-      if (keys.length > 0) {
-        const values = await this.redis.mget(...keys);
-        keys.forEach((key, index) => {
-          if (values[index] === userId) {
-            keysToDelete.push(key);
-          }
-        });
-      }
-    } while (cursor !== '0');
-
-    if (keysToDelete.length > 0) {
-      await this.redis.del(...keysToDelete);
+    if (tokenIds.length > 0) {
+      const keys = tokenIds.map((id) => this.tokenKey(userId, id));
+      await this.redis.del(...keys);
     }
+    await this.redis.del(sessionKey);
+  }
+
+  // ── Access token (jti) blocklist ─────────────────────────────────────────
+
+  /**
+   * Blocklist a JWT ID so the access token cannot be used even if not expired.
+   * TTL should equal the remaining lifetime of the access token (typically 900s).
+   */
+  async blocklistJti(jti: string, ttlSeconds: number): Promise<void> {
+    await this.redis.set(this.jtiBlocklistKey(jti), '1', 'EX', ttlSeconds);
+  }
+
+  /**
+   * Returns true if the JWT ID is in the blocklist (token was revoked).
+   */
+  async isJtiBlocked(jti: string): Promise<boolean> {
+    return (await this.redis.exists(this.jtiBlocklistKey(jti))) === 1;
   }
 }

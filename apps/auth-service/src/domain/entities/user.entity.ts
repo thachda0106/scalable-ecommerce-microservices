@@ -11,6 +11,15 @@ export interface UserProps {
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
+  // OAuth fields
+  provider?: string | null;
+  providerId?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  picture?: string | null;
+  // Multi-tenancy
+  tenantId?: string | null;
+  orgId?: string | null;
 }
 
 export class User {
@@ -20,39 +29,24 @@ export class User {
     return new User(props);
   }
 
-  get id(): string {
-    return this.props.id;
-  }
+  get id(): string { return this.props.id; }
+  get email(): Email { return this.props.email; }
+  get password(): Password | null { return this.props.password; }
+  get role(): Role { return this.props.role; }
+  get isEmailVerified(): boolean { return this.props.isEmailVerified; }
+  get isActive(): boolean { return this.props.isActive; }
+  get createdAt(): Date { return this.props.createdAt; }
+  get updatedAt(): Date { return this.props.updatedAt; }
+  get provider(): string | null | undefined { return this.props.provider; }
+  get providerId(): string | null | undefined { return this.props.providerId; }
+  get firstName(): string | null | undefined { return this.props.firstName; }
+  get lastName(): string | null | undefined { return this.props.lastName; }
+  get picture(): string | null | undefined { return this.props.picture; }
+  get tenantId(): string | null | undefined { return this.props.tenantId; }
+  get orgId(): string | null | undefined { return this.props.orgId; }
 
-  get email(): Email {
-    return this.props.email;
-  }
+  // ── Domain behavior ─────────────────────────────────────────────────────
 
-  get password(): Password | null {
-    return this.props.password;
-  }
-
-  get role(): Role {
-    return this.props.role;
-  }
-
-  get isEmailVerified(): boolean {
-    return this.props.isEmailVerified;
-  }
-
-  get isActive(): boolean {
-    return this.props.isActive;
-  }
-
-  get createdAt(): Date {
-    return this.props.createdAt;
-  }
-
-  get updatedAt(): Date {
-    return this.props.updatedAt;
-  }
-
-  // Domain behavior
   public verifyEmail(): void {
     if (this.props.isEmailVerified) {
       throw new Error('Email is already verified');

@@ -1,19 +1,24 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { OAuthRegisterCommand } from '../commands/oauth-register.command';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { UserOrmEntity } from '../../infrastructure/database/user.orm-entity';
-import { Role } from '../../domain/value-objects/role.enum';
-import { Logger } from '@ecommerce/core';
-import { KAFKA_SERVICE } from '../../infrastructure/kafka/kafka-producer.module';
+import {
+  USER_REPOSITORY,
+  type UserRepositoryPort,
+} from '../../domain/ports/user-repository.port';
 import { Inject } from '@nestjs/common';
+import { User } from '../../domain/entities/user.entity';
+import { Email } from '../../domain/value-objects/email.value-object';
+import { Role } from '../../domain/value-objects/role.enum';
+import { KAFKA_SERVICE } from '../../infrastructure/kafka/kafka-producer.module';
 import { ClientKafka } from '@nestjs/microservices';
+import { Logger } from '@ecommerce/core';
 
 @CommandHandler(OAuthRegisterCommand)
-export class OAuthRegisterHandler implements ICommandHandler<OAuthRegisterCommand> {
+export class OAuthRegisterHandler
+  implements ICommandHandler<OAuthRegisterCommand>
+{
   constructor(
-    @InjectRepository(UserOrmEntity)
-    private readonly userRepository: Repository<UserOrmEntity>,
+    @Inject(USER_REPOSITORY)
+    private readonly userRepository: UserRepositoryPort,
     @Inject(KAFKA_SERVICE)
     private readonly kafkaClient: ClientKafka,
     private readonly logger: Logger,
@@ -22,39 +27,46 @@ export class OAuthRegisterHandler implements ICommandHandler<OAuthRegisterComman
   async execute(
     command: OAuthRegisterCommand,
   ): Promise<{ id: string; email: string }> {
-    const { email, provider, providerId } = command.dto;
+    const { email, provider, providerId, firstName, lastName, picture } =
+      command.dto;
 
-    const newUser = this.userRepository.create({
+    // Build domain entity with OAuth identity — no dummy password
+    const now = new Date();
+    const user = User.create({
       id: crypto.randomUUID(),
-      email,
-      passwordHash: null, // OAuth users have no local password
+      email: Email.create(email),
+      password: null, // OAuth-only users have no local password
       role: Role.CUSTOMER,
-      isEmailVerified: true, // Verified by OAuth provider
+      isEmailVerified: true, // OAuth provider has verified the email
       isActive: true,
+      provider,
+      providerId,
+      firstName: firstName ?? null,
+      lastName: lastName ?? null,
+      picture: picture ?? null,
+      createdAt: now,
+      updatedAt: now,
     });
 
-    const savedUser = await this.userRepository.save(newUser);
+    // Persist via domain port (ORM mapping in UserRepository)
+    const savedUser = await this.userRepository.save(user);
 
-    // Fire & Forget: Emit integration event
+    // Emit user.registered event to dedicated topic
     try {
-      this.kafkaClient.emit('identity', {
-        type: 'user.registered',
-        data: {
-          userId: savedUser.id,
-          email: savedUser.email,
-          provider,
-          providerId,
-          timestamp: new Date().toISOString(),
-        },
+      this.kafkaClient.emit('user.registered', {
+        userId: savedUser.id,
+        email: savedUser.email.getValue(),
+        provider,
+        providerId,
+        timestamp: new Date().toISOString(),
       });
     } catch (err: unknown) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       this.logger.error(
         'Failed to emit user.registered event (OAuth)',
         err instanceof Error ? err.message : String(err),
       );
     }
 
-    return { id: savedUser.id, email: savedUser.email };
+    return { id: savedUser.id, email: savedUser.email.getValue() };
   }
 }

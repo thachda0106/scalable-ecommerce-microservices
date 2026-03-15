@@ -15,6 +15,7 @@ import { RefreshTokenHandler } from './application/handlers/refresh-token.handle
 import { LogoutHandler } from './application/handlers/logout.handler';
 import { OAuthRegisterHandler } from './application/handlers/oauth-register.handler';
 import { OAuthLoginHandler } from './application/handlers/oauth-login.handler';
+import { LoginAttemptService } from './application/services/auth.service';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { ThrottlerStorageRedisService } from 'nestjs-throttler-storage-redis';
 import { OAuthModule } from './infrastructure/oauth/oauth.module';
@@ -52,6 +53,6 @@ const QueryHandlers = [LoginHandler];
     }),
   ],
   controllers: [AuthController, OAuthController, HealthController],
-  providers: [...CommandHandlers, ...QueryHandlers],
+  providers: [...CommandHandlers, ...QueryHandlers, LoginAttemptService],
 })
 export class AppModule {}

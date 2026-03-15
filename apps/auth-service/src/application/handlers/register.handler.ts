@@ -60,18 +60,14 @@ export class RegisterHandler implements ICommandHandler<RegisterCommand> {
     // Persist via repository (domain → ORM mapping is inside UserRepository)
     const savedUser = await this.userRepository.save(user);
 
-    // Fire & Forget: Emit integration event
+    // Emit user.registered event to dedicated topic
     try {
-      this.kafkaClient.emit('identity', {
-        type: 'user.registered',
-        data: {
-          userId: savedUser.id,
-          email: savedUser.email.getValue(),
-          timestamp: new Date().toISOString(),
-        },
+      this.kafkaClient.emit('user.registered', {
+        userId: savedUser.id,
+        email: savedUser.email.getValue(),
+        timestamp: new Date().toISOString(),
       });
     } catch (err: unknown) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       this.logger.error(
         'Failed to emit user.registered event',
         err instanceof Error ? err.message : String(err),

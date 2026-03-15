@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, LoggerService } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { Logger } from '@ecommerce/core';
@@ -7,8 +7,7 @@ import { Logger } from '@ecommerce/core';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-  app.useLogger(app.get(Logger as any));
+  app.useLogger(app.get<LoggerService>(Logger));
 
   // Global input validation — strips unknown properties, enforces DTO rules
   app.useGlobalPipes(
