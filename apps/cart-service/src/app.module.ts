@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { getLoggerModule } from '@ecommerce/core';
-import { CartModule } from './cart/cart.module';
+import { CartModule } from './cart.module';
 
 @Module({
   imports: [getLoggerModule(), CartModule],
