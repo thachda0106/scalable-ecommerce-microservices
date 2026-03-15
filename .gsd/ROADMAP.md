@@ -95,3 +95,26 @@
 - `npx tsc --noEmit` shows zero errors
 - No `@nestjs` import in any file under `src/domain/`
 - `CartController` delegates only to CommandBus/QueryBus
+
+---
+
+### Phase 11: Production-Grade Inventory Service
+**Status**: ⬜ Not Started
+**Objective**: Full redesign and production hardening of the inventory-service. Transform it from a basic scaffold into an Amazon/Shopify-caliber system supporting millions of users, high concurrency, and zero overselling. Implements DDD domain model (ProductInventory, StockReservation, StockMovement), CQRS, three-layer concurrency control (Redis lock + OCC + DB transactions), hybrid PostgreSQL+Redis storage, cart/order integration via Kafka events, REST API with idempotency, reservation TTL expiry, observability (Prometheus + OpenTelemetry), security, and production hardening.
+**Depends on**: Phase 10
+
+**Tasks**:
+- [ ] Wave 1: Domain layer — ProductInventory aggregate, StockReservation, StockMovement, VOs, domain events, ports
+- [ ] Wave 2: Application layer — CQRS commands (Reserve, Release, Confirm, Replenish), query (GetInventory), handlers
+- [ ] Wave 3: Infrastructure — TypeORM entities/mappers/repo, Redis cache + lock, Kafka publisher + consumers, outbox relay, expiry worker, retry/circuit breaker, config
+- [ ] Wave 4: Interface layer — DTOs, InventoryController, service auth guard, health checks, Prometheus metrics, module wiring
+- [ ] Wave 5: Tests & docs — Domain unit tests, handler tests, tsc --noEmit, architecture documentation
+
+**Verification**:
+- `pnpm test` passes in inventory-service
+- `npx tsc --noEmit` shows zero errors
+- No `@nestjs` import in any file under `src/domain/`
+- `InventoryController` delegates only to CommandBus/QueryBus
+- All stock mutations use `UPDATE ... WHERE version = X AND available >= qty`
+- Redis distributed lock on write path
+- Idempotency keys on all mutation endpoints

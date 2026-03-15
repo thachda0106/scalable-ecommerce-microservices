@@ -1,32 +1,86 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { getLoggerModule } from '@ecommerce/core';
-import { InventoryModule } from './inventory/inventory.module';
-import { OutboxModule } from './outbox/outbox.module';
-import { ConsumerModule } from './consumer/consumer.module';
-import { Stock } from './inventory/entities/stock.entity';
-import { OutboxEvent } from './outbox/entities/outbox-event.entity';
+
+import {
+  inventoryConfig,
+  redisConfig,
+  kafkaConfig,
+  databaseConfig,
+} from './config/inventory.config';
+
+import { InventoryModule } from './inventory.module';
+import { HealthModule } from './health/health.module';
+import { InventoryMetricsModule } from './metrics/metrics.module';
+
+// ORM entities for TypeORM root
+import { ProductInventoryOrmEntity } from './infrastructure/persistence/entities/product-inventory.orm-entity';
+import { StockReservationOrmEntity } from './infrastructure/persistence/entities/stock-reservation.orm-entity';
+import { StockMovementOrmEntity } from './infrastructure/persistence/entities/stock-movement.orm-entity';
+import { OutboxEventOrmEntity } from './infrastructure/persistence/entities/outbox-event.orm-entity';
+import { ProcessedEventOrmEntity } from './infrastructure/persistence/entities/processed-event.orm-entity';
 
 @Module({
   imports: [
-    getLoggerModule(),
-    ScheduleModule.forRoot(),
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      url:
-        process.env.DATABASE_URL ||
-        'postgres://postgres:postgres@localhost:5432/ecommerce',
-      entities: [Stock, OutboxEvent],
-      synchronize: true, // Use only for development!
+    // Config
+    ConfigModule.forRoot({
+      isGlobal: true,
+      load: [inventoryConfig, redisConfig, kafkaConfig, databaseConfig],
     }),
+
+    // Logger
+    getLoggerModule(),
+
+    // Scheduler for cron jobs (outbox relay, expiry worker)
+    ScheduleModule.forRoot(),
+
+    // Database — config-driven, NOT hardcoded
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        type: 'postgres' as const,
+        url: config.get('database.url'),
+        entities: [
+          ProductInventoryOrmEntity,
+          StockReservationOrmEntity,
+          StockMovementOrmEntity,
+          OutboxEventOrmEntity,
+          ProcessedEventOrmEntity,
+        ],
+        synchronize: config.get('database.synchronize', false),
+        extra: {
+          min: config.get('database.poolMin', 5),
+          max: config.get('database.poolMax', 20),
+        },
+      }),
+    }),
+
+    // Feature modules
     InventoryModule,
-    OutboxModule,
-    ConsumerModule,
+    HealthModule,
+    InventoryMetricsModule,
   ],
-  controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    // Redis client factory — shared across modules
+    {
+      provide: 'REDIS_CLIENT',
+      useFactory: (config: ConfigService) => {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const Redis = require('ioredis');
+        return new Redis({
+          host: config.get('redis.host'),
+          port: config.get('redis.port'),
+          password: config.get('redis.password'),
+          lazyConnect: true,
+          retryStrategy: (times: number) => Math.min(times * 100, 3000),
+        });
+      },
+      inject: [ConfigService],
+    },
+  ],
+  exports: ['REDIS_CLIENT'],
 })
 export class AppModule {}
