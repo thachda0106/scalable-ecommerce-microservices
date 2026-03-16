@@ -189,7 +189,7 @@
 ---
 
 ### Phase 15: Order Service Documentation
-**Status**: ⬜ Not Started
+**Status**: ✅ Complete
 **Objective**: Update and improve the documentation for the `order-service`. Create comprehensive README.md, `.env.example`, and architectural docs (`order-service-architecture.md`, `order-data-model.md`, `order-lifecycle.md`, `order-events.md`, `order-api-flow.md`) so that a new developer can understand the service quickly. Include architecture diagrams, event flow diagrams, state transition diagrams, and examples where necessary.
 **Depends on**: Phase 14
 
