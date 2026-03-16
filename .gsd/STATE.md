@@ -1,14 +1,14 @@
 # STATE.md
 
 **Project**: Ecommerce Microservices Platform
-**Current Focus**: Phase 16 Verified
+**Current Focus**: Phase 20 Added
 
 ## Current Position
-- **Phase**: 16 (verified)
-- **Status**: ✅ Complete and verified
+- **Phase**: 20 (not started)
+- **Status**: ⬜ Phase added to roadmap — pending planning
 
 ## Last Session Summary
-Phase 16 executed and verified. Payment service refactored into production-grade microservice with DDD, CQRS, PostgreSQL, Kafka, and Prometheus observability. All unit tests and compilation checks pass cleanly.
+Phase 20 "Architecture Review & Cross-Cutting Production Hardening" added to roadmap based on deep architecture review (score: 6.5/10). Phase contains 7 waves: Data Safety (critical), Event Architecture Consistency, Security Hardening, Reliability Patterns, Observability Completeness, Docker & CI/CD, Repository & Documentation.
 
 ## Next Steps
-1. Review ROADMAP.md for remaining phases or milestone completion.
+1. Run `/plan 20` to create detailed execution plans for Phase 20.

@@ -309,3 +309,69 @@
 - All 3 Kafka events published correctly (user.created, user.updated, user.deleted)
 - Prometheus metrics exposed at `/metrics`
 - Audit logs capture all security-critical operations (login attempts, password changes, account deletions)
+
+---
+
+### Phase 20: Architecture Review & Cross-Cutting Production Hardening
+**Status**: ⬜ Not Started
+**Objective**: Perform a deep architecture and code review of the entire repository, then fix all identified cross-cutting concerns that affect production-readiness. Based on the review (score: 6.5/10), this phase addresses: non-atomic DB+event publishing, inconsistent event naming/schemas, missing CI/CD pipelines, security vulnerabilities (hardcoded JWT fallback, no service-to-service auth), incomplete observability, Docker optimization, and reliability gaps (missing DLQs, idempotency, circuit breakers, graceful shutdown). The goal is to upgrade the system from "advanced prototype" to "production-grade at scale".
+**Depends on**: Phase 19
+
+**Tasks**:
+- [ ] Wave 1 — Data Safety (Critical)
+  - [ ] Remove `synchronize: true` from all TypeORM configs; implement migration-based schema management
+  - [ ] Fix non-atomic DB+event publish: ensure entity save + outbox write share the same DB transaction in order-service, product-service, user-service
+  - [ ] Add optimistic locking (`@VersionColumn`) to all aggregate root ORM entities that lack it
+- [ ] Wave 2 — Event Architecture Consistency (High)
+  - [ ] Unify event naming convention to dot-notation (`domain.entity.action.v1`) across all services
+  - [ ] Add `schemaVersion` field to all shared event interfaces in `packages/events`
+  - [ ] Complete shared event contracts: add user, cart, product, notification, search events to `packages/events`
+  - [ ] Add Zod runtime validation schemas for all event payloads in `packages/events`
+  - [ ] Set Kafka message keys consistently to aggregate ID for ordering guarantees
+- [ ] Wave 3 — Security Hardening (High)
+  - [ ] Remove hardcoded JWT secret fallback in `api-gateway/config/gateway.config.ts` — fail fast on startup if `JWT_SECRET` missing
+  - [ ] Add service-to-service authentication (HMAC-signed internal headers or mTLS)
+  - [ ] Validate `x-user-id`/`x-user-roles` headers in downstream services (reject unverified headers)
+  - [ ] Configure CORS properly (fail if `CORS_ORIGIN` not set in production)
+  - [ ] Add Kafka event payload validation (Zod/class-validator) in all consumers
+- [ ] Wave 4 — Reliability Patterns (High)
+  - [ ] Add DLQ routing to all Kafka consumers (order, inventory, notification — currently only payment has DLQ)
+  - [ ] Add idempotent event processing (`processed_events` table) to notification-service and remaining order-service consumers
+  - [ ] Add circuit breakers to all inter-service HTTP calls (not just API gateway)
+  - [ ] Add rate limiting to all HTTP-exposed services
+  - [ ] Add graceful shutdown (drain Kafka consumers, close DB connections) to all services
+  - [ ] Add saga timeout/TTL — auto-cancel orders stuck in PENDING_PAYMENT for > N minutes
+  - [ ] Replace in-memory retry counters (payment consumer) with persistent state
+- [ ] Wave 5 — Observability Completeness (Medium)
+  - [ ] Wire OpenTelemetry tracing into all services (currently configured but not fully integrated)
+  - [ ] Add Kafka consumer lag metrics to Prometheus
+  - [ ] Propagate `correlationId` through all service communication (HTTP headers + Kafka headers)
+  - [ ] Add structured contextual logging (correlationId, userId, orderId) to all log statements
+  - [ ] Create CloudWatch/Grafana dashboard definitions for key metrics
+- [ ] Wave 6 — Docker & CI/CD (Medium)
+  - [ ] Fix Dockerfiles: multi-stage with `pnpm deploy --filter`, non-root user, per-service `.dockerignore`
+  - [ ] Add Dockerfiles to all services (currently missing from auth, user, notification, payment, search)
+  - [ ] Add Docker Compose service containers for full local dev stack
+  - [ ] Add database-per-service isolation in Docker Compose (separate Postgres instances or schemas)
+  - [ ] Create GitHub Actions CI pipeline: build, test, lint for all services
+  - [ ] Create GitHub Actions CD pipeline: Docker image build/push, Terraform plan/apply with manual approval gates
+- [ ] Wave 7 — Repository & Documentation (Low)
+  - [ ] Add `packages/shared-types` for common TypeScript types (UserContext, PaginationParams, ApiResponse)
+  - [ ] Add `packages/testing` for shared test utilities, builders, and mocks
+  - [ ] Create Architecture Decision Records (ADRs) directory structure and initial ADRs
+  - [ ] Create system-level architecture documentation (C4 diagrams, service interaction map)
+  - [ ] Create local development setup guide with step-by-step instructions
+  - [ ] Add `strict: true` to `tsconfig.base.json` for full TypeScript strict mode
+
+**Verification**:
+- `pnpm -r build` passes across all services with zero errors
+- `pnpm -r test` passes across all services
+- No `synchronize: true` in any TypeORM config
+- All event types in `packages/events` have `schemaVersion` field and Zod validation
+- No hardcoded secrets in any config file (grep verifiable)
+- All Kafka consumers have DLQ routing and idempotent processing
+- All HTTP services have rate limiting and health check endpoints
+- GitHub Actions CI runs on PR and reports build/test/lint status
+- Docker Compose `docker compose up` starts full stack with all services
+- All services have Dockerfiles with non-root user and multi-stage builds
+- `correlationId` propagated end-to-end (visible in logs across services for a single request)
