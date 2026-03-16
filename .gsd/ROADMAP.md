@@ -204,3 +204,32 @@
 - docs/ folder contains all 5 required files
 - All docs match actual codebase (no invented endpoints, statuses, or events)
 - No NestJS boilerplate remains in README
+
+---
+
+### Phase 16: Production-Grade Payment Service
+**Status**: ⬜ Not Started
+**Objective**: Full redesign and production hardening of the payment-service. Transform it into a production-grade microservice following DDD, Clean Architecture, modular NestJS structure, and event-driven patterns. Implements Payment aggregate (Payment entity with id, orderId, userId, amount, currency, status, provider, transactionId, createdAt; PaymentStatus value object: PENDING → PROCESSING → SUCCESS → FAILED → REFUNDED), provider strategy pattern (Stripe, PayPal, Mock) with pluggable abstraction, Kafka event publishing (payment.created, payment.completed, payment.failed, payment.refunded) and consumption (order.created), reliability patterns (idempotency keys, retry logic with exponential backoff, dead-letter queue, timeout handling), observability (structured logging, Prometheus metrics, OpenTelemetry tracing), and comprehensive testing (unit tests, integration tests, provider mocks).
+**Depends on**: Phase 15
+
+**Tasks**:
+- [ ] Wave 1: Domain layer — Payment aggregate root, PaymentStatus value object (PENDING, PROCESSING, SUCCESS, FAILED, REFUNDED), PaymentProvider enum, Money value object, domain events (PaymentCreated, PaymentCompleted, PaymentFailed, PaymentRefunded), repository port, payment provider port
+- [ ] Wave 2: Application layer — CQRS commands (ProcessPayment, RefundPayment), queries (GetPaymentById, GetPaymentsByOrder), command/query handlers, payment processing use case orchestrating provider selection and domain logic
+- [ ] Wave 3: Infrastructure layer — Payment provider strategy pattern (StripeProvider, PayPalProvider, MockProvider), provider factory, Kafka producer (payment.created, payment.completed, payment.failed, payment.refunded), Kafka consumer (order.created), idempotency key storage, retry logic with exponential backoff, dead-letter queue, timeout handling, TypeORM entities/repos/mappers
+- [ ] Wave 4: Interface layer — DTOs with class-validator, thin PaymentController, Kafka consumer handlers, module wiring, AppModule update
+- [ ] Wave 5: Observability — structured logging, Prometheus metrics (payments_processed_total, payments_failed_total, payment_processing_duration, provider_request_duration), OpenTelemetry tracing
+- [ ] Wave 6: Tests — Domain unit tests, handler tests, provider mock tests, integration tests, `tsc --noEmit`
+- [ ] Wave 7: Documentation — `payment-service-architecture.md` (layered architecture, domain model, provider abstraction), `payment-service-events.md` (published/consumed events), `payment-service-providers.md` (provider strategy, adding new providers)
+
+**Verification**:
+- `pnpm test` passes in payment-service
+- `npx tsc --noEmit` shows zero errors
+- No `@nestjs` import in any file under `src/domain/`
+- `PaymentController` delegates only to CommandBus/QueryBus
+- Payment lifecycle state machine enforced in domain layer
+- Provider strategy pattern allows swapping providers without domain changes
+- Idempotency keys prevent duplicate payment processing
+- Retry logic with exponential backoff (max 3 retries) and DLQ routing
+- All Kafka events published and consumed correctly
+- Prometheus metrics exposed at `/metrics`
+- Dead letter queue configured for failed event processing
