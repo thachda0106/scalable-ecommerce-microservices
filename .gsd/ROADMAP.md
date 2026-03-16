@@ -238,48 +238,6 @@
 
 ### Phase 17: Production-Grade Product Service
 **Status**: ⬜ Not Started
-**Objective**: Reserved — run `/add-phase` to define.
-**Depends on**: Phase 16
-
-**Tasks**:
-- [ ] TBD (run /plan 17 to create)
-
-**Verification**:
-- TBD
-
----
-
-### Phase 18: Production-Grade Search Service
-**Status**: ⬜ Not Started
-**Objective**: Full redesign and production hardening of the search-service. Transform it from a basic scaffold (app module, OpenSearch module, product-sync consumer) into a production-grade search microservice following DDD, Clean Architecture, modular NestJS structure, and event-driven patterns. Implements search architecture across four layers (domain, application, infrastructure, interfaces), event-driven indexing consuming Kafka events (product.created, product.updated, product.deleted), full-text search with filtering/sorting/pagination, autocomplete/search suggestions, query caching with Redis, index optimization strategies, and performance tuning. Uses Elasticsearch/OpenSearch/Meilisearch as the search engine backend.
-**Depends on**: Phase 17
-
-**Tasks**:
-- [ ] Wave 1: Domain layer — SearchDocument aggregate, SearchQuery value object, SearchResult entity, SearchFilter/SearchSort value objects, domain events (DocumentIndexed, DocumentRemoved, IndexRebuilt), repository ports (SearchIndexPort, SearchQueryPort)
-- [ ] Wave 2: Application layer — CQRS commands (IndexProduct, RemoveProduct, RebuildIndex), queries (SearchProducts, GetSuggestions, GetProductById), command/query handlers, indexing orchestrator use case
-- [ ] Wave 3: Infrastructure layer — Search engine adapter (Elasticsearch/OpenSearch/Meilisearch client, index mappings, analyzers, tokenizers), Kafka consumers (product.created, product.updated, product.deleted), bulk indexing pipeline, Redis query cache, index management (create/update/reindex/alias rotation), health checks
-- [ ] Wave 4: Interface layer — DTOs with class-validator (SearchRequestDto, SearchResponseDto, SuggestionRequestDto), thin SearchController (search, suggest, reindex endpoints), Kafka consumer handlers, Prometheus metrics (search_queries_total, search_latency, index_operations_total, cache_hit_ratio), module wiring, AppModule update
-- [ ] Wave 5: Performance — query caching strategy (Redis TTL-based), index optimization (custom analyzers, field mappings, ngram/edge-ngram for autocomplete), pagination strategies (offset vs cursor-based, search_after), query optimization (bool queries, function_score)
-- [ ] Wave 6: Tests — Domain unit tests, handler tests, search query builder tests, indexing consumer tests, `tsc --noEmit`
-- [ ] Wave 7: Documentation — `search-service-architecture.md` (layered architecture, search engine integration, indexing pipeline), `search-service-indexing.md` (event-driven indexing, bulk operations, reindexing strategy), `search-service-queries.md` (full-text search, filters, sorting, pagination, autocomplete)
-
-**Verification**:
-- `pnpm test` passes in search-service
-- `npx tsc --noEmit` shows zero errors
-- No `@nestjs` import in any file under `src/domain/`
-- `SearchController` delegates only to CommandBus/QueryBus
-- Kafka consumers process product.created, product.updated, product.deleted events
-- Full-text search returns relevant results with highlighting
-- Autocomplete/suggestions return within 50ms
-- Query caching reduces redundant search engine calls
-- Index management supports zero-downtime reindexing
-- Prometheus metrics exposed at `/metrics`
-- Pagination supports both offset and cursor-based strategies
-
----
-
-### Phase 17: Production-Grade Product Service
-**Status**: ⬜ Not Started
 **Objective**: Full redesign and production hardening of the product-service. Refactor it into a production-ready microservice following DDD, Clean Architecture, and modular NestJS structure. Implements domain model (Product aggregate with id, name, description, price, currency, categoryId, status, createdAt; ProductVariant, ProductAttribute, ProductCategory entities; ProductStatus value object: ACTIVE, INACTIVE, OUT_OF_STOCK, ARCHIVED), repository pattern with pagination/filtering/sorting for large catalogs, Kafka event publishing (product.created, product.updated, product.deleted, product.stock.updated), Redis caching strategy for high read traffic, and observability (structured logging, Prometheus metrics, OpenTelemetry tracing).
 **Depends on**: Phase 16
 
