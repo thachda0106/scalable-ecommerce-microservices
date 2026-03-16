@@ -172,3 +172,16 @@
 - All Kafka events consumed idempotently (processed_events deduplication)
 - Prometheus metrics exposed at `/metrics`
 - Dead letter queue configured for failed event processing
+
+---
+
+### Phase 14: Notification Service Documentation
+**Status**: ⬜ Not Started
+**Objective**: Update and improve the documentation for the `notification-service`. Ensure comprehensive README, `.env.example`, and architectural markdown documents.
+**Depends on**: Phase 13
+
+**Tasks**:
+- [ ] TBD (run /plan 14 to create)
+
+**Verification**:
+- TBD
