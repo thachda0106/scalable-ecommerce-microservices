@@ -2,9 +2,9 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
-import { BaseDomainEvent } from '../../../domain/events/base-domain.event';
-import { IEventPublisher } from '../../../application/ports/event-publisher.port';
-import { OutboxEventOrmEntity } from '../../persistence/entities/outbox-event.orm-entity';
+import { BaseDomainEvent } from '../../domain/events/base-domain.event';
+import { IEventPublisher } from '../../application/ports/event-publisher.port';
+import { OutboxEventOrmEntity } from '../persistence/entities/outbox-event.orm-entity';
 
 /**
  * KafkaEventPublisher — implements IEventPublisher via outbox pattern.
