@@ -1,4 +1,4 @@
-import { IsOptional, IsString, MaxLength, IsDateString } from 'class-validator';
+import { IsOptional, IsString, MaxLength, IsDateString, IsUrl, Matches } from 'class-validator';
 
 export class UpdateUserProfileDto {
   @IsOptional()
@@ -7,7 +7,7 @@ export class UpdateUserProfileDto {
   displayName?: string | null;
 
   @IsOptional()
-  @IsString()
+  @IsUrl({}, { message: 'Avatar must be a valid URL' })
   avatar?: string | null;
 
   @IsOptional()
@@ -17,6 +17,9 @@ export class UpdateUserProfileDto {
 
   @IsOptional()
   @IsString()
+  @Matches(/^\+?[1-9]\d{1,14}$/, {
+    message: 'Phone number must be in E.164 format (e.g. +84912345678)',
+  })
   phoneNumber?: string | null;
 
   @IsOptional()

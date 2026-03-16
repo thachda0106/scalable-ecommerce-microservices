@@ -3,8 +3,7 @@ import { UpdateUserSettingsCommand } from '../commands/update-user-settings.comm
 import { UserId } from '../../domain/value-objects/user-id.vo';
 import { USER_REPOSITORY } from '../../domain/ports/user-repository.port';
 import type { IUserRepository } from '../../domain/ports/user-repository.port';
-import { EVENT_PUBLISHER } from '../../application/ports/event-publisher.port';
-import type { IEventPublisher } from '../../application/ports/event-publisher.port';
+import { UnitOfWork } from '../../infrastructure/persistence/unit-of-work.service';
 import { UserMetricsService } from '../../infrastructure/observability/user-metrics.service';
 import { AuditLogService } from '../../infrastructure/observability/audit-log.service';
 
@@ -15,8 +14,7 @@ export class UpdateUserSettingsHandler {
   constructor(
     @Inject(USER_REPOSITORY)
     private readonly userRepository: IUserRepository,
-    @Inject(EVENT_PUBLISHER)
-    private readonly eventPublisher: IEventPublisher,
+    private readonly unitOfWork: UnitOfWork,
     private readonly metrics: UserMetricsService,
     private readonly auditLog: AuditLogService,
   ) {}
@@ -37,10 +35,8 @@ export class UpdateUserSettingsHandler {
       timezone: command.timezone,
     });
 
-    await this.userRepository.save(user);
-
     const events = user.pullDomainEvents();
-    await this.eventPublisher.publishAll(events);
+    await this.unitOfWork.commitUserWithEvents(user, events);
 
     this.metrics.incrementUsersUpdated('settings');
     stopTimer();

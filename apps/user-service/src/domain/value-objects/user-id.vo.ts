@@ -1,3 +1,5 @@
+import { DomainException } from '../errors/domain-exception';
+
 export class UserId {
   private readonly _value: string;
 
@@ -7,7 +9,7 @@ export class UserId {
 
   static create(id: string): UserId {
     if (!id || id.trim().length === 0) {
-      throw new Error('UserId cannot be empty');
+      throw new DomainException('UserId cannot be empty', 'INVALID_USER_ID');
     }
     return new UserId(id);
   }

@@ -1,7 +1,7 @@
 import { SuspendUserHandler } from '../suspend-user.handler';
 import { SuspendUserCommand } from '../../commands/suspend-user.command';
 import type { IUserRepository } from '../../../domain/ports/user-repository.port';
-import type { IEventPublisher } from '../../../application/ports/event-publisher.port';
+import type { UnitOfWork } from '../../../infrastructure/persistence/unit-of-work.service';
 import type { UserMetricsService } from '../../../infrastructure/observability/user-metrics.service';
 import type { AuditLogService } from '../../../infrastructure/observability/audit-log.service';
 import { NotFoundException } from '@nestjs/common';
@@ -10,7 +10,7 @@ import { User } from '../../../domain/entities/user.entity';
 describe('SuspendUserHandler', () => {
   let handler: SuspendUserHandler;
   let userRepository: jest.Mocked<IUserRepository>;
-  let eventPublisher: jest.Mocked<IEventPublisher>;
+  let unitOfWork: jest.Mocked<UnitOfWork>;
   let metrics: jest.Mocked<UserMetricsService>;
   let auditLog: jest.Mocked<AuditLogService>;
 
@@ -24,7 +24,7 @@ describe('SuspendUserHandler', () => {
       delete: jest.fn(),
     };
 
-    eventPublisher = { publish: jest.fn(), publishAll: jest.fn() };
+    unitOfWork = { commitUserWithEvents: jest.fn() } as any;
     metrics = {
       incrementUsersCreated: jest.fn(), incrementUsersUpdated: jest.fn(),
       incrementUsersDeleted: jest.fn(), incrementUsersSuspended: jest.fn(),
@@ -34,19 +34,19 @@ describe('SuspendUserHandler', () => {
     } as any;
     auditLog = { log: jest.fn() } as any;
 
-    handler = new SuspendUserHandler(userRepository, eventPublisher, metrics, auditLog);
+    handler = new SuspendUserHandler(userRepository, unitOfWork, metrics, auditLog);
   });
 
-  it('should suspend user, save, and publish events', async () => {
+  it('should suspend user and commit via UnitOfWork', async () => {
     const user = User.create({ email: 'test@example.com', username: 'testuser' });
     user.pullDomainEvents();
     userRepository.findById.mockResolvedValue(user);
 
     await handler.execute(new SuspendUserCommand(user.id.value, 'policy violation'));
 
-    expect(userRepository.save).toHaveBeenCalledTimes(1);
-    expect(eventPublisher.publishAll).toHaveBeenCalledTimes(1);
+    expect(unitOfWork.commitUserWithEvents).toHaveBeenCalledTimes(1);
     expect(metrics.incrementUsersSuspended).toHaveBeenCalledTimes(1);
+    expect(metrics.recordStatusChange).toHaveBeenCalledWith('ACTIVE', 'SUSPENDED');
     expect(auditLog.log).toHaveBeenCalledTimes(1);
   });
 

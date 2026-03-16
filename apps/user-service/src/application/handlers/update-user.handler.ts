@@ -1,12 +1,11 @@
-import { Injectable, Inject, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Inject, Logger, NotFoundException, ConflictException } from '@nestjs/common';
 import { UpdateUserCommand } from '../commands/update-user.command';
 import { UserId } from '../../domain/value-objects/user-id.vo';
 import { Email } from '../../domain/value-objects/email.vo';
 import { Username } from '../../domain/value-objects/username.vo';
 import { USER_REPOSITORY } from '../../domain/ports/user-repository.port';
 import type { IUserRepository } from '../../domain/ports/user-repository.port';
-import { EVENT_PUBLISHER } from '../../application/ports/event-publisher.port';
-import type { IEventPublisher } from '../../application/ports/event-publisher.port';
+import { UnitOfWork } from '../../infrastructure/persistence/unit-of-work.service';
 import { UserMetricsService } from '../../infrastructure/observability/user-metrics.service';
 import { AuditLogService } from '../../infrastructure/observability/audit-log.service';
 
@@ -17,8 +16,7 @@ export class UpdateUserHandler {
   constructor(
     @Inject(USER_REPOSITORY)
     private readonly userRepository: IUserRepository,
-    @Inject(EVENT_PUBLISHER)
-    private readonly eventPublisher: IEventPublisher,
+    private readonly unitOfWork: UnitOfWork,
     private readonly metrics: UserMetricsService,
     private readonly auditLog: AuditLogService,
   ) {}
@@ -31,7 +29,12 @@ export class UpdateUserHandler {
       throw new NotFoundException(`User ${command.userId} not found`);
     }
 
+    // H2: Check uniqueness before updating email
     if (command.email) {
+      const existingByEmail = await this.userRepository.findByEmail(Email.create(command.email));
+      if (existingByEmail && existingByEmail.id.value !== command.userId) {
+        throw new ConflictException(`Email '${command.email}' is already taken`);
+      }
       user.updateEmail(Email.create(command.email));
       this.metrics.incrementUsersUpdated('email');
       this.auditLog.log({
@@ -42,7 +45,12 @@ export class UpdateUserHandler {
       });
     }
 
+    // H2: Check uniqueness before updating username
     if (command.username) {
+      const existingByUsername = await this.userRepository.findByUsername(Username.create(command.username));
+      if (existingByUsername && existingByUsername.id.value !== command.userId) {
+        throw new ConflictException(`Username '${command.username}' is already taken`);
+      }
       user.updateUsername(Username.create(command.username));
       this.metrics.incrementUsersUpdated('username');
       this.auditLog.log({
@@ -53,10 +61,8 @@ export class UpdateUserHandler {
       });
     }
 
-    await this.userRepository.save(user);
-
     const events = user.pullDomainEvents();
-    await this.eventPublisher.publishAll(events);
+    await this.unitOfWork.commitUserWithEvents(user, events);
 
     stopTimer();
     this.logger.log(`User ${command.userId} updated`);

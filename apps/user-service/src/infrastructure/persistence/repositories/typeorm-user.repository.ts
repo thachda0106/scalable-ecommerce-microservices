@@ -1,12 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, FindOptionsWhere } from 'typeorm';
+import { Repository, FindOptionsWhere, QueryFailedError } from 'typeorm';
 import { User } from '../../../domain/entities/user.entity';
 import { IUserRepository } from '../../../domain/ports/user-repository.port';
 import { UserId } from '../../../domain/value-objects/user-id.vo';
 import { Email } from '../../../domain/value-objects/email.vo';
 import { Username } from '../../../domain/value-objects/username.vo';
 import { UserStatusEnum } from '../../../domain/value-objects/user-status.vo';
+import { DomainException } from '../../../domain/errors/domain-exception';
 import { UserOrmEntity } from '../entities/user.orm-entity';
 import { UserMapper } from '../mappers/user.mapper';
 
@@ -20,9 +21,29 @@ export class TypeOrmUserRepository implements IUserRepository {
   ) {}
 
   async save(user: User): Promise<void> {
-    const orm = UserMapper.toPersistence(user);
-    await this.repo.save(orm);
-    this.logger.debug(`User ${user.id.value} saved`);
+    try {
+      const orm = UserMapper.toPersistence(user);
+      await this.repo.save(orm);
+      this.logger.debug(`User ${user.id.value} saved`);
+    } catch (error) {
+      // H1: Catch DB unique constraint violations and rethrow as domain errors
+      if (error instanceof QueryFailedError) {
+        const detail = (error as any).detail as string | undefined;
+        if (detail?.includes('email')) {
+          throw new DomainException(
+            `User with email '${user.email.value}' already exists`,
+            'USER_EMAIL_EXISTS',
+          );
+        }
+        if (detail?.includes('username')) {
+          throw new DomainException(
+            `User with username '${user.username.value}' already exists`,
+            'USER_USERNAME_EXISTS',
+          );
+        }
+      }
+      throw error;
+    }
   }
 
   async findById(id: UserId): Promise<User | null> {

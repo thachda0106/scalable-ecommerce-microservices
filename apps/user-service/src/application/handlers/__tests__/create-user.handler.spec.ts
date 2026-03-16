@@ -1,7 +1,7 @@
 import { CreateUserHandler } from '../create-user.handler';
 import { CreateUserCommand } from '../../commands/create-user.command';
 import type { IUserRepository } from '../../../domain/ports/user-repository.port';
-import type { IEventPublisher } from '../../../application/ports/event-publisher.port';
+import type { UnitOfWork } from '../../../infrastructure/persistence/unit-of-work.service';
 import type { UserMetricsService } from '../../../infrastructure/observability/user-metrics.service';
 import type { AuditLogService } from '../../../infrastructure/observability/audit-log.service';
 import { ConflictException } from '@nestjs/common';
@@ -10,7 +10,7 @@ import { User } from '../../../domain/entities/user.entity';
 describe('CreateUserHandler', () => {
   let handler: CreateUserHandler;
   let userRepository: jest.Mocked<IUserRepository>;
-  let eventPublisher: jest.Mocked<IEventPublisher>;
+  let unitOfWork: jest.Mocked<UnitOfWork>;
   let metrics: jest.Mocked<UserMetricsService>;
   let auditLog: jest.Mocked<AuditLogService>;
 
@@ -24,10 +24,9 @@ describe('CreateUserHandler', () => {
       delete: jest.fn(),
     };
 
-    eventPublisher = {
-      publish: jest.fn(),
-      publishAll: jest.fn(),
-    };
+    unitOfWork = {
+      commitUserWithEvents: jest.fn(),
+    } as any;
 
     metrics = {
       incrementUsersCreated: jest.fn(),
@@ -45,17 +44,16 @@ describe('CreateUserHandler', () => {
       log: jest.fn(),
     } as any;
 
-    handler = new CreateUserHandler(userRepository, eventPublisher, metrics, auditLog);
+    handler = new CreateUserHandler(userRepository, unitOfWork, metrics, auditLog);
   });
 
-  it('should create user, save, publish events, and return userId', async () => {
+  it('should create user, commit via UnitOfWork, and return userId', async () => {
     const command = new CreateUserCommand('test@example.com', 'testuser');
 
     const userId = await handler.execute(command);
 
     expect(userId).toBeDefined();
-    expect(userRepository.save).toHaveBeenCalledTimes(1);
-    expect(eventPublisher.publishAll).toHaveBeenCalledTimes(1);
+    expect(unitOfWork.commitUserWithEvents).toHaveBeenCalledTimes(1);
     expect(metrics.incrementUsersCreated).toHaveBeenCalledTimes(1);
     expect(metrics.startTimer).toHaveBeenCalledWith('create_user');
     expect(auditLog.log).toHaveBeenCalledTimes(1);
@@ -66,7 +64,7 @@ describe('CreateUserHandler', () => {
     const command = new CreateUserCommand('taken@example.com', 'testuser');
 
     await expect(handler.execute(command)).rejects.toThrow(ConflictException);
-    expect(userRepository.save).not.toHaveBeenCalled();
+    expect(unitOfWork.commitUserWithEvents).not.toHaveBeenCalled();
   });
 
   it('should throw ConflictException when username already exists', async () => {
@@ -74,6 +72,6 @@ describe('CreateUserHandler', () => {
     const command = new CreateUserCommand('test@example.com', 'taken_user');
 
     await expect(handler.execute(command)).rejects.toThrow(ConflictException);
-    expect(userRepository.save).not.toHaveBeenCalled();
+    expect(unitOfWork.commitUserWithEvents).not.toHaveBeenCalled();
   });
 });

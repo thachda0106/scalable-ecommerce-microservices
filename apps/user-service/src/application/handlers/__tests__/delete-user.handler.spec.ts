@@ -1,7 +1,7 @@
 import { DeleteUserHandler } from '../delete-user.handler';
 import { DeleteUserCommand } from '../../commands/delete-user.command';
 import type { IUserRepository } from '../../../domain/ports/user-repository.port';
-import type { IEventPublisher } from '../../../application/ports/event-publisher.port';
+import type { UnitOfWork } from '../../../infrastructure/persistence/unit-of-work.service';
 import type { UserMetricsService } from '../../../infrastructure/observability/user-metrics.service';
 import type { AuditLogService } from '../../../infrastructure/observability/audit-log.service';
 import { NotFoundException } from '@nestjs/common';
@@ -10,7 +10,7 @@ import { User } from '../../../domain/entities/user.entity';
 describe('DeleteUserHandler', () => {
   let handler: DeleteUserHandler;
   let userRepository: jest.Mocked<IUserRepository>;
-  let eventPublisher: jest.Mocked<IEventPublisher>;
+  let unitOfWork: jest.Mocked<UnitOfWork>;
   let metrics: jest.Mocked<UserMetricsService>;
   let auditLog: jest.Mocked<AuditLogService>;
 
@@ -24,7 +24,7 @@ describe('DeleteUserHandler', () => {
       delete: jest.fn(),
     };
 
-    eventPublisher = { publish: jest.fn(), publishAll: jest.fn() };
+    unitOfWork = { commitUserWithEvents: jest.fn() } as any;
     metrics = {
       incrementUsersCreated: jest.fn(), incrementUsersUpdated: jest.fn(),
       incrementUsersDeleted: jest.fn(), incrementUsersSuspended: jest.fn(),
@@ -34,18 +34,17 @@ describe('DeleteUserHandler', () => {
     } as any;
     auditLog = { log: jest.fn() } as any;
 
-    handler = new DeleteUserHandler(userRepository, eventPublisher, metrics, auditLog);
+    handler = new DeleteUserHandler(userRepository, unitOfWork, metrics, auditLog);
   });
 
-  it('should soft-delete user, save, and publish events', async () => {
+  it('should soft-delete user and commit via UnitOfWork', async () => {
     const user = User.create({ email: 'test@example.com', username: 'testuser' });
     user.pullDomainEvents();
     userRepository.findById.mockResolvedValue(user);
 
     await handler.execute(new DeleteUserCommand(user.id.value));
 
-    expect(userRepository.save).toHaveBeenCalledTimes(1);
-    expect(eventPublisher.publishAll).toHaveBeenCalledTimes(1);
+    expect(unitOfWork.commitUserWithEvents).toHaveBeenCalledTimes(1);
     expect(metrics.incrementUsersDeleted).toHaveBeenCalledTimes(1);
     expect(auditLog.log).toHaveBeenCalledTimes(1);
   });

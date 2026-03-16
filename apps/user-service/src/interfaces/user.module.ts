@@ -5,9 +5,6 @@ import { ScheduleModule } from '@nestjs/schedule';
 // Domain Ports
 import { USER_REPOSITORY } from '../domain/ports/user-repository.port';
 
-// Application Ports
-import { EVENT_PUBLISHER } from '../application/ports/event-publisher.port';
-
 // Application Handlers
 import {
   CreateUserHandler,
@@ -28,7 +25,9 @@ import { UserOrmEntity } from '../infrastructure/persistence/entities/user.orm-e
 import { UserProfileOrmEntity } from '../infrastructure/persistence/entities/user-profile.orm-entity';
 import { UserSettingsOrmEntity } from '../infrastructure/persistence/entities/user-settings.orm-entity';
 import { OutboxEventOrmEntity } from '../infrastructure/persistence/entities/outbox-event.orm-entity';
+import { AuditLogOrmEntity } from '../infrastructure/persistence/entities/audit-log.orm-entity';
 import { TypeOrmUserRepository } from '../infrastructure/persistence/repositories/typeorm-user.repository';
+import { UnitOfWork } from '../infrastructure/persistence/unit-of-work.service';
 
 // Infrastructure — Kafka
 import { KafkaClientFactory } from '../infrastructure/kafka/kafka-client.factory';
@@ -41,6 +40,8 @@ import { UserMetricsService, MetricsController, AuditLogService } from '../infra
 // Interface Layer
 import { UserController } from './controllers/user.controller';
 import { HealthController } from './controllers/health.controller';
+import { ServiceAuthGuard } from './guards/service-auth.guard';
+import { RolesGuard } from './guards/roles.guard';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { HealthController } from './controllers/health.controller';
       UserProfileOrmEntity,
       UserSettingsOrmEntity,
       OutboxEventOrmEntity,
+      AuditLogOrmEntity,
     ]),
     ScheduleModule.forRoot(),
   ],
@@ -66,10 +68,12 @@ import { HealthController } from './controllers/health.controller';
       provide: USER_REPOSITORY,
       useClass: TypeOrmUserRepository,
     },
-    {
-      provide: EVENT_PUBLISHER,
-      useClass: KafkaEventPublisher,
-    },
+
+    // Transactional Unit of Work
+    UnitOfWork,
+
+    // Event publisher (still needed for outbox relay)
+    KafkaEventPublisher,
 
     // Command Handlers
     CreateUserHandler,
@@ -88,6 +92,10 @@ import { HealthController } from './controllers/health.controller';
 
     // Kafka Infrastructure
     OutboxRelayService,
+
+    // Guards
+    ServiceAuthGuard,
+    RolesGuard,
 
     // Observability
     UserMetricsService,

@@ -3,6 +3,7 @@ import { UserOrmEntity } from '../persistence/entities/user.orm-entity';
 import { UserProfileOrmEntity } from '../persistence/entities/user-profile.orm-entity';
 import { UserSettingsOrmEntity } from '../persistence/entities/user-settings.orm-entity';
 import { OutboxEventOrmEntity } from '../persistence/entities/outbox-event.orm-entity';
+import { AuditLogOrmEntity } from '../persistence/entities/audit-log.orm-entity';
 
 export const databaseConfig = (): TypeOrmModuleOptions => ({
   type: 'postgres',
@@ -16,7 +17,9 @@ export const databaseConfig = (): TypeOrmModuleOptions => ({
     UserProfileOrmEntity,
     UserSettingsOrmEntity,
     OutboxEventOrmEntity,
+    AuditLogOrmEntity,
   ],
-  synchronize: process.env.NODE_ENV !== 'production',
+  // M4: Never use synchronize — use TypeORM migrations instead
+  synchronize: false,
   logging: process.env.NODE_ENV === 'development',
 });

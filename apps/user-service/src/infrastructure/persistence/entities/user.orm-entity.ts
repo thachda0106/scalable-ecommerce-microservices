@@ -1,4 +1,4 @@
-import { Entity, Column, PrimaryColumn, OneToOne, JoinColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, Column, PrimaryColumn, OneToOne, JoinColumn, CreateDateColumn, UpdateDateColumn, VersionColumn } from 'typeorm';
 import { UserProfileOrmEntity } from './user-profile.orm-entity';
 import { UserSettingsOrmEntity } from './user-settings.orm-entity';
 
@@ -16,7 +16,7 @@ export class UserOrmEntity {
   @Column({ type: 'varchar' })
   status: string;
 
-  @Column({ type: 'int', default: 1 })
+  @VersionColumn()
   version: number;
 
   @CreateDateColumn({ name: 'created_at' })

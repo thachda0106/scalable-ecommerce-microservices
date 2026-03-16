@@ -1,6 +1,11 @@
-import { IsOptional, IsInt, Min, Max, IsEnum } from 'class-validator';
+import { IsOptional, IsInt, Min, Max, IsIn } from 'class-validator';
 import { Type } from 'class-transformer';
-import { UserStatusEnum } from '../../domain/value-objects/user-status.vo';
+
+/**
+ * M1 fix: Define status filter values locally instead of importing from domain layer.
+ * This keeps the interface layer decoupled from the domain layer.
+ */
+const VALID_USER_STATUSES = ['ACTIVE', 'SUSPENDED', 'DELETED'] as const;
 
 export class GetUsersQueryDto {
   @IsOptional()
@@ -17,6 +22,6 @@ export class GetUsersQueryDto {
   limit?: number;
 
   @IsOptional()
-  @IsEnum(UserStatusEnum)
-  status?: UserStatusEnum;
+  @IsIn(VALID_USER_STATUSES)
+  status?: string;
 }
