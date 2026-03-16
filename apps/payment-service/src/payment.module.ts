@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CqrsModule } from '@nestjs/cqrs';
 import { ScheduleModule } from '@nestjs/schedule';
+import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 
 // Application Ports / Handlers
 import { ProcessPaymentHandler } from './application/handlers/process-payment.handler';
@@ -27,6 +28,7 @@ import { PaymentProviderFactory } from './infrastructure/providers/payment-provi
 import { MockProvider } from './infrastructure/providers/mock.provider';
 import { StripeProvider } from './infrastructure/providers/stripe.provider';
 import { PayPalProvider } from './infrastructure/providers/paypal.provider';
+import { MetricsService } from './infrastructure/observability/metrics.service';
 
 // Interfaces
 import { PaymentController } from './interfaces/controllers/payment.controller';
@@ -38,6 +40,9 @@ const QueryHandlers = [GetPaymentByIdHandler, GetPaymentsByOrderHandler];
   imports: [
     CqrsModule,
     ScheduleModule.forRoot(),
+    PrometheusModule.register({
+      path: '/metrics',
+    }),
     TypeOrmModule.forFeature([
       PaymentOrmEntity,
       OutboxEventOrmEntity,
@@ -66,6 +71,7 @@ const QueryHandlers = [GetPaymentByIdHandler, GetPaymentsByOrderHandler];
     KafkaClientFactory,
     PaymentCommandConsumer,
     OutboxRelayService,
+    MetricsService,
   ],
   exports: [],
 })

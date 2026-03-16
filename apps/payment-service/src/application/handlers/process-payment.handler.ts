@@ -1,4 +1,5 @@
 import { Inject, Logger } from '@nestjs/common';
+
 import { ProcessPaymentCommand } from '../commands/process-payment.command';
 import { Payment } from '../../domain/entities/payment.entity';
 import { PaymentProviderEnum } from '../../domain/enums/payment-provider.enum';
@@ -6,6 +7,7 @@ import { PaymentStatusEnum } from '../../domain/value-objects/payment-status.vo'
 import { PAYMENT_REPOSITORY, IPaymentRepository } from '../../domain/ports/payment-repository.port';
 import { EVENT_PUBLISHER, IEventPublisher } from '../ports/event-publisher.port';
 import { PAYMENT_PROVIDER_FACTORY, IPaymentProviderFactory } from '../ports/payment-provider-factory.port';
+import { MetricsService } from '../../infrastructure/observability/metrics.service';
 
 export class ProcessPaymentHandler {
   private readonly logger = new Logger(ProcessPaymentHandler.name);
@@ -17,6 +19,7 @@ export class ProcessPaymentHandler {
     private readonly providerFactory: IPaymentProviderFactory,
     @Inject(EVENT_PUBLISHER)
     private readonly eventPublisher: IEventPublisher,
+    private readonly metricsService: MetricsService,
   ) {}
 
   async execute(command: ProcessPaymentCommand): Promise<Record<string, unknown>> {
@@ -42,6 +45,8 @@ export class ProcessPaymentHandler {
 
     // 2. Resolve provider
     const resolvedProvider = this.resolveProvider(providerName);
+    this.metricsService.incrementProcessing(resolvedProvider);
+    const endTimer = this.metricsService.startProcessingTimer(resolvedProvider);
 
     // 3. Create Payment aggregate
     const payment = Payment.create({
@@ -73,20 +78,25 @@ export class ProcessPaymentHandler {
 
       if (result.success) {
         payment.complete(result.transactionId);
+        this.metricsService.incrementSuccess(resolvedProvider);
         this.logger.log(
           `Payment ${payment.id.value} completed — txId: ${result.transactionId}`,
         );
       } else {
         payment.fail('Provider returned unsuccessful result');
+        this.metricsService.incrementFailure(resolvedProvider, 'Provider Unsuccessful');
         this.logger.warn(
           `Payment ${payment.id.value} failed — provider returned unsuccessful`,
         );
       }
     } catch (error) {
       payment.fail((error as Error).message);
+      this.metricsService.incrementFailure(resolvedProvider, 'Provider Error');
       this.logger.error(
         `Payment ${payment.id.value} failed — error: ${(error as Error).message}`,
       );
+    } finally {
+      endTimer();
     }
 
     // 6. Save final state and publish events
