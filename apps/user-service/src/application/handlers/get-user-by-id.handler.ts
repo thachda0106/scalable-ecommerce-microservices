@@ -1,7 +1,8 @@
 import { Injectable, Inject, Logger, NotFoundException } from '@nestjs/common';
 import { GetUserByIdQuery } from '../queries/get-user-by-id.query';
 import { UserId } from '../../domain/value-objects/user-id.vo';
-import { IUserRepository, USER_REPOSITORY } from '../../domain/ports';
+import { USER_REPOSITORY } from '../../domain/ports/user-repository.port';
+import type { IUserRepository } from '../../domain/ports/user-repository.port';
 
 @Injectable()
 export class GetUserByIdHandler {

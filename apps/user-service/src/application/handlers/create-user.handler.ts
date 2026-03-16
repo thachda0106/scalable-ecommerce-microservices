@@ -3,8 +3,10 @@ import { CreateUserCommand } from '../commands/create-user.command';
 import { User } from '../../domain/entities/user.entity';
 import { Email } from '../../domain/value-objects/email.vo';
 import { Username } from '../../domain/value-objects/username.vo';
-import { IUserRepository, USER_REPOSITORY } from '../../domain/ports';
-import { IEventPublisher, EVENT_PUBLISHER } from '../../application/ports';
+import { USER_REPOSITORY } from '../../domain/ports/user-repository.port';
+import type { IUserRepository } from '../../domain/ports/user-repository.port';
+import { EVENT_PUBLISHER } from '../../application/ports/event-publisher.port';
+import type { IEventPublisher } from '../../application/ports/event-publisher.port';
 import { UserMetricsService } from '../../infrastructure/observability/user-metrics.service';
 import { AuditLogService } from '../../infrastructure/observability/audit-log.service';
 

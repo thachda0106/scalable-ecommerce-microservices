@@ -1,4 +1,4 @@
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 
 export class ProductId {
   private readonly _value: string;
@@ -15,7 +15,7 @@ export class ProductId {
   }
 
   static generate(): ProductId {
-    return new ProductId(uuidv4());
+    return new ProductId(randomUUID());
   }
 
   get value(): string {

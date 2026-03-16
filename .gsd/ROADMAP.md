@@ -265,15 +265,23 @@
 ---
 
 ### Phase 18: Production-Grade Search Service
-**Status**: ⬜ Not Started
-**Objective**: Full redesign and production hardening of the search-service. Transform it into a production-grade microservice with event-driven indexing (consuming product events from Kafka), full-text search with Elasticsearch/OpenSearch, filtering, sorting, pagination, autocomplete/suggestions, query caching, and index management. Follows DDD, Clean Architecture, and modular NestJS patterns.
+**Status**: ✅ Complete
+**Objective**: Full redesign and production hardening of the search-service. Transform it into a production-grade microservice with event-driven indexing (consuming product events from Kafka), full-text search with OpenSearch, filtering, sorting, pagination, autocomplete/suggestions, query caching, and index management. Follows DDD, Clean Architecture, and modular NestJS patterns.
 **Depends on**: Phase 17
 
 **Tasks**:
-- [ ] TBD (run /plan 18 to create)
+- [x] Domain layer — value objects, entities, ports (Symbol-based DI), events, errors
+- [x] Application layer — CQRS commands/queries/handlers with cache-first pattern
+- [x] Infrastructure — OpenSearch adapters (index + query), Kafka consumer, Redis cache
+- [x] Interface layer — SearchController, DTOs, Prometheus metrics, AppModule wiring
+- [x] Tests — domain, handler, and query builder unit tests
+- [x] Documentation — architecture, indexing, queries, README, .env.example
 
 **Verification**:
-- TBD
+- [x] `npx tsc --noEmit` = 0 errors
+- [x] `npx jest --passWithNoTests` = all tests pass
+- [x] Zero `@nestjs` imports in domain/
+- [x] Old files removed (opensearch/, consumer/, app.service.ts, app.controller.ts)
 
 ---
 

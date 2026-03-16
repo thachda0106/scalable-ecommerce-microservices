@@ -1,8 +1,10 @@
 import { Injectable, Inject, Logger, NotFoundException } from '@nestjs/common';
 import { DeleteUserCommand } from '../commands/delete-user.command';
 import { UserId } from '../../domain/value-objects/user-id.vo';
-import { IUserRepository, USER_REPOSITORY } from '../../domain/ports';
-import { IEventPublisher, EVENT_PUBLISHER } from '../../application/ports';
+import { USER_REPOSITORY } from '../../domain/ports/user-repository.port';
+import type { IUserRepository } from '../../domain/ports/user-repository.port';
+import { EVENT_PUBLISHER } from '../../application/ports/event-publisher.port';
+import type { IEventPublisher } from '../../application/ports/event-publisher.port';
 import { UserMetricsService } from '../../infrastructure/observability/user-metrics.service';
 import { AuditLogService } from '../../infrastructure/observability/audit-log.service';
 

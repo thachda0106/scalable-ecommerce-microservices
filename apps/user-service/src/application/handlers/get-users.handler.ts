@@ -1,6 +1,7 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import { GetUsersQuery } from '../queries/get-users.query';
-import { IUserRepository, USER_REPOSITORY } from '../../domain/ports';
+import { USER_REPOSITORY } from '../../domain/ports/user-repository.port';
+import type { IUserRepository } from '../../domain/ports/user-repository.port';
 import { UserStatusEnum } from '../../domain/value-objects/user-status.vo';
 
 @Injectable()

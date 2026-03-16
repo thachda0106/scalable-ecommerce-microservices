@@ -1,7 +1,8 @@
 import { Injectable, Inject, Logger, NotFoundException } from '@nestjs/common';
 import { GetUserByEmailQuery } from '../queries/get-user-by-email.query';
 import { Email } from '../../domain/value-objects/email.vo';
-import { IUserRepository, USER_REPOSITORY } from '../../domain/ports';
+import { USER_REPOSITORY } from '../../domain/ports/user-repository.port';
+import type { IUserRepository } from '../../domain/ports/user-repository.port';
 
 @Injectable()
 export class GetUserByEmailHandler {
