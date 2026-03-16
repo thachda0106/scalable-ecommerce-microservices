@@ -25,7 +25,7 @@ export class OpenSearchQueryAdapter implements ISearchQueryPort {
       body,
     });
 
-    const hits = response.body.hits;
+    const hits = (response.body as any).hits;
     const total =
       typeof hits.total === 'number' ? hits.total : hits.total?.value ?? 0;
 
@@ -54,7 +54,7 @@ export class OpenSearchQueryAdapter implements ISearchQueryPort {
       page: query.pagination.cursor ? 1 : query.pagination.page,
       limit: query.pagination.limit,
       cursor,
-      took: response.body.took ?? 0,
+      took: (response.body as any).took ?? 0,
     });
   }
 
@@ -67,7 +67,7 @@ export class OpenSearchQueryAdapter implements ISearchQueryPort {
     });
 
     const suggestions =
-      response.body.suggest?.product_suggest?.[0]?.options ?? [];
+      (response.body as any).suggest?.product_suggest?.[0]?.options ?? [];
 
     return suggestions.map((s: any) => s.text);
   }
@@ -79,7 +79,7 @@ export class OpenSearchQueryAdapter implements ISearchQueryPort {
         id,
       });
 
-      const source = response.body._source;
+      const source = (response.body as any)._source;
       return SearchDocument.create({
         id: source.id,
         name: source.name,

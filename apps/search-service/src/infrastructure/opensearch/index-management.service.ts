@@ -29,7 +29,7 @@ export class IndexManagementService {
           body: {
             settings: PRODUCT_INDEX_SETTINGS,
             mappings: PRODUCT_INDEX_MAPPINGS,
-          },
+          } as any,
         });
         this.logger.log(`Index "${PRODUCT_INDEX_ALIAS}" created successfully`);
       } else {
@@ -47,7 +47,7 @@ export class IndexManagementService {
       body: {
         settings: PRODUCT_INDEX_SETTINGS,
         mappings: PRODUCT_INDEX_MAPPINGS,
-      },
+      } as any,
     });
     this.logger.log(`Versioned index "${indexName}" created`);
     return indexName;
@@ -85,7 +85,7 @@ export class IndexManagementService {
         index: PRODUCT_INDEX_ALIAS,
       });
 
-      const indexStats = stats.body._all.primaries;
+      const indexStats = (stats.body as any)._all.primaries;
       return {
         docCount: indexStats.docs?.count ?? 0,
         sizeInBytes: indexStats.store?.size_in_bytes ?? 0,
