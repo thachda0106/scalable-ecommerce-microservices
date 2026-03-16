@@ -1,94 +1,34 @@
 # Search Service Architecture
 
-## Overview
+## System Design
+The search service embraces a clean, modular 4-layer Domain-Driven Design (DDD) architecture coupled with the Command Query Responsibility Segregation (CQRS) pattern. This enforces high cohesion, loose coupling, and distinct separation of concerns.
 
-The search service is a **read-side** microservice in a CQRS-based e-commerce platform. It maintains a searchable projection of product data by consuming events from the `product-service` via Kafka and indexing them into OpenSearch.
+### 1. Domain Layer
+The heart of the application containing core business rules. It contains:
+- **Entities**: `SearchDocument` (read model) and `SearchResult` (wrapper for pagination).
+- **Value Objects**: Immutables like `SearchQuery`, `SearchFilter`, `SearchSort`, and `Pagination`.
+- **Ports**: Interfaces such as `ISearchIndexPort`, `ISearchQueryPort`, and `ISearchCachePort`.
+- **Constraint**: Strict absence of framework dependencies (zero `@nestjs` imports).
 
-## Technology Stack
+### 2. Application Layer
+Responsible for application use cases driven by CQRS.
+- **Commands**: e.g., `IndexProductCommand`, `RemoveProductCommand` for state mutations.
+- **Queries**: e.g., `SearchProductsQuery`, `GetSuggestionsQuery` for data retrieval.
+- **Handlers**: Encapsulate the logic, orchestrating calls between the domain ports (e.g., executing a cache-first query strategy).
 
-| Component | Technology | Purpose |
-|-----------|-----------|---------|
-| Runtime | NestJS 11 | Framework |
-| Search Engine | OpenSearch 2.x | Full-text search, suggestions |
-| Message Broker | Kafka (KafkaJS) | Event consumption |
-| Cache | Redis (ioredis) | Query result caching |
-| CQRS | @nestjs/cqrs | Command/Query separation |
-| Metrics | prom-client | Prometheus observability |
+### 3. Infrastructure Layer
+Provides technical capabilities and external integrations.
+- **Search Engine**: Adapters for OpenSearch/Elasticsearch including clients, index management, and query building.
+- **Event Streaming**: Kafka consumer subscribing to product events and dispatching commands.
+- **Caching**: Redis-backed cache adapter employing graceful degradation.
+- **Observability**: Prometheus metrics via `prom-client` tracking latencies, hit rates, and operation counts.
 
-## 4-Layer Architecture
+### 4. Interface Layer
+The entry point into the system from the outside world.
+- **Controllers**: Thin HTTP endpoints mapping REST actions to CQRS dispatchers.
+- **DTOs**: `class-validator` decorated classes ensuring payload integrity before processing.
 
-```mermaid
-graph TB
-    subgraph "Interface Layer"
-        C[SearchController]
-        D[DTOs]
-    end
-
-    subgraph "Application Layer"
-        CB[CommandBus / QueryBus]
-        CH[Command Handlers]
-        QH[Query Handlers]
-    end
-
-    subgraph "Domain Layer"
-        VO[Value Objects]
-        E[Entities]
-        P[Port Interfaces]
-        ERR[Domain Errors]
-    end
-
-    subgraph "Infrastructure Layer"
-        OS[OpenSearch Adapters]
-        KA[Kafka Consumer]
-        RC[Redis Cache]
-        ME[Metrics]
-    end
-
-    C --> CB
-    CB --> CH
-    CB --> QH
-    CH --> P
-    QH --> P
-    P -.-> OS
-    P -.-> RC
-    KA --> CB
-```
-
-### Domain Layer (`src/domain/`)
-- **Framework-free** — zero `@nestjs` imports
-- Value Objects: `SearchQuery`, `SearchFilter`, `SearchSort`, `Pagination`
-- Entities: `SearchDocument` (read model), `SearchResult` (paginated response)
-- Ports: `ISearchIndexPort`, `ISearchQueryPort`, `ISearchCachePort` (Symbol-based DI tokens)
-- Errors: `SearchException`, `InvalidSearchQueryError`, `IndexNotFoundError`
-
-### Application Layer (`src/application/`)
-- Commands: `IndexProductCommand`, `RemoveProductCommand`, `RebuildIndexCommand`
-- Queries: `SearchProductsQuery`, `GetSuggestionsQuery`, `GetProductByIdQuery`
-- Handlers inject ports only — never infrastructure directly
-
-### Infrastructure Layer (`src/infrastructure/`)
-- **OpenSearch**: Index adapter (bulk write, refresh:false), query adapter (multi_match, suggest), index management (alias rotation)
-- **Kafka**: Product event consumer dispatching CQRS commands
-- **Cache**: Redis adapter with graceful degradation
-- **Metrics**: Prometheus counters and histograms
-
-### Interface Layer (`src/interfaces/`)
-- Thin controller delegating to CommandBus/QueryBus
-- DTOs with class-validator decorators
-
-## Caching Strategy
-
-| Endpoint | TTL | Key Strategy |
-|----------|-----|-------------|
-| Search queries | 60s | djb2 hash of normalized query params |
-| Suggestions | 300s | `suggest:{prefix}:{limit}` |
-
-Redis is optional — if unavailable, the service degrades gracefully (cache miss behavior).
-
-## Performance Targets
-
-| Metric | Target |
-|--------|--------|
-| Search latency (p95) | < 100ms |
-| Suggestion latency (p95) | < 50ms |
-| Index throughput (bulk) | 1000 docs/batch |
+## Benefits
+- **Scalability**: CQRS naturally splits read and write workloads, optimizing for read-heavy search patterns.
+- **Resilience**: The system functions even if Redis cache goes down (graceful degradation) and uses dead-letter queues (DLQ) for failed Kafka indexing events.
+- **Extensibility**: Search engines or data stores can be swapped seamlessly by modifying adapters matching the defined port interfaces.

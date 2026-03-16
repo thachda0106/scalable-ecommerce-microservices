@@ -15,7 +15,7 @@ export class PaymentProviderFactory implements IPaymentProviderFactory {
     private readonly stripeProvider: StripeProvider,
     private readonly paypalProvider: PayPalProvider,
   ) {
-    this.providers = new Map([
+    this.providers = new Map<PaymentProviderEnum, IPaymentProvider>([
       [PaymentProviderEnum.MOCK, this.mockProvider],
       [PaymentProviderEnum.STRIPE, this.stripeProvider],
       [PaymentProviderEnum.PAYPAL, this.paypalProvider],
