@@ -1,14 +1,17 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
-import { Logger } from '@ecommerce/core';
+import { Logger, initTracing } from '@ecommerce/core';
 import { DomainExceptionFilter } from './interfaces/filters/domain-exception.filter';
+
+initTracing('payment-service');
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
 
   // Use centralized logger
   app.useLogger(app.get(Logger));
+  app.enableShutdownHooks();
 
   // Enable validation globally based on DTO decorators
   app.useGlobalPipes(

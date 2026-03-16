@@ -21,6 +21,6 @@ export const GatewayConfig = registerAs('gateway', () => ({
       process.env.NOTIFICATION_SERVICE_URL || 'http://localhost:3009',
   },
   jwt: {
-    secret: process.env.JWT_SECRET || 'super-secret-key-change-in-prod',
+    secret: process.env.JWT_SECRET, // REQUIRED — no fallback, validated at startup
   },
 }));

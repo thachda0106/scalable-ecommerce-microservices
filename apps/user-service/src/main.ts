@@ -1,7 +1,10 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { AppModule } from './app.module';
+import { initTracing } from '@ecommerce/core';
 import { DomainExceptionFilter } from './interfaces/filters/domain-exception.filter';
+
+initTracing('user-service');
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });

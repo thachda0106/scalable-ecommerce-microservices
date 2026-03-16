@@ -2,7 +2,9 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, LoggerService } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
-import { Logger } from '@ecommerce/core';
+import { Logger, initTracing } from '@ecommerce/core';
+
+initTracing('auth-service');
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
