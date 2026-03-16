@@ -176,7 +176,7 @@
 ---
 
 ### Phase 14: Notification Service Documentation
-**Status**: ⬜ Not Started
+**Status**: ✅ Complete
 **Objective**: Update and improve the documentation for the `notification-service`. Ensure comprehensive README, `.env.example`, and architectural markdown documents.
 **Depends on**: Phase 13
 
@@ -194,7 +194,13 @@
 **Depends on**: Phase 14
 
 **Tasks**:
-- [ ] TBD (run /plan 15 to create)
+- [ ] Plan 15.1: README.md & .env.example (wave 1)
+- [ ] Plan 15.2: order-lifecycle.md & order-api-flow.md (wave 1)
+- [ ] Plan 15.3: order-data-model.md & enhance existing docs (wave 2)
 
 **Verification**:
-- TBD
+- All 14 README sections present with 3+ mermaid diagrams
+- .env.example has 10+ commented variables grouped by category
+- docs/ folder contains all 5 required files
+- All docs match actual codebase (no invented endpoints, statuses, or events)
+- No NestJS boilerplate remains in README
