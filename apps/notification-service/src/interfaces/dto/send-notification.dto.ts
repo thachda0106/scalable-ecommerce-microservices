@@ -6,8 +6,8 @@ import {
   IsOptional,
   IsEmail,
 } from 'class-validator';
-import { NotificationChannel } from '../../../domain/enums/notification-channel.enum';
-import { NotificationPriority } from '../../../domain/enums/notification-priority.enum';
+import { NotificationChannel } from '../../domain/enums/notification-channel.enum';
+import { NotificationPriority } from '../../domain/enums/notification-priority.enum';
 
 export class SendNotificationDto {
   @IsString()

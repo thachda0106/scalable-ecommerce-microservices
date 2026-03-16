@@ -1,41 +1,39 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { InjectMetric } from '@willsoto/nestjs-prometheus';
+import { Counter } from 'prom-client';
 
-/**
- * Simple counter-based metrics for notification operations.
- * In production, use prom-client for Prometheus integration.
- */
 @Injectable()
 export class NotificationMetricsService {
   private readonly logger = new Logger(NotificationMetricsService.name);
-  private readonly sentCounters: Map<string, number> = new Map();
-  private readonly failedCounters: Map<string, number> = new Map();
-  private retryCount = 0;
-  private dlqCount = 0;
+
+  constructor(
+    @InjectMetric('notification_sent_total')
+    private readonly sentCounter: Counter<string>,
+    @InjectMetric('notification_failed_total')
+    private readonly failedCounter: Counter<string>,
+    @InjectMetric('notification_retry_total')
+    private readonly retryCounter: Counter<string>,
+    @InjectMetric('notification_dlq_total')
+    private readonly dlqCounter: Counter<string>,
+  ) {}
 
   incrementSent(channel: string): void {
-    const current = this.sentCounters.get(channel) || 0;
-    this.sentCounters.set(channel, current + 1);
+    this.sentCounter.inc({ channel });
   }
 
   incrementFailed(channel: string): void {
-    const current = this.failedCounters.get(channel) || 0;
-    this.failedCounters.set(channel, current + 1);
+    this.failedCounter.inc({ channel });
   }
 
   incrementRetries(): void {
-    this.retryCount++;
+    this.retryCounter.inc();
   }
 
   incrementDlq(): void {
-    this.dlqCount++;
+    this.dlqCounter.inc();
   }
 
   getMetrics(): Record<string, unknown> {
-    return {
-      sent: Object.fromEntries(this.sentCounters),
-      failed: Object.fromEntries(this.failedCounters),
-      retries: this.retryCount,
-      dlq: this.dlqCount,
-    };
+    return { status: 'Metrics exposed via /metrics endpoint' };
   }
 }

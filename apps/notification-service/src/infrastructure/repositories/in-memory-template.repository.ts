@@ -1,7 +1,7 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { NotificationTemplate } from '../../../domain/entities/notification-template';
-import { ITemplateRepository } from '../../../domain/ports/template-repository.port';
-import { createTemplateSeeds } from '../../templates/template-seed';
+import { NotificationTemplate } from '../../domain/entities/notification-template';
+import { ITemplateRepository } from '../../domain/ports/template-repository.port';
+import { createTemplateSeeds } from '../templates/template-seed';
 
 @Injectable()
 export class InMemoryTemplateRepository

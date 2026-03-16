@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Notification } from '../../../domain/entities/notification';
-import { NotificationStatus } from '../../../domain/enums/notification-status.enum';
-import { INotificationRepository } from '../../../domain/ports/notification-repository.port';
+import { Notification } from '../../domain/entities/notification';
+import { NotificationStatus } from '../../domain/enums/notification-status.enum';
+import { INotificationRepository } from '../../domain/ports/notification-repository.port';
 
 @Injectable()
 export class InMemoryNotificationRepository implements INotificationRepository {

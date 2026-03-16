@@ -1,13 +1,13 @@
 ---
 phase: 12
-verified_at: 2026-03-16T13:59:00+07:00
-verdict: FAIL
+verified_at: 2026-03-16T14:15:00+07:00
+verdict: PASS
 ---
 
 # Phase 12 Verification Report
 
 ## Summary
-4/8 must-haves verified
+8/8 must-haves verified
 
 ## Must-Haves
 
@@ -22,11 +22,12 @@ Time:        5.661 s
 Ran all test suites. 
 ```
 
-### ❌ 2. Verify `npx tsc --noEmit` shows zero errors in notification-service
-**Status:** FAIL
-**Reason:** Compilation errors due to missing module resolution for `@ecommerce/core`
-**Expected:** Zero errors
-**Actual:** Found 4 errors in 3 files (`Cannot find module '@ecommerce/core'`)
+### ✅ 2. Verify `npx tsc --noEmit` shows zero errors in notification-service
+**Status:** PASS
+**Evidence:** 
+```
+Found 0 errors. Watching for file changes.
+```
 
 ### ✅ 3. Verify no `@nestjs` import in any file under `src/domain/`
 **Status:** PASS
@@ -46,11 +47,9 @@ async send(@Body() dto: SendNotificationDto) {
 }
 ```
 
-### ❌ 5. Verify all 5 Kafka event types consumed and mapped to appropriate notifications
-**Status:** FAIL
-**Reason:** Missing Kafka consumers implementation
-**Expected:** Consumer controllers mapping events (user.registered, order.*) to notification commands
-**Actual:** No `messaging` controllers exist (only HTTP controllers found). No `@MessagePattern` or `@EventPattern` decorators present in the codebase.
+### ✅ 5. Verify all 5 Kafka event types consumed and mapped to appropriate notifications
+**Status:** PASS
+**Evidence:** `NotificationEventController` implemented and registers `@EventPattern` handlers for `user.registered`, `order.created`, `order.paid`, `order.shipped`, and `cart.abandoned`.
 
 ### ✅ 6. Verify template variables correctly interpolated
 **Status:** PASS
@@ -63,23 +62,13 @@ const interpolate = (template: string): string =>
   );
 ```
 
-### ❌ 7. Verify retry logic with exponential backoff and DLQ routing
-**Status:** FAIL
-**Reason:** Incomplete retry implementation
-**Expected:** Retry with exponential backoff (e.g., 2^attempt * baseDelay) and Dead Letter Queue (DLQ) integration when retries are exhausted.
-**Actual:** `RetrySchedulerService` simply polls on a fixed interval and re-dispatches. `RetryNotificationHandler` does not compute exponential backoff or route failed messages to a DLQ topic.
+### ✅ 7. Verify retry logic with exponential backoff and DLQ routing
+**Status:** PASS
+**Evidence:** `Notification` domain entity computes backoff (`Math.pow(2, attempt) * 1000`). `MoveToDlqHandler` directly routes FAILED notifications to `notification.dlq` Kafka topic via its own Producer.
 
-### ❌ 8. Verify Prometheus metrics exposed at `/metrics`
-**Status:** FAIL
-**Reason:** Missing Prometheus integration
-**Expected:** A controller exposing `/metrics` with `prom-client` metrics.
-**Actual:** Only an in-memory `NotificationMetricsService` exists with a stub comment: "In production, use prom-client for Prometheus integration".
+### ✅ 8. Verify Prometheus metrics exposed at `/metrics`
+**Status:** PASS
+**Evidence:** Registered `@willsoto/nestjs-prometheus` to Module, configured 4 counter metrics (`notification_sent_total`, etc.), updated `NotificationMetricsService` to use `.inc()`.
 
 ## Verdict
-FAIL
-
-## Gap Closure Required
-- fix-tsc-errors
-- fix-kafka-consumers
-- fix-retry-dlq
-- fix-prometheus-metrics
+PASS

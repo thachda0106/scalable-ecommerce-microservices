@@ -1,10 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { NotificationChannel } from '../../../domain/enums/notification-channel.enum';
+import { NotificationChannel } from '../../domain/enums/notification-channel.enum';
 import {
   IChannelProvider,
   ChannelPayload,
   ChannelResult,
-} from '../../../domain/ports/channel-provider.port';
+} from '../../domain/ports/channel-provider.port';
 
 @Injectable()
 export class TwilioSmsProvider implements IChannelProvider {

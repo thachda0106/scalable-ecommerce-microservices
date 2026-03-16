@@ -1,11 +1,13 @@
 import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
+import { PrometheusModule, makeCounterProvider } from '@willsoto/nestjs-prometheus';
 
 // Kafka
 import { KafkaModule } from './infrastructure/kafka/kafka.module';
 
 // Interface layer
 import { NotificationController } from './interfaces/controllers/notification.controller';
+import { NotificationEventController } from './interfaces/messaging/notification-event.controller';
 
 // Application — Handlers
 import { SendNotificationHandler } from './application/handlers/send-notification.handler';
@@ -42,8 +44,14 @@ import { DlqProcessorService } from './infrastructure/services/dlq-processor.ser
 import { NotificationMetricsService } from './infrastructure/metrics/notification-metrics.service';
 
 @Module({
-  imports: [CqrsModule, KafkaModule],
-  controllers: [NotificationController],
+  imports: [
+    CqrsModule,
+    KafkaModule,
+    PrometheusModule.register({
+      path: '/metrics',
+    }),
+  ],
+  controllers: [NotificationController, NotificationEventController],
   providers: [
     // ── CQRS Handlers ────────────────────────────────────────────
     SendNotificationHandler,
@@ -84,6 +92,24 @@ import { NotificationMetricsService } from './infrastructure/metrics/notificatio
 
     // ── Metrics ──────────────────────────────────────────────────
     NotificationMetricsService,
+    makeCounterProvider({
+      name: 'notification_sent_total',
+      help: 'Total notifications sent successfully',
+      labelNames: ['channel'],
+    }),
+    makeCounterProvider({
+      name: 'notification_failed_total',
+      help: 'Total notifications failed to send',
+      labelNames: ['channel'],
+    }),
+    makeCounterProvider({
+      name: 'notification_retry_total',
+      help: 'Total notification retries attempted',
+    }),
+    makeCounterProvider({
+      name: 'notification_dlq_total',
+      help: 'Total notifications moved to DLQ',
+    }),
   ],
 })
 export class NotificationCoreModule {}
