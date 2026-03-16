@@ -1,99 +1,353 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Notification Service
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+> Production-grade, multi-channel notification platform built with NestJS, DDD, CQRS, and event-driven microservices patterns.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+---
 
-## Description
+## Table of Contents
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+- [Service Overview](#service-overview)
+- [Responsibilities](#responsibilities)
+- [Architecture Overview](#architecture-overview)
+- [Folder Structure](#folder-structure)
+- [Event Flow](#event-flow)
+- [Notification Processing Flow](#notification-processing-flow)
+- [Setup Instructions](#setup-instructions)
+- [Local Development](#local-development)
+- [Running the Service](#running-the-service)
+- [Environment Variables](#environment-variables)
+- [Testing](#testing)
+- [Observability](#observability)
+- [API Reference](#api-reference)
 
-## Project setup
+---
 
-```bash
-$ pnpm install
+## Service Overview
+
+The **notification-service** is responsible for receiving domain events from other microservices (via Kafka), rendering templates, and delivering notifications to users across multiple channels (Email, SMS, Push, In-App). It is designed following **Domain-Driven Design (DDD)**, **Clean Architecture**, and the **CQRS** pattern.
+
+### Key Features
+
+- **Multi-channel delivery** — Email (SendGrid), SMS (Twilio), Push (Firebase), In-App
+- **Event-driven** — Consumes Kafka events from `user.events`, `order.events`, `cart.events`
+- **Template engine** — Variable-based (`{{userName}}`, `{{orderId}}`) templates with validation
+- **Retry with exponential backoff** — Automatic retries with `2^attempt * 1000ms` delay
+- **Dead Letter Queue (DLQ)** — Failed notifications are routed to `notification.dlq` Kafka topic
+- **Prometheus metrics** — Counters for sent, failed, retry, and DLQ notifications at `/metrics`
+- **CQRS** — Commands for sending/retrying/DLQ, Queries for status lookup
+
+---
+
+## Responsibilities
+
+| Responsibility | Description |
+|---|---|
+| Receive domain events | Consume Kafka events from user, order, and cart services |
+| Render templates | Interpolate variables into notification templates |
+| Deliver notifications | Route to the correct channel provider (Email, SMS, Push, In-App) |
+| Handle failures | Mark failed, schedule retries with exponential backoff |
+| DLQ routing | Move exhausted notifications to a Dead Letter Queue topic |
+| Expose metrics | Prometheus counters for observability |
+| REST API | Health check, manual send, status lookup, manual resend |
+
+---
+
+## Architecture Overview
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                     Notification Service                     │
+├──────────────────────────────────────────────────────────────┤
+│                                                              │
+│  ┌──────────────┐    ┌──────────────┐    ┌───────────────┐   │
+│  │  Interfaces  │    │  Application │    │    Domain      │   │
+│  │              │    │              │    │               │   │
+│  │ • REST API   │───▶│ • Commands   │───▶│ • Notification│   │
+│  │ • Kafka      │    │ • Handlers   │    │ • Template    │   │
+│  │   Consumer   │    │ • Queries    │    │ • Enums       │   │
+│  │ • DTOs       │    │ • Services   │    │ • Ports       │   │
+│  └──────────────┘    └──────────────┘    └───────────────┘   │
+│                                                              │
+│  ┌──────────────────────────────────────────────────────────┐ │
+│  │                    Infrastructure                        │ │
+│  │  • Kafka Consumers/Publisher    • Channel Providers      │ │
+│  │  • Repositories (In-Memory)    • Retry Scheduler         │ │
+│  │  • DLQ Processor               • Prometheus Metrics      │ │
+│  └──────────────────────────────────────────────────────────┘ │
+└──────────────────────────────────────────────────────────────┘
 ```
 
-## Compile and run the project
+The service follows **Clean Architecture** with strict dependency inversion:
 
-```bash
-# development
-$ pnpm run start
+- **Domain** — Pure business logic with no framework imports
+- **Application** — CQRS command/query handlers that orchestrate domain operations
+- **Infrastructure** — Concrete implementations: Kafka, providers, repositories, metrics
+- **Interfaces** — HTTP controllers, Kafka event handlers, DTOs
 
-# watch mode
-$ pnpm run start:dev
+---
 
-# production mode
-$ pnpm run start:prod
+## Folder Structure
+
+```
+src/
+├── main.ts                         # Bootstrap entry point
+├── app.module.ts                   # Root module
+├── notification.module.ts          # Core module with all DI wiring
+│
+├── domain/                         # Pure domain layer (no framework deps)
+│   ├── entities/
+│   │   ├── notification.ts         # Notification aggregate root
+│   │   └── notification-template.ts # Template entity with rendering
+│   ├── enums/
+│   │   ├── notification-channel.enum.ts   # EMAIL, SMS, PUSH, IN_APP
+│   │   ├── notification-status.enum.ts    # PENDING → SENT / RETRYING → FAILED → DLQ
+│   │   └── notification-priority.enum.ts  # LOW, NORMAL, HIGH, CRITICAL
+│   ├── errors/                     # Domain-specific errors
+│   ├── events/                     # Domain events (Sent, Failed, RetryScheduled)
+│   └── ports/                      # Port interfaces (Repository, Provider, Publisher)
+│
+├── application/                    # Use cases and orchestration
+│   ├── commands/                   # SendNotification, RetryNotification, MoveToDlq
+│   ├── queries/                    # GetNotification
+│   ├── handlers/                   # CQRS command/query handlers
+│   └── services/                   # NotificationOrchestrator
+│
+├── infrastructure/                 # External integrations
+│   ├── kafka/                      # Kafka consumers and config
+│   ├── providers/                  # Channel providers (SendGrid, Twilio, Firebase, InApp)
+│   ├── repositories/               # In-memory notification & template repos
+│   ├── services/                   # RetryScheduler, DlqProcessor, KafkaEventPublisher
+│   └── metrics/                    # Prometheus metrics service
+│
+└── interfaces/                     # Entrypoints
+    ├── controllers/                # REST NotificationController
+    ├── messaging/                  # Kafka NotificationEventController
+    └── dto/                        # Request DTOs with class-validator
 ```
 
-## Run tests
+---
 
-```bash
-# unit tests
-$ pnpm run test
+## Event Flow
 
-# e2e tests
-$ pnpm run test:e2e
-
-# test coverage
-$ pnpm run test:cov
+```
+                           Kafka Topics
+                    ┌─────────────────────┐
+  user-service ────▶│   user.events       │
+  order-service ───▶│   order.events      │──▶  NotificationEventController
+  cart-service ────▶│   cart.events       │      │
+                    └─────────────────────┘      │
+                                                 ▼
+                                          CommandBus.execute()
+                                                 │
+                                                 ▼
+                                       SendNotificationHandler
+                                          │         │
+                                    success│         │failure
+                                          ▼         ▼
+                                       markSent()  markFailed()
+                                          │         │
+                                          ▼         ▼
+                                    notification   retry scheduled
+                                      .events         │
+                                          │         ▼
+                                          ▼    RetryScheduler
+                                    KafkaEvent      (polls)
+                                    Publisher          │
+                                                      ▼
+                                                DlqProcessor
+                                                 (if exhausted)
+                                                      │
+                                                      ▼
+                                              notification.dlq
+                                               (Kafka topic)
 ```
 
-## Deployment
+### Consumed Events
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+| Event | Source | Template | Priority |
+|---|---|---|---|
+| `user.registered` | user-service | `user-registration` | HIGH |
+| `order.created` | order-service | `order-confirmation` | HIGH |
+| `order.paid` | order-service | `payment-receipt` | NORMAL |
+| `order.shipped` | order-service | `shipping-update` | NORMAL |
+| `cart.abandoned` | cart-service | `abandoned-cart` | LOW |
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+---
+
+## Notification Processing Flow
+
+1. **Event received** — Kafka event consumed by `NotificationEventController`
+2. **Command dispatched** — `SendNotificationCommand` sent to `CommandBus`
+3. **Template resolved** — `SendNotificationHandler` looks up template by slug
+4. **Content rendered** — Template variables are interpolated (`{{userName}}` → `"John"`)
+5. **Notification created** — `Notification` aggregate created with `PENDING` status
+6. **Channel provider selected** — `ChannelProviderFactory.getProvider(channel)`
+7. **Delivery attempted** — Provider's `send()` method is called
+8. **Result handled**:
+   - ✅ Success → `markSent()` → status becomes `SENT`
+   - ❌ Failure → `markFailed()` → if retries remain: `RETRYING` with backoff, else: `FAILED`
+9. **Persisted** — Notification saved to repository
+10. **Domain events published** — `NotificationSentEvent` or `NotificationFailedEvent` published to Kafka
+
+---
+
+## Setup Instructions
+
+### Prerequisites
+
+- Node.js ≥ 18
+- pnpm ≥ 8
+- Docker (for Kafka, Redis)
+
+### Install Dependencies
 
 ```bash
-$ pnpm install -g mau
-$ mau deploy
+# From monorepo root
+pnpm install
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+### Configure Environment
 
-## Resources
+```bash
+cd apps/notification-service
+cp .env.example .env
+# Edit .env with your configuration
+```
 
-Check out a few resources that may come in handy when working with NestJS:
+---
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+## Local Development
 
-## Support
+```bash
+# Start infrastructure (Kafka, Redis, etc.)
+docker compose up -d
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+# Start in watch mode
+pnpm start:dev
+```
 
-## Stay in touch
+The service starts on `http://localhost:3000` by default.
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+---
 
-## License
+## Running the Service
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+```bash
+# Development
+pnpm start:dev
+
+# Production build
+pnpm build
+pnpm start:prod
+
+# Debug mode
+pnpm start:debug
+```
+
+---
+
+## Environment Variables
+
+See [`.env.example`](.env.example) for the complete list with descriptions.
+
+| Variable | Description | Default |
+|---|---|---|
+| `PORT` | HTTP port | `3000` |
+| `KAFKA_CLIENT_ID` | Kafka client identifier | `notification-service` |
+| `KAFKA_BROKERS` | Comma-separated broker list | `localhost:29092` |
+| `KAFKA_TOPIC_USER_EVENTS` | User domain events topic | `user.events` |
+| `KAFKA_TOPIC_ORDER_EVENTS` | Order domain events topic | `order.events` |
+| `KAFKA_TOPIC_CART_EVENTS` | Cart domain events topic | `cart.events` |
+| `KAFKA_DLQ_TOPIC` | Dead Letter Queue topic | `notification.dlq` |
+| `RETRY_INTERVAL_MS` | Retry scheduler polling interval (ms) | `10000` |
+| `DLQ_INTERVAL_MS` | DLQ processor polling interval (ms) | `30000` |
+
+---
+
+## Testing
+
+```bash
+# Run all tests
+pnpm test
+
+# Watch mode
+pnpm test:watch
+
+# Coverage report
+pnpm test:cov
+
+# TypeScript type-check
+npx tsc --noEmit
+```
+
+### Test Suites
+
+| Suite | Location | Tests |
+|---|---|---|
+| Notification entity | `domain/entities/__tests__/notification.spec.ts` | Domain logic, backoff |
+| Template entity | `domain/entities/__tests__/notification-template.spec.ts` | Rendering, variables |
+| SendNotification handler | `application/handlers/__tests__/send-notification.handler.spec.ts` | CQRS flow |
+| RetryNotification handler | `application/handlers/__tests__/retry-notification.handler.spec.ts` | Retry logic |
+| ChannelProvider factory | `infrastructure/providers/__tests__/channel-provider.factory.spec.ts` | Provider routing |
+| App controller | `app.controller.spec.ts` | Health check |
+
+**Total: 6 suites, 36 tests**
+
+---
+
+## Observability
+
+### Prometheus Metrics
+
+Exposed at `GET /metrics` (Prometheus text format).
+
+| Metric | Type | Labels | Description |
+|---|---|---|---|
+| `notification_sent_total` | Counter | `channel` | Total notifications sent successfully |
+| `notification_failed_total` | Counter | `channel` | Total notifications failed to send |
+| `notification_retry_total` | Counter | — | Total notification retries attempted |
+| `notification_dlq_total` | Counter | — | Total notifications moved to DLQ |
+
+### Structured Logging
+
+Uses `@ecommerce/core` Logger with structured JSON output. Key log contexts:
+
+- `SendNotificationHandler` — Delivery success/failure
+- `RetrySchedulerService` — Retry processing
+- `DlqProcessorService` — DLQ processing
+- `KafkaEventPublisher` — Event publishing
+
+---
+
+## API Reference
+
+### `POST /notifications`
+
+Send a notification manually.
+
+```json
+{
+  "recipientId": "user-123",
+  "channel": "EMAIL",
+  "templateSlug": "order-confirmation",
+  "variables": { "orderId": "ORD-456" },
+  "priority": "HIGH",
+  "recipientEmail": "user@example.com"
+}
+```
+
+### `GET /notifications/health`
+
+Health check endpoint.
+
+### `GET /notifications/:id`
+
+Get notification status by ID.
+
+### `POST /notifications/:id/resend`
+
+Manually resend a notification.
+
+### `GET /metrics`
+
+Prometheus metrics endpoint (text format).
