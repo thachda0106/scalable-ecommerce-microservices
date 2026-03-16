@@ -1,32 +1,23 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ScheduleModule } from '@nestjs/schedule';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { getLoggerModule } from '@ecommerce/core';
-import { PaymentModule } from './payment/payment.module';
-import { OutboxModule } from './outbox/outbox.module';
-import { ConsumerModule } from './consumer/consumer.module';
-import { PaymentTransaction } from './payment/entities/payment-transaction.entity';
-import { OutboxEvent } from './outbox/entities/outbox-event.entity';
+import { PaymentModule } from './payment.module';
+import { PaymentOrmEntity } from './infrastructure/persistence/entities/payment.orm-entity';
+import { OutboxEventOrmEntity } from './infrastructure/persistence/entities/outbox-event.orm-entity';
+import { ProcessedEventOrmEntity } from './infrastructure/persistence/entities/processed-event.orm-entity';
 
 @Module({
   imports: [
     getLoggerModule(),
-    ScheduleModule.forRoot(),
     TypeOrmModule.forRoot({
       type: 'postgres',
-      url:
-        process.env.DATABASE_URL ||
-        'postgres://postgres:postgres@localhost:5432/ecommerce',
-      entities: [PaymentTransaction, OutboxEvent],
-      synchronize: true, // Use only for development!
+      url: process.env.DATABASE_URL || 'postgres://postgres:postgres@localhost:5432/ecommerce',
+      entities: [PaymentOrmEntity, OutboxEventOrmEntity, ProcessedEventOrmEntity],
+      synchronize: true, // Auto-create tables for dev only
     }),
     PaymentModule,
-    OutboxModule,
-    ConsumerModule,
   ],
-  controllers: [AppController],
-  providers: [AppService],
+  controllers: [],
+  providers: [],
 })
 export class AppModule {}
