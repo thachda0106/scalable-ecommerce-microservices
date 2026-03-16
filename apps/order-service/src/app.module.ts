@@ -1,32 +1,19 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ScheduleModule } from '@nestjs/schedule';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { getLoggerModule } from '@ecommerce/core';
-import { OrdersModule } from './orders/orders.module';
-import { OutboxModule } from './outbox/outbox.module';
-import { SagasModule } from './sagas/sagas.module';
-import { Order } from './orders/entities/order.entity';
-import { OutboxEvent } from './outbox/entities/outbox-event.entity';
+import { LoggerModule } from 'nestjs-pino';
+import { OrderModule } from './interfaces/order.module';
 
 @Module({
   imports: [
-    getLoggerModule(),
-    ScheduleModule.forRoot(),
+    LoggerModule.forRoot(),
     TypeOrmModule.forRoot({
       type: 'postgres',
-      url:
-        process.env.DATABASE_URL ||
-        'postgres://postgres:postgres@localhost:5432/ecommerce',
-      entities: [Order, OutboxEvent],
-      synchronize: true, // Use only for development!
+      url: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/order_db',
+      autoLoadEntities: true,
+      synchronize: process.env.NODE_ENV !== 'production',
+      logging: process.env.NODE_ENV !== 'production',
     }),
-    OrdersModule,
-    OutboxModule,
-    SagasModule,
+    OrderModule,
   ],
-  controllers: [AppController],
-  providers: [AppService],
 })
 export class AppModule {}
