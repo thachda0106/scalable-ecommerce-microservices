@@ -1,3 +1,4 @@
 export { UserMetricsService } from './user-metrics.service';
 export { MetricsController } from './metrics.controller';
-export { AuditLogService, AuditEntry } from './audit-log.service';
+export { AuditLogService } from './audit-log.service';
+export type { AuditEntry } from './audit-log.service';
