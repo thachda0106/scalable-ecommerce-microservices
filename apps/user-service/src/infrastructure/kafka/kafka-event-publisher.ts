@@ -27,7 +27,9 @@ export class KafkaEventPublisher implements IEventPublisher {
       entry.payload = {
         eventType: event.eventType,
         occurredOn: event.occurredOn.toISOString(),
-        ...event,
+        data: Object.entries(event)
+          .filter(([key]) => key !== 'occurredOn' && key !== 'eventType')
+          .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {}),
       };
       entry.processed = false;
       return entry;
