@@ -1,7 +1,8 @@
-import { Controller, Post, Get, Body, Param, HttpCode, HttpStatus, UseFilters } from '@nestjs/common';
+import { Controller, Post, Get, Body, Param, HttpCode, HttpStatus, UseFilters, UseGuards, NotFoundException } from '@nestjs/common';
 import { ProcessPaymentDto } from '../dto/process-payment.dto';
 import { RefundPaymentDto } from '../dto/refund-payment.dto';
 import { DomainExceptionFilter } from '../filters/domain-exception.filter';
+import { ServiceAuthGuard } from '../guards/service-auth.guard';
 import { ProcessPaymentCommand } from '../../application/commands/process-payment.command';
 import { RefundPaymentCommand } from '../../application/commands/refund-payment.command';
 import { GetPaymentByIdQuery } from '../../application/queries/get-payment-by-id.query';
@@ -12,6 +13,7 @@ import { GetPaymentByIdHandler } from '../../application/handlers/get-payment-by
 import { GetPaymentsByOrderHandler } from '../../application/handlers/get-payments-by-order.handler';
 
 @Controller('payments')
+@UseGuards(ServiceAuthGuard)
 @UseFilters(DomainExceptionFilter)
 export class PaymentController {
   constructor(
@@ -47,9 +49,7 @@ export class PaymentController {
     const query = new GetPaymentByIdQuery(id);
     const payment = await this.getPaymentByIdHandler.execute(query);
     if (!payment) {
-      // Typically use a NotFoundException from NestJS here, but returning null or throwing is fine too
-      // for this implementation. Let's return a simple structure.
-      return { status: HttpStatus.NOT_FOUND, message: 'Payment not found' };
+      throw new NotFoundException(`Payment ${id} not found`);
     }
     return payment;
   }
@@ -60,3 +60,4 @@ export class PaymentController {
     return this.getPaymentsByOrderHandler.execute(query);
   }
 }
+

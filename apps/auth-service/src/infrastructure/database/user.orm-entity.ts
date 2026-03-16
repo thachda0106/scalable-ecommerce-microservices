@@ -4,6 +4,7 @@ import {
   PrimaryColumn,
   CreateDateColumn,
   UpdateDateColumn,
+  VersionColumn,
   Index,
 } from 'typeorm';
 
@@ -65,4 +66,7 @@ export class UserOrmEntity {
 
   @UpdateDateColumn()
   updatedAt!: Date;
+
+  @VersionColumn()
+  version!: number;
 }

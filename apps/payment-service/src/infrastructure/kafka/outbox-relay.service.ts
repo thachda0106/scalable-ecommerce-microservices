@@ -17,6 +17,7 @@ export class OutboxRelayService
 {
   private readonly logger = new Logger(OutboxRelayService.name);
   private producer: Producer;
+  private consecutiveFailures = 0;
 
   constructor(
     @InjectRepository(OutboxEventOrmEntity)
@@ -55,21 +56,41 @@ export class OutboxRelayService
           payload: event.payload,
           timestamp: event.createdAt.toISOString(),
         }),
+        headers: {
+          'x-correlation-id': (event.payload as any).orderId || event.id,
+          'x-event-type': event.type,
+        },
       }));
 
+      // Send to Kafka — only mark processed after successful ack
       await this.producer.send({
         topic: 'payment.events',
         messages,
       });
 
-      for (const event of events) {
-        event.processed = true;
-      }
-      await this.outboxRepo.save(events);
+      // Kafka send succeeded — now mark events as processed
+      const eventIds = events.map((e) => e.id);
+      await this.outboxRepo
+        .createQueryBuilder()
+        .update(OutboxEventOrmEntity)
+        .set({ processed: true })
+        .whereInIds(eventIds)
+        .execute();
 
+      this.consecutiveFailures = 0;
       this.logger.log(`Relayed ${events.length} payment events to Kafka`);
     } catch (error) {
-      this.logger.error(`Failed to relay events: ${(error as Error).message}`);
+      this.consecutiveFailures++;
+      this.logger.error(
+        `Failed to relay events (attempt ${this.consecutiveFailures}): ${(error as Error).message}`,
+      );
+      if (this.consecutiveFailures >= 10) {
+        this.logger.warn(
+          'Outbox relay has failed 10+ consecutive times — check Kafka connectivity',
+        );
+      }
+      // Events remain unprocessed and will be retried on next cron tick
     }
   }
 }
+

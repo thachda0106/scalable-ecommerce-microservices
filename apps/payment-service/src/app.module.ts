@@ -13,7 +13,7 @@ import { ProcessedEventOrmEntity } from './infrastructure/persistence/entities/p
       type: 'postgres',
       url: process.env.DATABASE_URL || 'postgres://postgres:postgres@localhost:5432/ecommerce',
       entities: [PaymentOrmEntity, OutboxEventOrmEntity, ProcessedEventOrmEntity],
-      synchronize: true, // Auto-create tables for dev only
+      synchronize: process.env.DB_SYNC === 'true', // Default false — use migrations in production
     }),
     PaymentModule,
   ],

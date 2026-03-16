@@ -30,9 +30,9 @@ export class PaymentMapper {
     orm.currency = domain.amount.currency;
     orm.status = domain.status.value;
     orm.provider = domain.provider;
-    orm.transactionId = domain.transactionId ?? (undefined as any);
-    orm.idempotencyKey = domain.idempotencyKey ?? (undefined as any);
-    orm.failReason = domain.failReason ?? (undefined as any);
+    orm.transactionId = domain.transactionId ?? null;
+    orm.idempotencyKey = domain.idempotencyKey ?? null;
+    orm.failReason = domain.failReason ?? null;
     orm.createdAt = domain.createdAt;
     orm.updatedAt = domain.updatedAt;
     return orm;

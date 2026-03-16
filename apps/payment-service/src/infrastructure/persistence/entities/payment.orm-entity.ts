@@ -4,6 +4,7 @@ import {
   PrimaryColumn,
   CreateDateColumn,
   UpdateDateColumn,
+  VersionColumn,
   Index,
 } from 'typeorm';
 
@@ -41,9 +42,13 @@ export class PaymentOrmEntity {
   @Column({ nullable: true })
   failReason: string;
 
+  @VersionColumn()
+  version: number;
+
   @CreateDateColumn()
   createdAt: Date;
 
   @UpdateDateColumn()
   updatedAt: Date;
 }
+

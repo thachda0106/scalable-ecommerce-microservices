@@ -16,7 +16,7 @@ import { USER_REPOSITORY } from '../../domain/ports/user-repository.port';
         database: process.env.DB_NAME || 'eccommerce_auth',
         entities: [UserOrmEntity],
         autoLoadEntities: true,
-        synchronize: process.env.NODE_ENV !== 'production',
+        synchronize: false, // Never use synchronize — use TypeORM migrations instead
       }),
     }),
     TypeOrmModule.forFeature([UserOrmEntity]),

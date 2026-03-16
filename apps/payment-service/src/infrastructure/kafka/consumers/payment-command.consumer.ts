@@ -6,16 +6,20 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Consumer, EachMessagePayload } from 'kafkajs';
+import { Consumer, EachMessagePayload, Producer } from 'kafkajs';
 import { KafkaClientFactory } from '../kafka-client.factory';
 import { ProcessedEventOrmEntity } from '../../persistence/entities/processed-event.orm-entity';
 import { ProcessPaymentHandler } from '../../../application/handlers/process-payment.handler';
 import { ProcessPaymentCommand } from '../../../application/commands/process-payment.command';
 
+const MAX_RETRIES = 3;
+
 @Injectable()
 export class PaymentCommandConsumer implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(PaymentCommandConsumer.name);
   private consumer: Consumer;
+  private dlqProducer: Producer;
+  private readonly retryCounts = new Map<string, number>();
 
   constructor(
     private readonly kafkaFactory: KafkaClientFactory,
@@ -29,7 +33,10 @@ export class PaymentCommandConsumer implements OnModuleInit, OnModuleDestroy {
       this.consumer = this.kafkaFactory.createConsumer({
         groupId: 'payment-service-commands',
       });
+      this.dlqProducer = this.kafkaFactory.createProducer();
+
       await this.consumer.connect();
+      await this.dlqProducer.connect();
       await this.consumer.subscribe({
         topics: ['payment.commands'],
         fromBeginning: false,
@@ -53,6 +60,9 @@ export class PaymentCommandConsumer implements OnModuleInit, OnModuleDestroy {
     if (this.consumer) {
       await this.consumer.disconnect();
     }
+    if (this.dlqProducer) {
+      await this.dlqProducer.disconnect();
+    }
   }
 
   private async handleMessage(payload: EachMessagePayload): Promise<void> {
@@ -62,6 +72,7 @@ export class PaymentCommandConsumer implements OnModuleInit, OnModuleDestroy {
     try {
       const event = JSON.parse(message.value.toString());
       const eventId = event.eventId || event.id || `${event.type}_${event.payload?.orderId}`;
+      const correlationId = message.headers?.['x-correlation-id']?.toString() || eventId;
 
       if (!eventId) {
         this.logger.warn('Received payment command without ID, skipping');
@@ -104,14 +115,48 @@ export class PaymentCommandConsumer implements OnModuleInit, OnModuleDestroy {
       processed.eventType = eventType;
       await this.processedRepo.save(processed);
 
-      this.logger.log(`Processed command: ${eventType} (${eventId})`);
+      this.retryCounts.delete(eventId);
+      this.logger.log(`Processed command: ${eventType} (${eventId}, correlationId: ${correlationId})`);
     } catch (error) {
+      const event = JSON.parse(message.value!.toString());
+      const eventId = event.eventId || event.id || `unknown_${Date.now()}`;
+      const retryCount = (this.retryCounts.get(eventId) || 0) + 1;
+      this.retryCounts.set(eventId, retryCount);
+
       this.logger.error(
-        `Error processing payment command: ${(error as Error).message}`,
+        `Error processing payment command (retry ${retryCount}/${MAX_RETRIES}): ${(error as Error).message}`,
         (error as Error).stack,
       );
+
+      if (retryCount >= MAX_RETRIES) {
+        await this.sendToDlq(message, error as Error);
+        this.retryCounts.delete(eventId);
+      }
       // DO NOT re-throw — prevents consumer crash loop
-      // TODO: Route to payment.commands.dlq after max retries
+    }
+  }
+
+  private async sendToDlq(message: any, error: Error): Promise<void> {
+    try {
+      await this.dlqProducer.send({
+        topic: 'payment.commands.dlq',
+        messages: [
+          {
+            key: message.key,
+            value: message.value,
+            headers: {
+              ...message.headers,
+              'x-dlq-reason': error.message,
+              'x-dlq-timestamp': new Date().toISOString(),
+              'x-original-topic': 'payment.commands',
+            },
+          },
+        ],
+      });
+      this.logger.warn(`Message sent to DLQ: payment.commands.dlq`);
+    } catch (dlqError) {
+      this.logger.error(`Failed to send message to DLQ: ${(dlqError as Error).message}`);
     }
   }
 }
+

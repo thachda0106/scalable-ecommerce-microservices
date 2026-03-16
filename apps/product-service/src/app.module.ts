@@ -16,7 +16,7 @@ import { OutboxEventOrmEntity } from './infrastructure/persistence/entities/outb
         process.env.DATABASE_URL ||
         'postgres://postgres:postgres@localhost:5432/ecommerce',
       entities: [ProductOrmEntity, OutboxEventOrmEntity],
-      synchronize: process.env.NODE_ENV !== 'production',
+      synchronize: false, // Never use synchronize — use TypeORM migrations instead
     }),
     ProductModule,
   ],

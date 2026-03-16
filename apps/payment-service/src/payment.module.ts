@@ -1,8 +1,12 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { CqrsModule } from '@nestjs/cqrs';
 import { ScheduleModule } from '@nestjs/schedule';
-import { PrometheusModule } from '@willsoto/nestjs-prometheus';
+import { TerminusModule } from '@nestjs/terminus';
+import {
+  PrometheusModule,
+  makeCounterProvider,
+  makeHistogramProvider,
+} from '@willsoto/nestjs-prometheus';
 
 // Application Ports / Handlers
 import { ProcessPaymentHandler } from './application/handlers/process-payment.handler';
@@ -32,14 +36,16 @@ import { MetricsService } from './infrastructure/observability/metrics.service';
 
 // Interfaces
 import { PaymentController } from './interfaces/controllers/payment.controller';
+import { HealthController } from './interfaces/controllers/health.controller';
+import { ServiceAuthGuard } from './interfaces/guards/service-auth.guard';
 
 const CommandHandlers = [ProcessPaymentHandler, RefundPaymentHandler];
 const QueryHandlers = [GetPaymentByIdHandler, GetPaymentsByOrderHandler];
 
 @Module({
   imports: [
-    CqrsModule,
     ScheduleModule.forRoot(),
+    TerminusModule,
     PrometheusModule.register({
       path: '/metrics',
     }),
@@ -49,7 +55,7 @@ const QueryHandlers = [GetPaymentByIdHandler, GetPaymentsByOrderHandler];
       ProcessedEventOrmEntity,
     ]),
   ],
-  controllers: [PaymentController],
+  controllers: [PaymentController, HealthController],
   providers: [
     ...CommandHandlers,
     ...QueryHandlers,
@@ -72,7 +78,32 @@ const QueryHandlers = [GetPaymentByIdHandler, GetPaymentsByOrderHandler];
     PaymentCommandConsumer,
     OutboxRelayService,
     MetricsService,
+    ServiceAuthGuard,
+
+    // ── Prometheus Metric Providers ──────────────────────────────
+    makeCounterProvider({
+      name: 'payment_processing_total',
+      help: 'Total payment processing attempts',
+      labelNames: ['provider'],
+    }),
+    makeCounterProvider({
+      name: 'payment_success_total',
+      help: 'Total successful payments',
+      labelNames: ['provider'],
+    }),
+    makeCounterProvider({
+      name: 'payment_failure_total',
+      help: 'Total failed payments',
+      labelNames: ['provider', 'reason'],
+    }),
+    makeHistogramProvider({
+      name: 'payment_processing_duration_seconds',
+      help: 'Payment processing duration in seconds',
+      labelNames: ['provider'],
+      buckets: [0.1, 0.25, 0.5, 1, 2.5, 5, 10],
+    }),
   ],
   exports: [],
 })
 export class PaymentModule {}
+
