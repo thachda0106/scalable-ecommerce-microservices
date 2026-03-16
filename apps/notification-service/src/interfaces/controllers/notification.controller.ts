@@ -30,11 +30,6 @@ export class NotificationController {
     );
   }
 
-  @Get('health')
-  health() {
-    return { status: 'up', service: 'notification-service' };
-  }
-
   @Get(':id')
   async getById(@Param('id') id: string) {
     return this.queryBus.execute(new GetNotificationQuery(id));

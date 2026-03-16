@@ -1,10 +1,11 @@
 import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
-import { Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { GetNotificationQuery } from '../queries/get-notification.query';
 import {
   NOTIFICATION_REPOSITORY,
   INotificationRepository,
 } from '../../domain/ports/notification-repository.port';
+import { NotificationNotFoundError } from '../../domain/errors/notification-not-found.error';
 
 @QueryHandler(GetNotificationQuery)
 export class GetNotificationHandler
@@ -20,9 +21,7 @@ export class GetNotificationHandler
       query.notificationId,
     );
     if (!notification) {
-      throw new NotFoundException(
-        `Notification ${query.notificationId} not found`,
-      );
+      throw new NotificationNotFoundError(query.notificationId);
     }
     return notification.toJSON();
   }

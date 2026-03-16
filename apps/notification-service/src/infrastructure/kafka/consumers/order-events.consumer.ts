@@ -1,24 +1,24 @@
 import {
   Injectable,
+  Inject,
   Logger,
   OnModuleInit,
   OnModuleDestroy,
 } from '@nestjs/common';
 import { Kafka, Consumer } from 'kafkajs';
+import { KAFKA_CLIENT } from '../kafka.module';
 import { kafkaConfig } from '../kafka.config';
 import { NotificationOrchestrator } from '../../../application/services/notification-orchestrator.service';
 
 @Injectable()
 export class OrderEventsConsumer implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(OrderEventsConsumer.name);
-  private kafka: Kafka;
   private consumer: Consumer;
 
-  constructor(private readonly orchestrator: NotificationOrchestrator) {
-    this.kafka = new Kafka({
-      clientId: kafkaConfig.clientId,
-      brokers: kafkaConfig.brokers,
-    });
+  constructor(
+    @Inject(KAFKA_CLIENT) private readonly kafka: Kafka,
+    private readonly orchestrator: NotificationOrchestrator,
+  ) {
     this.consumer = this.kafka.consumer({
       groupId: kafkaConfig.consumerGroups.orderEvents,
     });
@@ -68,7 +68,11 @@ export class OrderEventsConsumer implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  private async handleEvent(event: { type?: string; eventType?: string; payload?: any }) {
+  private async handleEvent(event: {
+    type?: string;
+    eventType?: string;
+    payload?: any;
+  }) {
     const eventType = event.type || event.eventType;
 
     switch (eventType) {
@@ -92,7 +96,9 @@ export class OrderEventsConsumer implements OnModuleInit, OnModuleDestroy {
       case 'OrderFailed':
       case 'order.failed':
         // No notification for failed orders currently
-        this.logger.debug(`Order failed event received, skipping notification`);
+        this.logger.debug(
+          `Order failed event received, skipping notification`,
+        );
         break;
 
       default:

@@ -1,10 +1,12 @@
 import {
   Injectable,
+  Inject,
   Logger,
   OnModuleInit,
   OnModuleDestroy,
 } from '@nestjs/common';
 import { Kafka, Consumer } from 'kafkajs';
+import { KAFKA_CLIENT } from '../kafka.module';
 import { kafkaConfig } from '../kafka.config';
 import { NotificationOrchestrator } from '../../../application/services/notification-orchestrator.service';
 
@@ -18,14 +20,12 @@ import { NotificationOrchestrator } from '../../../application/services/notifica
 @Injectable()
 export class CartEventsConsumer implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(CartEventsConsumer.name);
-  private kafka: Kafka;
   private consumer: Consumer;
 
-  constructor(private readonly orchestrator: NotificationOrchestrator) {
-    this.kafka = new Kafka({
-      clientId: kafkaConfig.clientId,
-      brokers: kafkaConfig.brokers,
-    });
+  constructor(
+    @Inject(KAFKA_CLIENT) private readonly kafka: Kafka,
+    private readonly orchestrator: NotificationOrchestrator,
+  ) {
     this.consumer = this.kafka.consumer({
       groupId: kafkaConfig.consumerGroups.cartEvents,
     });
@@ -75,7 +75,11 @@ export class CartEventsConsumer implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  private async handleEvent(event: { type?: string; eventType?: string; payload?: any }) {
+  private async handleEvent(event: {
+    type?: string;
+    eventType?: string;
+    payload?: any;
+  }) {
     const eventType = event.type || event.eventType;
 
     switch (eventType) {

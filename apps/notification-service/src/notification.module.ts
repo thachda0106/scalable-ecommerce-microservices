@@ -7,7 +7,6 @@ import { KafkaModule } from './infrastructure/kafka/kafka.module';
 
 // Interface layer
 import { NotificationController } from './interfaces/controllers/notification.controller';
-import { NotificationEventController } from './interfaces/messaging/notification-event.controller';
 
 // Application — Handlers
 import { SendNotificationHandler } from './application/handlers/send-notification.handler';
@@ -23,12 +22,14 @@ import { NOTIFICATION_REPOSITORY } from './domain/ports/notification-repository.
 import { TEMPLATE_REPOSITORY } from './domain/ports/template-repository.port';
 import { CHANNEL_PROVIDER_FACTORY } from './domain/ports/channel-provider.port';
 import { EVENT_PUBLISHER } from './domain/ports/event-publisher.port';
+import { DLQ_PUBLISHER } from './domain/ports/dlq-publisher.port';
 
 // Infrastructure — Concrete implementations
 import { InMemoryNotificationRepository } from './infrastructure/repositories/in-memory-notification.repository';
 import { InMemoryTemplateRepository } from './infrastructure/repositories/in-memory-template.repository';
 import { ChannelProviderFactory } from './infrastructure/providers/channel-provider.factory';
 import { KafkaEventPublisher } from './infrastructure/services/kafka-event-publisher';
+import { KafkaDlqPublisher } from './infrastructure/services/kafka-dlq-publisher';
 
 // Infrastructure — Providers
 import { SendGridEmailProvider } from './infrastructure/providers/sendgrid-email.provider';
@@ -51,7 +52,7 @@ import { NotificationMetricsService } from './infrastructure/metrics/notificatio
       path: '/metrics',
     }),
   ],
-  controllers: [NotificationController, NotificationEventController],
+  controllers: [NotificationController],
   providers: [
     // ── CQRS Handlers ────────────────────────────────────────────
     SendNotificationHandler,
@@ -78,6 +79,10 @@ import { NotificationMetricsService } from './infrastructure/metrics/notificatio
     {
       provide: EVENT_PUBLISHER,
       useClass: KafkaEventPublisher,
+    },
+    {
+      provide: DLQ_PUBLISHER,
+      useClass: KafkaDlqPublisher,
     },
 
     // ── Channel Providers (injected into factory) ────────────────
