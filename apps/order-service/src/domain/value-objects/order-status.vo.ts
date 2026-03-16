@@ -1,3 +1,5 @@
+import { InvalidOrderStatusTransitionError } from '../errors/invalid-order-status-transition.error';
+
 export enum OrderStatusEnum {
   CREATED = 'CREATED',
   PENDING_PAYMENT = 'PENDING_PAYMENT',
@@ -46,9 +48,7 @@ export class OrderStatus {
 
   transitionTo(target: OrderStatusEnum): OrderStatus {
     if (!this.canTransitionTo(target)) {
-      throw new Error(
-        `Invalid order status transition: ${this._value} → ${target}`,
-      );
+      throw new InvalidOrderStatusTransitionError(this._value, target);
     }
     return new OrderStatus(target);
   }

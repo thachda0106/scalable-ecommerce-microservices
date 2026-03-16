@@ -1,21 +1,20 @@
 import {
   Injectable,
   Logger,
-  Inject,
   OnModuleInit,
-  OnModuleDestroy,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Kafka, Consumer, EachMessagePayload } from 'kafkajs';
+import { Consumer, EachMessagePayload } from 'kafkajs';
 import { ProcessedEventOrmEntity } from '../../persistence/entities/processed-event.orm-entity';
 import { ConfirmPaymentHandler } from '../../../application/handlers/confirm-payment.handler';
 import { CancelOrderHandler } from '../../../application/handlers/cancel-order.handler';
 import { ConfirmPaymentCommand } from '../../../application/commands/confirm-payment.command';
 import { CancelOrderCommand } from '../../../application/commands/cancel-order.command';
+import { KafkaClientFactory } from '../kafka-client.factory';
 
 @Injectable()
-export class PaymentEventConsumer implements OnModuleInit, OnModuleDestroy {
+export class PaymentEventConsumer implements OnModuleInit {
   private readonly logger = new Logger(PaymentEventConsumer.name);
   private consumer: Consumer;
 
@@ -24,19 +23,14 @@ export class PaymentEventConsumer implements OnModuleInit, OnModuleDestroy {
     private readonly cancelOrderHandler: CancelOrderHandler,
     @InjectRepository(ProcessedEventOrmEntity)
     private readonly processedRepo: Repository<ProcessedEventOrmEntity>,
-  ) {
-    const KAFKA_BROKERS = process.env.KAFKA_BROKERS || 'localhost:29092';
-    const kafka = new Kafka({
-      clientId: 'order-service-payment-consumer',
-      brokers: KAFKA_BROKERS.split(','),
-    });
-    this.consumer = kafka.consumer({
-      groupId: 'order-service-payment',
-    });
-  }
+    private readonly kafkaFactory: KafkaClientFactory,
+  ) {}
 
   async onModuleInit(): Promise<void> {
     try {
+      this.consumer = this.kafkaFactory.createConsumer({
+        groupId: 'order-service-payment',
+      });
       await this.consumer.connect();
       await this.consumer.subscribe({
         topics: ['payment.events'],
@@ -53,16 +47,6 @@ export class PaymentEventConsumer implements OnModuleInit, OnModuleDestroy {
     } catch (error) {
       this.logger.error(
         `Failed to start payment consumer: ${(error as Error).message}`,
-      );
-    }
-  }
-
-  async onModuleDestroy(): Promise<void> {
-    try {
-      await this.consumer.disconnect();
-    } catch (error) {
-      this.logger.warn(
-        `Error disconnecting payment consumer: ${(error as Error).message}`,
       );
     }
   }
@@ -118,6 +102,7 @@ export class PaymentEventConsumer implements OnModuleInit, OnModuleDestroy {
       // Mark as processed
       const processed = new ProcessedEventOrmEntity();
       processed.eventId = eventId;
+      processed.eventType = eventType;
       await this.processedRepo.save(processed);
 
       this.logger.log(`Processed payment event: ${eventType} (${eventId})`);

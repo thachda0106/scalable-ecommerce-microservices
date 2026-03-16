@@ -10,5 +10,4 @@ export interface IOrderRepository {
   findById(id: OrderId): Promise<Order | null>;
   findByUserId(userId: UserId): Promise<Order[]>;
   findByStatus(status: OrderStatusEnum): Promise<Order[]>;
-  nextId(): OrderId;
 }

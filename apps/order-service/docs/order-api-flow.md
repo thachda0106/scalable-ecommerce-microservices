@@ -199,7 +199,7 @@ Marks an order as shipped with a tracking number.
 4. Order saved, event published
 
 **Errors:**
-- `400` — Invalid status transition (e.g., shipping a `CREATED` order)
+- `409` — Invalid status transition (e.g., shipping a `CREATED` order)
 - `404` — Order not found
 
 ---
@@ -223,7 +223,7 @@ Marks a shipped order as delivered.
 4. Order saved, event published
 
 **Errors:**
-- `400` — Invalid status transition (e.g., delivering a `PAID` order)
+- `409` — Invalid status transition (e.g., delivering a `PAID` order)
 
 ---
 
@@ -254,7 +254,7 @@ Cancels an order with an optional reason.
 4. Order saved, event published → downstream compensation triggered
 
 **Errors:**
-- `400` — Invalid status transition (e.g., cancelling a `DELIVERED` order)
+- `409` — Invalid status transition (e.g., cancelling a `DELIVERED` order)
 
 ---
 
@@ -285,7 +285,7 @@ Refunds a paid or delivered order.
 4. Order saved, event published
 
 **Errors:**
-- `400` — Invalid status transition (e.g., refunding a `CREATED` order)
+- `409` — Invalid status transition (e.g., refunding a `CREATED` order)
 
 ---
 
@@ -320,18 +320,18 @@ The `DomainExceptionFilter` catches domain-layer errors and converts them to HTT
 
 | Domain Error | HTTP Status | Description |
 |-------------|-------------|-------------|
-| `InvalidOrderStatusTransitionError` | `400 Bad Request` | Attempted an invalid state transition |
-| `InvalidOrderOperationError` | `400 Bad Request` | Invalid operation (e.g., adding items to a non-CREATED order) |
+| `InvalidOrderStatusTransitionError` | `409 Conflict` | Attempted an invalid state transition |
+| `InvalidOrderOperationError` | `422 Unprocessable Entity` | Invalid operation (e.g., adding items to a non-CREATED order) |
 | `DomainException` | `400 Bad Request` | Generic domain validation failure |
 
 ### Example Error Response
 
 ```json
 {
-  "statusCode": 400,
+  "statusCode": 409,
+  "error": "InvalidOrderStatusTransitionError",
   "message": "Invalid order status transition: SHIPPED → CREATED",
-  "error": "Bad Request"
-}
+  "timestamp": "2026-03-16T07:00:00.000Z"
 ```
 
 ---

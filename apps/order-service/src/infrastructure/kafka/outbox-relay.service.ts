@@ -2,42 +2,29 @@ import {
   Injectable,
   Logger,
   OnApplicationBootstrap,
-  OnApplicationShutdown,
 } from '@nestjs/common';
+import { Producer } from 'kafkajs';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { Kafka, Producer } from 'kafkajs';
 import { OutboxEventOrmEntity } from '../persistence/entities/outbox-event.orm-entity';
+import { KafkaClientFactory } from './kafka-client.factory';
 
 @Injectable()
-export class OutboxRelayService
-  implements OnApplicationBootstrap, OnApplicationShutdown
-{
+export class OutboxRelayService implements OnApplicationBootstrap {
   private readonly logger = new Logger(OutboxRelayService.name);
-  private kafka: Kafka;
   private producer: Producer;
 
   constructor(
     @InjectRepository(OutboxEventOrmEntity)
     private readonly outboxRepo: Repository<OutboxEventOrmEntity>,
-  ) {
-    const KAFKA_BROKERS = process.env.KAFKA_BROKERS || 'localhost:29092';
-
-    this.kafka = new Kafka({
-      clientId: 'order-service-relay',
-      brokers: KAFKA_BROKERS.split(','),
-    });
-    this.producer = this.kafka.producer();
-  }
+    private readonly kafkaFactory: KafkaClientFactory,
+  ) {}
 
   async onApplicationBootstrap() {
+    this.producer = this.kafkaFactory.createProducer();
     await this.producer.connect();
     this.logger.log('Outbox relay Kafka producer connected');
-  }
-
-  async onApplicationShutdown() {
-    await this.producer.disconnect();
   }
 
   @Cron(CronExpression.EVERY_SECOND)

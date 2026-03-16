@@ -1,30 +1,21 @@
-import { Injectable, Logger, OnApplicationBootstrap, OnApplicationShutdown } from '@nestjs/common';
-import { Kafka, Producer } from 'kafkajs';
+import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
+import { Producer } from 'kafkajs';
 import { IInventoryService } from '../../application/ports/inventory-service.port';
+import { KafkaClientFactory } from '../kafka/kafka-client.factory';
 
 @Injectable()
 export class KafkaInventoryService
-  implements IInventoryService, OnApplicationBootstrap, OnApplicationShutdown
+  implements IInventoryService, OnApplicationBootstrap
 {
   private readonly logger = new Logger(KafkaInventoryService.name);
   private producer: Producer;
 
-  constructor() {
-    const KAFKA_BROKERS = process.env.KAFKA_BROKERS || 'localhost:29092';
-    const kafka = new Kafka({
-      clientId: 'order-service-inventory-cmd',
-      brokers: KAFKA_BROKERS.split(','),
-    });
-    this.producer = kafka.producer();
-  }
+  constructor(private readonly kafkaFactory: KafkaClientFactory) {}
 
   async onApplicationBootstrap() {
+    this.producer = this.kafkaFactory.createProducer();
     await this.producer.connect();
     this.logger.log('Inventory command producer connected');
-  }
-
-  async onApplicationShutdown() {
-    await this.producer.disconnect();
   }
 
   async reserveInventory(

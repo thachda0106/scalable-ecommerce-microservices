@@ -46,8 +46,4 @@ export class TypeOrmOrderRepository implements IOrderRepository {
     });
     return orms.map(OrderMapper.toDomain);
   }
-
-  nextId(): OrderId {
-    return OrderId.generate();
-  }
 }

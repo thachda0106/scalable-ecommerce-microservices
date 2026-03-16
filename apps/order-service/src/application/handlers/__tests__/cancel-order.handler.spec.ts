@@ -6,11 +6,13 @@ import { OrderId } from '../../../domain/value-objects/order-id.vo';
 import { Order } from '../../../domain/entities/order.entity';
 import { OrderItem } from '../../../domain/entities/order-item.entity';
 import { Money } from '../../../domain/value-objects/money.vo';
+import { OrderMetricsService } from '../../../infrastructure/observability/order-metrics.service';
 
 describe('CancelOrderHandler', () => {
   let handler: CancelOrderHandler;
   let orderRepository: jest.Mocked<IOrderRepository>;
   let eventPublisher: jest.Mocked<IEventPublisher>;
+  let metrics: jest.Mocked<OrderMetricsService>;
 
   beforeEach(() => {
     orderRepository = {
@@ -18,7 +20,6 @@ describe('CancelOrderHandler', () => {
       findById: jest.fn(),
       findByUserId: jest.fn(),
       findByStatus: jest.fn(),
-      nextId: jest.fn(),
     };
 
     eventPublisher = {
@@ -26,7 +27,15 @@ describe('CancelOrderHandler', () => {
       publishAll: jest.fn(),
     };
 
-    handler = new CancelOrderHandler(orderRepository, eventPublisher);
+    metrics = {
+      incrementOrdersCreated: jest.fn(),
+      recordStatusChange: jest.fn(),
+      startTimer: jest.fn().mockReturnValue(jest.fn()),
+      setActiveOrders: jest.fn(),
+      getMetrics: jest.fn(),
+    } as any;
+
+    handler = new CancelOrderHandler(orderRepository, eventPublisher, metrics);
   });
 
   it('should cancel an existing order', async () => {
@@ -50,6 +59,7 @@ describe('CancelOrderHandler', () => {
 
     expect(orderRepository.save).toHaveBeenCalledTimes(1);
     expect(eventPublisher.publishAll).toHaveBeenCalledTimes(1);
+    expect(metrics.recordStatusChange).toHaveBeenCalledWith('CREATED', 'CANCELLED');
     
     const savedOrder = orderRepository.save.mock.calls[0][0] as Order;
     expect(savedOrder.status.value).toBe('CANCELLED');

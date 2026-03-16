@@ -30,6 +30,7 @@ import { TypeOrmOrderRepository } from '../infrastructure/persistence/repositori
 import { TypeOrmProcessedEventRepository } from '../infrastructure/persistence/repositories/typeorm-processed-event.repository';
 
 // Infrastructure — Kafka
+import { KafkaClientFactory } from '../infrastructure/kafka/kafka-client.factory';
 import { KafkaEventPublisher } from '../infrastructure/kafka/kafka-event-publisher';
 import { OutboxRelayService } from '../infrastructure/kafka/outbox-relay.service';
 import { PaymentEventConsumer } from '../infrastructure/kafka/consumers/payment-event.consumer';
@@ -63,6 +64,9 @@ import { HealthController } from '../interfaces/controllers/health.controller';
     MetricsController,
   ],
   providers: [
+    // Shared Kafka client
+    KafkaClientFactory,
+
     // Port bindings
     {
       provide: ORDER_REPOSITORY,

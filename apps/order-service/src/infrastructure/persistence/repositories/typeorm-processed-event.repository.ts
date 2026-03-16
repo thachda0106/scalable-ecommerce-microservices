@@ -18,9 +18,10 @@ export class TypeOrmProcessedEventRepository
     return !!found;
   }
 
-  async markProcessed(eventId: string, _eventType: string): Promise<void> {
+  async markProcessed(eventId: string, eventType: string): Promise<void> {
     const entity = new ProcessedEventOrmEntity();
     entity.eventId = eventId;
+    entity.eventType = eventType;
     await this.repo.save(entity);
   }
 }

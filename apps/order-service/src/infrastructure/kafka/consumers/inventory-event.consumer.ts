@@ -2,18 +2,18 @@ import {
   Injectable,
   Logger,
   OnModuleInit,
-  OnModuleDestroy,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Kafka, Consumer, EachMessagePayload } from 'kafkajs';
+import { Consumer, EachMessagePayload } from 'kafkajs';
 import { ProcessedEventOrmEntity } from '../../persistence/entities/processed-event.orm-entity';
 import { CancelOrderHandler } from '../../../application/handlers/cancel-order.handler';
 import { CancelOrderCommand } from '../../../application/commands/cancel-order.command';
 import { CheckoutSagaOrchestrator } from '../saga/checkout-saga.orchestrator';
+import { KafkaClientFactory } from '../kafka-client.factory';
 
 @Injectable()
-export class InventoryEventConsumer implements OnModuleInit, OnModuleDestroy {
+export class InventoryEventConsumer implements OnModuleInit {
   private readonly logger = new Logger(InventoryEventConsumer.name);
   private consumer: Consumer;
 
@@ -22,19 +22,14 @@ export class InventoryEventConsumer implements OnModuleInit, OnModuleDestroy {
     private readonly sagaOrchestrator: CheckoutSagaOrchestrator,
     @InjectRepository(ProcessedEventOrmEntity)
     private readonly processedRepo: Repository<ProcessedEventOrmEntity>,
-  ) {
-    const KAFKA_BROKERS = process.env.KAFKA_BROKERS || 'localhost:29092';
-    const kafka = new Kafka({
-      clientId: 'order-service-inventory-consumer',
-      brokers: KAFKA_BROKERS.split(','),
-    });
-    this.consumer = kafka.consumer({
-      groupId: 'order-service-inventory',
-    });
-  }
+    private readonly kafkaFactory: KafkaClientFactory,
+  ) {}
 
   async onModuleInit(): Promise<void> {
     try {
+      this.consumer = this.kafkaFactory.createConsumer({
+        groupId: 'order-service-inventory',
+      });
       await this.consumer.connect();
       await this.consumer.subscribe({
         topics: ['inventory.events'],
@@ -51,16 +46,6 @@ export class InventoryEventConsumer implements OnModuleInit, OnModuleDestroy {
     } catch (error) {
       this.logger.error(
         `Failed to start inventory consumer: ${(error as Error).message}`,
-      );
-    }
-  }
-
-  async onModuleDestroy(): Promise<void> {
-    try {
-      await this.consumer.disconnect();
-    } catch (error) {
-      this.logger.warn(
-        `Error disconnecting inventory consumer: ${(error as Error).message}`,
       );
     }
   }
@@ -114,6 +99,7 @@ export class InventoryEventConsumer implements OnModuleInit, OnModuleDestroy {
       // Mark as processed
       const processed = new ProcessedEventOrmEntity();
       processed.eventId = eventId;
+      processed.eventType = eventType;
       await this.processedRepo.save(processed);
 
       this.logger.log(`Processed inventory event: ${eventType} (${eventId})`);
