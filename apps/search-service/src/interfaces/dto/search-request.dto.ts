@@ -4,10 +4,21 @@ import {
   IsInt,
   IsIn,
   IsArray,
+  ValidateNested,
   Min,
   Max,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+
+export class SearchFilterDto {
+  @IsString()
+  field: string;
+
+  @IsIn(['eq', 'in', 'range', 'gte', 'lte'])
+  operator: string;
+
+  value: unknown;
+}
 
 export class SearchRequestDto {
   @IsOptional()
@@ -16,11 +27,9 @@ export class SearchRequestDto {
 
   @IsOptional()
   @IsArray()
-  filters?: Array<{
-    field: string;
-    operator: string;
-    value: unknown;
-  }>;
+  @ValidateNested({ each: true })
+  @Type(() => SearchFilterDto)
+  filters?: SearchFilterDto[];
 
   @IsOptional()
   @IsString()

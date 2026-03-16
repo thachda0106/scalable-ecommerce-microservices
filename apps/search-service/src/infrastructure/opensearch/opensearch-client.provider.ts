@@ -10,11 +10,12 @@ export const openSearchClientProvider: Provider = {
     const url = configService.get<string>('OPENSEARCH_URL', 'http://localhost:9200');
     const username = configService.get<string>('OPENSEARCH_USERNAME', 'admin');
     const password = configService.get<string>('OPENSEARCH_PASSWORD', 'admin');
+    const sslVerify = configService.get<string>('OPENSEARCH_SSL_VERIFY', 'false');
 
     return new Client({
       node: url,
       auth: { username, password },
-      ssl: { rejectUnauthorized: false },
+      ssl: { rejectUnauthorized: sslVerify === 'true' },
     });
   },
   inject: [ConfigService],

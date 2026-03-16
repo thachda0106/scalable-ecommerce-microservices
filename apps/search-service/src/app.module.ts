@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { CqrsModule } from '@nestjs/cqrs';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 import { getLoggerModule } from '@ecommerce/core';
 
 // Infrastructure modules
@@ -13,6 +15,7 @@ import { SearchMetricsService } from './infrastructure/metrics/search-metrics.se
 
 // Interface
 import { SearchController } from './interfaces/controllers/search.controller';
+import { ServiceAuthGuard } from './interfaces/guards/service-auth.guard';
 
 // Handlers
 import {
@@ -41,15 +44,20 @@ const QueryHandlers = [
     ConfigModule.forRoot({ isGlobal: true }),
     CqrsModule,
     getLoggerModule(),
+    ThrottlerModule.forRoot([{ ttl: 60000, limit: 60 }]),
     OpenSearchModule,
     KafkaModule,
     CacheModule,
   ],
   controllers: [SearchController],
   providers: [
+    // Global rate limiting guard
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+
     ...CommandHandlers,
     ...QueryHandlers,
     SearchMetricsService,
+    ServiceAuthGuard,
   ],
 })
 export class AppModule {}

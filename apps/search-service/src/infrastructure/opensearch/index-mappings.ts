@@ -1,10 +1,21 @@
+import { ConfigService } from '@nestjs/config';
+
 export const PRODUCT_INDEX_ALIAS = 'products';
 
-export const PRODUCT_INDEX_SETTINGS = {
-  number_of_shards: 1,
-  number_of_replicas: 0, // For local dev; production should use 1+
-  refresh_interval: '1s',
-};
+export function createIndexSettings(configService?: ConfigService) {
+  const replicas = configService
+    ? parseInt(configService.get<string>('OPENSEARCH_INDEX_REPLICAS', '0'), 10)
+    : 0;
+
+  return {
+    number_of_shards: 1,
+    number_of_replicas: replicas,
+    refresh_interval: '1s',
+  };
+}
+
+// Default settings for backward compatibility
+export const PRODUCT_INDEX_SETTINGS = createIndexSettings();
 
 export const PRODUCT_INDEX_MAPPINGS = {
   properties: {

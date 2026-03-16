@@ -1,4 +1,5 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
+import Redis from 'ioredis';
 import { ISearchCachePort } from '../../domain/ports/search-cache.port';
 import { SearchQuery } from '../../domain/value-objects/search-query.vo';
 
@@ -10,7 +11,7 @@ export class RedisCacheAdapter implements ISearchCachePort {
 
   constructor(
     @Inject(REDIS_CLIENT)
-    private readonly redis: any, // ioredis client
+    private readonly redis: Redis,
   ) {}
 
   async get<T>(key: string): Promise<T | null> {
@@ -38,6 +39,45 @@ export class RedisCacheAdapter implements ISearchCachePort {
       await this.redis.del(key);
     } catch (error: any) {
       this.logger.warn(`Cache delete error for key ${key}: ${error.message}`);
+    }
+  }
+
+  async invalidateAll(): Promise<void> {
+    try {
+      let cursor = '0';
+      do {
+        const [nextCursor, keys] = await this.redis.scan(
+          cursor,
+          'MATCH',
+          'search:*',
+          'COUNT',
+          100,
+        );
+        cursor = nextCursor;
+        if (keys.length > 0) {
+          await this.redis.del(...keys);
+        }
+      } while (cursor !== '0');
+
+      // Also clear suggestion cache
+      cursor = '0';
+      do {
+        const [nextCursor, keys] = await this.redis.scan(
+          cursor,
+          'MATCH',
+          'suggest:*',
+          'COUNT',
+          100,
+        );
+        cursor = nextCursor;
+        if (keys.length > 0) {
+          await this.redis.del(...keys);
+        }
+      } while (cursor !== '0');
+
+      this.logger.debug('Cache invalidated for search:* and suggest:* keys');
+    } catch (error: any) {
+      this.logger.warn(`Cache invalidation error: ${error.message}`);
     }
   }
 

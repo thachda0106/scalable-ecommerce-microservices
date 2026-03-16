@@ -11,12 +11,15 @@ import { createKafkaConfig } from '../kafka.config';
 import { IndexProductCommand } from '../../../application/commands/index-product.command';
 import { RemoveProductCommand } from '../../../application/commands/remove-product.command';
 
+const MAX_RETRY_MAP_SIZE = 10000;
+
 @Injectable()
 export class ProductEventConsumer implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(ProductEventConsumer.name);
   private consumer: Consumer;
   private readonly retryCountMap = new Map<string, number>();
   private readonly MAX_RETRIES = 3;
+  private readonly fromBeginning: boolean;
 
   constructor(
     private readonly configService: ConfigService,
@@ -28,6 +31,8 @@ export class ProductEventConsumer implements OnModuleInit, OnModuleDestroy {
       brokers: config.brokers,
     });
     this.consumer = kafka.consumer({ groupId: config.groupId });
+    this.fromBeginning =
+      this.configService.get<string>('KAFKA_FROM_BEGINNING', 'false') === 'true';
   }
 
   async onModuleInit(): Promise<void> {
@@ -35,7 +40,7 @@ export class ProductEventConsumer implements OnModuleInit, OnModuleDestroy {
       await this.consumer.connect();
       await this.consumer.subscribe({
         topic: 'product.events',
-        fromBeginning: true,
+        fromBeginning: this.fromBeginning,
       });
 
       await this.consumer.run({
@@ -50,6 +55,12 @@ export class ProductEventConsumer implements OnModuleInit, OnModuleDestroy {
           } catch (error: any) {
             const retries = (this.retryCountMap.get(messageKey) ?? 0) + 1;
             this.retryCountMap.set(messageKey, retries);
+
+            // Prevent unbounded memory growth
+            if (this.retryCountMap.size > MAX_RETRY_MAP_SIZE) {
+              const oldestKey = this.retryCountMap.keys().next().value;
+              if (oldestKey) this.retryCountMap.delete(oldestKey);
+            }
 
             if (retries >= this.MAX_RETRIES) {
               this.logger.error(
@@ -67,7 +78,7 @@ export class ProductEventConsumer implements OnModuleInit, OnModuleDestroy {
       });
 
       this.logger.log(
-        'Kafka consumer connected, listening to product.events',
+        `Kafka consumer connected, listening to product.events (fromBeginning: ${this.fromBeginning})`,
       );
     } catch (error: any) {
       this.logger.error(`Failed to connect Kafka consumer: ${error.message}`);
