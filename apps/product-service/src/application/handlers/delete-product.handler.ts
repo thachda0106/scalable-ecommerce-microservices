@@ -5,7 +5,6 @@ import { IEventPublisher, EVENT_PUBLISHER } from '../ports';
 import { IProductCache, PRODUCT_CACHE } from '../ports';
 import { ProductNotFoundError } from '../../domain/errors';
 import { ProductId } from '../../domain/value-objects';
-import { ProductDeletedEvent } from '../../domain/events';
 import { ProductMetricsService } from '../../infrastructure/observability/product-metrics.service';
 
 @Injectable()
@@ -31,16 +30,19 @@ export class DeleteProductHandler {
       throw new ProductNotFoundError(command.productId);
     }
 
-    await this.productRepository.delete(productId);
+    // Soft delete: archive the product instead of hard-deleting
+    product.archive();
 
-    const event = new ProductDeletedEvent(command.productId);
-    await this.eventPublisher.publish(event);
+    await this.productRepository.save(product);
+
+    const events = product.pullDomainEvents();
+    await this.eventPublisher.publishAll(events);
 
     await this.productCache.invalidateById(command.productId);
 
     this.metrics.incrementProductsDeleted();
     stopTimer();
 
-    this.logger.log(`Product ${command.productId} deleted`);
+    this.logger.log(`Product ${command.productId} archived (soft-deleted)`);
   }
 }

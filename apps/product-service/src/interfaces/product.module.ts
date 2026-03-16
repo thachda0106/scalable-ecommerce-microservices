@@ -37,6 +37,7 @@ import { ProductMetricsService, MetricsController } from '../infrastructure/obse
 // Interface Layer
 import { ProductController } from '../interfaces/controllers/product.controller';
 import { HealthController } from '../interfaces/controllers/health.controller';
+import { ServiceAuthGuard } from '../interfaces/guards/service-auth.guard';
 
 @Module({
   imports: [
@@ -89,6 +90,9 @@ import { HealthController } from '../interfaces/controllers/health.controller';
 
     // Observability
     ProductMetricsService,
+
+    // Guards
+    ServiceAuthGuard,
   ],
 })
 export class ProductModule {}

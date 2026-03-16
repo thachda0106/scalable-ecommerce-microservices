@@ -36,6 +36,8 @@ export class CreateProductHandler {
     const events = product.pullDomainEvents();
     await this.eventPublisher.publishAll(events);
 
+    await this.productCache.setById(product.id.value, product);
+
     this.metrics.incrementProductsCreated();
     stopTimer();
 

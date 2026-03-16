@@ -1,6 +1,7 @@
-import { Entity, Column, PrimaryColumn, CreateDateColumn } from 'typeorm';
+import { Entity, Column, PrimaryColumn, CreateDateColumn, Index } from 'typeorm';
 
 @Entity('outbox_events')
+@Index('idx_outbox_unprocessed', ['processed', 'createdAt'])
 export class OutboxEventOrmEntity {
   @PrimaryColumn('uuid')
   id: string;

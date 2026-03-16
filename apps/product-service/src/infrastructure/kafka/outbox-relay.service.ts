@@ -8,49 +8,62 @@ import { KafkaClientFactory } from './kafka-client.factory';
 @Injectable()
 export class OutboxRelayService {
   private readonly logger = new Logger(OutboxRelayService.name);
+  private readonly batchSize: number;
 
   constructor(
     @InjectRepository(OutboxEventOrmEntity)
     private readonly outboxRepository: Repository<OutboxEventOrmEntity>,
     private readonly kafkaClientFactory: KafkaClientFactory,
-  ) {}
+  ) {
+    this.batchSize = parseInt(process.env.OUTBOX_BATCH_SIZE || '50', 10);
+  }
 
   @Cron(CronExpression.EVERY_SECOND)
   async relayEvents() {
     const events = await this.outboxRepository.find({
       where: { processed: false },
       order: { createdAt: 'ASC' },
-      take: 50,
+      take: this.batchSize,
     });
 
     if (events.length === 0) {
       return;
     }
 
-    try {
-      const messages = events.map((event) => ({
-        key: event.payload?.productId || event.payload?.id || event.id,
-        value: JSON.stringify({
-          eventId: event.id,
-          type: event.type,
-          payload: event.payload,
-          timestamp: event.createdAt,
-        }),
-      }));
+    const producer = this.kafkaClientFactory.getProducer();
 
-      await this.kafkaClientFactory.getProducer().send({
-        topic: 'product.events',
-        messages: messages,
-      });
+    for (const event of events) {
+      try {
+        await producer.send({
+          topic: 'product.events',
+          messages: [
+            {
+              key: event.payload?.productId || event.payload?.id || event.id,
+              value: JSON.stringify({
+                eventId: event.id,
+                type: event.type,
+                payload: event.payload,
+                timestamp: event.createdAt,
+              }),
+            },
+          ],
+        });
 
-      for (const event of events) {
+        // Mark as processed immediately after successful Kafka send
         event.processed = true;
+        await this.outboxRepository.save(event);
+      } catch (error) {
+        this.logger.error(
+          `Failed to relay event ${event.id}: ${(error as Error).message}`,
+        );
+        // Stop processing remaining events to preserve ordering
+        break;
       }
-      await this.outboxRepository.save(events);
+    }
 
-      this.logger.log(`Relayed ${events.length} events to Kafka`);
-    } catch (error) {
-      this.logger.error(`Failed to relay events: ${(error as Error).message}`);
+    const processedCount = events.filter((e) => e.processed).length;
+    if (processedCount > 0) {
+      this.logger.log(`Relayed ${processedCount} events to Kafka`);
     }
   }
 }

@@ -32,7 +32,7 @@ export class GetProductsQueryDto {
   sortOrder?: 'ASC' | 'DESC';
 
   @IsOptional()
-  @IsString()
+  @IsIn(['ACTIVE', 'INACTIVE', 'OUT_OF_STOCK', 'ARCHIVED'])
   status?: string;
 
   @IsOptional()

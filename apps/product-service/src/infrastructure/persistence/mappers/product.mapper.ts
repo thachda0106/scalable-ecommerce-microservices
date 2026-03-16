@@ -1,5 +1,4 @@
 import { Product } from '../../../domain/entities/product.entity';
-import { Money } from '../../../domain/value-objects/money.vo';
 import { ProductStatusEnum } from '../../../domain/value-objects/product-status.vo';
 import { ProductOrmEntity } from '../entities/product.orm-entity';
 
@@ -9,7 +8,7 @@ export class ProductMapper {
       id: orm.id,
       name: orm.name,
       description: orm.description,
-      priceInCents: Math.round(Number(orm.price) * 100),
+      priceInCents: orm.price,
       currency: orm.currency,
       categoryId: orm.categoryId,
       status: orm.status as ProductStatusEnum,
@@ -24,7 +23,7 @@ export class ProductMapper {
     orm.id = domain.id.value;
     orm.name = domain.name;
     orm.description = domain.description;
-    orm.price = domain.price.toDecimal();
+    orm.price = domain.price.amountInCents;
     orm.currency = domain.price.currency;
     orm.categoryId = domain.categoryId;
     orm.status = domain.status.value;
@@ -34,3 +33,4 @@ export class ProductMapper {
     return orm;
   }
 }
+

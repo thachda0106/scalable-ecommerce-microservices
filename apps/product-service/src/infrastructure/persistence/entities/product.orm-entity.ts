@@ -4,6 +4,7 @@ import {
   PrimaryGeneratedColumn,
   CreateDateColumn,
   UpdateDateColumn,
+  VersionColumn,
   Index,
 } from 'typeorm';
 
@@ -22,7 +23,7 @@ export class ProductOrmEntity {
   @Column({ type: 'text' })
   description: string;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2 })
+  @Column({ type: 'integer' })
   price: number;
 
   @Column({ default: 'USD' })
@@ -34,7 +35,7 @@ export class ProductOrmEntity {
   @Column({ default: 'ACTIVE' })
   status: string;
 
-  @Column({ default: 1 })
+  @VersionColumn()
   version: number;
 
   @CreateDateColumn()

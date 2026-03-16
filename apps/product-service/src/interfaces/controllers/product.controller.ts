@@ -8,9 +8,12 @@ import {
   Param,
   Query,
   UseFilters,
+  UseGuards,
   HttpCode,
   HttpStatus,
+  ParseUUIDPipe,
 } from '@nestjs/common';
+import { ServiceAuthGuard } from '../guards/service-auth.guard';
 import { DomainExceptionFilter } from '../filters/domain-exception.filter';
 import { CreateProductDto } from '../dto/create-product.dto';
 import { UpdateProductDto } from '../dto/update-product.dto';
@@ -31,6 +34,7 @@ import { GetProductsQuery } from '../../application/queries/get-products.query';
 
 @Controller('products')
 @UseFilters(DomainExceptionFilter)
+@UseGuards(ServiceAuthGuard)
 export class ProductController {
   constructor(
     private readonly createProductHandler: CreateProductHandler,
@@ -58,7 +62,7 @@ export class ProductController {
 
   @Get()
   async findAll(@Query() dto: GetProductsQueryDto) {
-    return this.getProductsHandler.execute(
+    const result = await this.getProductsHandler.execute(
       new GetProductsQuery(
         dto.page,
         dto.limit,
@@ -71,10 +75,14 @@ export class ProductController {
         dto.search,
       ),
     );
+    return {
+      ...result,
+      data: result.data.map((p) => p.toJSON()),
+    };
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: string) {
+  async findOne(@Param('id', ParseUUIDPipe) id: string) {
     const product = await this.getProductByIdHandler.execute(
       new GetProductByIdQuery(id),
     );
@@ -82,7 +90,7 @@ export class ProductController {
   }
 
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() dto: UpdateProductDto) {
+  async update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateProductDto) {
     await this.updateProductHandler.execute(
       new UpdateProductCommand(
         id,
@@ -98,7 +106,7 @@ export class ProductController {
 
   @Patch(':id/status')
   async updateStatus(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateProductStatusDto,
   ) {
     await this.updateProductStatusHandler.execute(
@@ -109,7 +117,7 @@ export class ProductController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async remove(@Param('id') id: string) {
+  async remove(@Param('id', ParseUUIDPipe) id: string) {
     await this.deleteProductHandler.execute(new DeleteProductCommand(id));
   }
 }
