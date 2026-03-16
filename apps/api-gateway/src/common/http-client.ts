@@ -4,6 +4,8 @@ import { Request } from 'express';
 import { firstValueFrom } from 'rxjs';
 import { AxiosRequestConfig, AxiosError, AxiosResponse } from 'axios';
 import CircuitBreaker from 'opossum';
+import { randomUUID } from 'crypto';
+import { signInternalHeaders } from '@ecommerce/core';
 
 @Injectable()
 export class BaseHttpClient {
@@ -56,21 +58,37 @@ export class BaseHttpClient {
       headers['x-request-id'] = req.headers['x-request-id'] as string;
     }
 
+    // Propagate x-correlation-id (generate if missing)
+    const correlationId =
+      (req.headers['x-request-id'] as string) ||
+      (req.headers['x-correlation-id'] as string) ||
+      randomUUID();
+    headers['x-correlation-id'] = correlationId;
+
     // Propagate Authorization header if present
     if (req.headers.authorization) {
       headers.authorization = req.headers.authorization;
     }
 
-    // Propagate decoded Identity headers from JwtAuthGuard
+    // Propagate decoded Identity headers from JwtAuthGuard + HMAC sign
     if (req.user) {
       const user = req.user as { userId?: string; roles?: string[] | string };
-      if (user.userId) {
-        headers['x-user-id'] = user.userId;
-      }
-      if (user.roles) {
-        headers['x-user-roles'] = Array.isArray(user.roles)
-          ? user.roles.join(',')
-          : user.roles;
+      const userId = user.userId || '';
+      const roles = Array.isArray(user.roles)
+        ? user.roles
+        : user.roles
+          ? [user.roles]
+          : [];
+
+      const internalSecret = process.env.INTERNAL_AUTH_SECRET;
+      if (internalSecret && userId) {
+        // HMAC-sign the identity headers for downstream verification
+        const signedHeaders = signInternalHeaders(userId, roles, internalSecret);
+        Object.assign(headers, signedHeaders);
+      } else {
+        // Fallback: forward unsigned identity headers (dev mode)
+        if (userId) headers['x-user-id'] = userId;
+        if (roles.length > 0) headers['x-user-roles'] = roles.join(',');
       }
     }
 

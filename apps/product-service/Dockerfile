@@ -1,19 +1,30 @@
-FROM node:24-alpine AS builder
-
+# Stage 1: Install dependencies
+FROM node:24-alpine AS deps
+RUN corepack enable && corepack prepare pnpm@latest --activate
 WORKDIR /app
-COPY pnpm-lock.yaml package.json pnpm-workspace.yaml ./
-RUN npm install -g pnpm@10
-
-# Copy all source
-COPY . .
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY apps/product-service/package.json apps/product-service/
+COPY packages/core/package.json packages/core/
+COPY packages/events/package.json packages/events/
 RUN pnpm install --frozen-lockfile
-RUN pnpm build
 
-# Production image
-FROM node:24-alpine
+# Stage 2: Build
+FROM deps AS build
+COPY tsconfig.base.json ./
+COPY apps/product-service/ apps/product-service/
+COPY packages/ packages/
+RUN pnpm --filter @ecommerce/core build
+RUN pnpm --filter @ecommerce/events build
+RUN pnpm --filter product-service build
+
+# Stage 3: Production
+FROM node:24-alpine AS production
+RUN addgroup -g 1001 -S nodejs && adduser -S nestjs -u 1001
 WORKDIR /app
-COPY --from=builder /app ./
+COPY --from=build /app/apps/product-service/dist ./dist
+COPY --from=build /app/apps/product-service/package.json ./
+COPY --from=build /app/node_modules ./node_modules
+USER nestjs
 ENV NODE_ENV=production
-
-EXPOSE 3001
-CMD ["node", "dist/apps/product-service/main.js"]
+EXPOSE 3000
+CMD ["node", "dist/main.js"]
