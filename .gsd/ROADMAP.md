@@ -238,6 +238,48 @@
 
 ### Phase 17: Production-Grade Product Service
 **Status**: ⬜ Not Started
+**Objective**: Reserved — run `/add-phase` to define.
+**Depends on**: Phase 16
+
+**Tasks**:
+- [ ] TBD (run /plan 17 to create)
+
+**Verification**:
+- TBD
+
+---
+
+### Phase 18: Production-Grade Search Service
+**Status**: ⬜ Not Started
+**Objective**: Full redesign and production hardening of the search-service. Transform it from a basic scaffold (app module, OpenSearch module, product-sync consumer) into a production-grade search microservice following DDD, Clean Architecture, modular NestJS structure, and event-driven patterns. Implements search architecture across four layers (domain, application, infrastructure, interfaces), event-driven indexing consuming Kafka events (product.created, product.updated, product.deleted), full-text search with filtering/sorting/pagination, autocomplete/search suggestions, query caching with Redis, index optimization strategies, and performance tuning. Uses Elasticsearch/OpenSearch/Meilisearch as the search engine backend.
+**Depends on**: Phase 17
+
+**Tasks**:
+- [ ] Wave 1: Domain layer — SearchDocument aggregate, SearchQuery value object, SearchResult entity, SearchFilter/SearchSort value objects, domain events (DocumentIndexed, DocumentRemoved, IndexRebuilt), repository ports (SearchIndexPort, SearchQueryPort)
+- [ ] Wave 2: Application layer — CQRS commands (IndexProduct, RemoveProduct, RebuildIndex), queries (SearchProducts, GetSuggestions, GetProductById), command/query handlers, indexing orchestrator use case
+- [ ] Wave 3: Infrastructure layer — Search engine adapter (Elasticsearch/OpenSearch/Meilisearch client, index mappings, analyzers, tokenizers), Kafka consumers (product.created, product.updated, product.deleted), bulk indexing pipeline, Redis query cache, index management (create/update/reindex/alias rotation), health checks
+- [ ] Wave 4: Interface layer — DTOs with class-validator (SearchRequestDto, SearchResponseDto, SuggestionRequestDto), thin SearchController (search, suggest, reindex endpoints), Kafka consumer handlers, Prometheus metrics (search_queries_total, search_latency, index_operations_total, cache_hit_ratio), module wiring, AppModule update
+- [ ] Wave 5: Performance — query caching strategy (Redis TTL-based), index optimization (custom analyzers, field mappings, ngram/edge-ngram for autocomplete), pagination strategies (offset vs cursor-based, search_after), query optimization (bool queries, function_score)
+- [ ] Wave 6: Tests — Domain unit tests, handler tests, search query builder tests, indexing consumer tests, `tsc --noEmit`
+- [ ] Wave 7: Documentation — `search-service-architecture.md` (layered architecture, search engine integration, indexing pipeline), `search-service-indexing.md` (event-driven indexing, bulk operations, reindexing strategy), `search-service-queries.md` (full-text search, filters, sorting, pagination, autocomplete)
+
+**Verification**:
+- `pnpm test` passes in search-service
+- `npx tsc --noEmit` shows zero errors
+- No `@nestjs` import in any file under `src/domain/`
+- `SearchController` delegates only to CommandBus/QueryBus
+- Kafka consumers process product.created, product.updated, product.deleted events
+- Full-text search returns relevant results with highlighting
+- Autocomplete/suggestions return within 50ms
+- Query caching reduces redundant search engine calls
+- Index management supports zero-downtime reindexing
+- Prometheus metrics exposed at `/metrics`
+- Pagination supports both offset and cursor-based strategies
+
+---
+
+### Phase 17: Production-Grade Product Service
+**Status**: ⬜ Not Started
 **Objective**: Full redesign and production hardening of the product-service. Refactor it into a production-ready microservice following DDD, Clean Architecture, and modular NestJS structure. Implements domain model (Product aggregate with id, name, description, price, currency, categoryId, status, createdAt; ProductVariant, ProductAttribute, ProductCategory entities; ProductStatus value object: ACTIVE, INACTIVE, OUT_OF_STOCK, ARCHIVED), repository pattern with pagination/filtering/sorting for large catalogs, Kafka event publishing (product.created, product.updated, product.deleted, product.stock.updated), Redis caching strategy for high read traffic, and observability (structured logging, Prometheus metrics, OpenTelemetry tracing).
 **Depends on**: Phase 16
 
@@ -261,3 +303,45 @@
 - All 4 Kafka events published correctly (product.created, product.updated, product.deleted, product.stock.updated)
 - Prometheus metrics exposed at `/metrics`
 - Large catalog queries optimized with proper indexing
+
+---
+
+### Phase 18: Production-Grade Search Service
+**Status**: ⬜ Not Started
+**Objective**: Full redesign and production hardening of the search-service. Transform it into a production-grade microservice with event-driven indexing (consuming product events from Kafka), full-text search with Elasticsearch/OpenSearch, filtering, sorting, pagination, autocomplete/suggestions, query caching, and index management. Follows DDD, Clean Architecture, and modular NestJS patterns.
+**Depends on**: Phase 17
+
+**Tasks**:
+- [ ] TBD (run /plan 18 to create)
+
+**Verification**:
+- TBD
+
+---
+
+### Phase 19: Production-Grade User & Identity Service
+**Status**: ⬜ Not Started
+**Objective**: Full redesign and production hardening of the user-service. Transform it from a basic NestJS scaffold (app.controller, app.service, app.module) into a production-grade identity service following DDD and Clean Architecture with four distinct layers (domain, application, infrastructure, interfaces). Implements User aggregate (User entity with id, email, username, status, createdAt; UserProfile entity; UserSettings entity), UserStatus value object (ACTIVE, SUSPENDED, DELETED), Kafka event publishing (user.created, user.updated, user.deleted), password hashing (bcrypt/argon2), input validation, rate limiting, repository pattern with database persistence, structured logging, Prometheus metrics, and audit logging for security-critical operations.
+**Depends on**: Phase 18
+
+**Tasks**:
+- [ ] Wave 1: Domain layer — User aggregate root (id, email, username, status, createdAt), UserProfile entity, UserSettings entity, UserStatus value object (ACTIVE, SUSPENDED, DELETED), domain events (UserCreated, UserUpdated, UserDeleted), repository port, password hashing port
+- [ ] Wave 2: Application layer — CQRS commands (CreateUser, UpdateUser, DeleteUser, UpdateUserProfile, UpdateUserSettings, ChangePassword), queries (GetUserById, GetUserByEmail, GetUserByUsername, GetUsers with pagination), command/query handlers orchestrating domain logic and events
+- [ ] Wave 3: Infrastructure layer — TypeORM entities/repos/mappers, password hashing adapter (bcrypt/argon2), Kafka producer (user.created, user.updated, user.deleted), input validation pipes, rate limiting middleware, audit log service, config module
+- [ ] Wave 4: Interface layer — DTOs with class-validator, thin UserController, module wiring, AppModule update
+- [ ] Wave 5: Observability — structured logging, Prometheus metrics (users_created_total, users_updated_total, users_deleted_total, auth_failures_total, rate_limit_hits_total), audit logs for security-critical operations
+- [ ] Wave 6: Tests — Domain unit tests, handler tests, password hashing tests, `tsc --noEmit`
+- [ ] Wave 7: Documentation — `user-service-architecture.md` (layered architecture, domain model, security design), `user-service-events.md` (published events, event schemas), `user-service-security.md` (password hashing, rate limiting, audit logging)
+
+**Verification**:
+- `pnpm test` passes in user-service
+- `npx tsc --noEmit` shows zero errors
+- No `@nestjs` import in any file under `src/domain/`
+- `UserController` delegates only to CommandBus/QueryBus
+- User status transitions enforced in domain layer (ACTIVE ↔ SUSPENDED → DELETED)
+- Password hashing uses bcrypt/argon2 with proper salt rounds
+- Input validation on all DTOs (email format, username length, password strength)
+- Rate limiting applied to sensitive endpoints
+- All 3 Kafka events published correctly (user.created, user.updated, user.deleted)
+- Prometheus metrics exposed at `/metrics`
+- Audit logs capture all security-critical operations (login attempts, password changes, account deletions)
