@@ -118,3 +118,28 @@
 - All stock mutations use `UPDATE ... WHERE version = X AND available >= qty`
 - Redis distributed lock on write path
 - Idempotency keys on all mutation endpoints
+
+---
+
+### Phase 12: Production-Grade Notification Service
+**Status**: ⬜ Not Started
+**Objective**: Full redesign and production hardening of the notification-service. Transform it from a minimal 2-module scaffold (mock email, single Kafka consumer on `order.events`) into a production-grade, multi-channel notification platform following DDD, Clean Architecture, and event-driven microservices patterns. Implements domain model (Notification, NotificationChannel, NotificationTemplate), CQRS use cases (SendEmailNotification, SendPushNotification, SendSmsNotification, SendInAppNotification), multi-channel provider integrations (SendGrid, Twilio, Firebase), a variable-based template system, Kafka consumer handlers for domain events (user.registered, order.created, order.paid, order.shipped, cart.abandoned), retry with exponential backoff and DLQ, and observability (Prometheus metrics, structured logging, OpenTelemetry tracing).
+**Depends on**: Phase 11
+
+**Tasks**:
+- [ ] Wave 1: Domain layer — Notification aggregate, NotificationChannel enum (EMAIL, SMS, PUSH, IN_APP), NotificationTemplate entity, NotificationStatus value object, domain events (NotificationSent, NotificationFailed), port interfaces (NotificationRepository, TemplateRepository, ChannelProvider)
+- [ ] Wave 2: Application layer — CQRS commands (SendEmailNotification, SendPushNotification, SendSmsNotification, SendInAppNotification), event handlers for Kafka events (UserRegisteredHandler, OrderCreatedHandler, OrderPaidHandler, OrderShippedHandler, CartAbandonedHandler), NotificationOrchestrator use case
+- [ ] Wave 3: Infrastructure — Kafka consumer setup (multi-topic: user.events, order.events, cart.events), provider integrations (SendGridEmailProvider, TwilioSmsProvider, FirebasePushProvider), template engine with variable interpolation ({{userName}}, {{orderId}}), notification repository (in-memory/TypeORM)
+- [ ] Wave 4: Interface layer — NotificationController (health, status, resend), DTOs with class-validator, retry strategy (exponential backoff, max 3 retries), Dead Letter Queue (DLQ) for failed notifications, Prometheus metrics (notification_sent_total, notification_failed_total, notification_retry_total), module wiring
+- [ ] Wave 5: Tests — Domain unit tests, handler tests, provider mock tests, template rendering tests, `tsc --noEmit`
+- [ ] Wave 6: Documentation — `notification-service-architecture.md` (layered architecture, domain model, provider abstraction), `notification-service-events.md` (consumed events, event-to-notification mapping), `notification-service-flow.md` (end-to-end notification flow with retry/DLQ)
+
+**Verification**:
+- `pnpm test` passes in notification-service
+- `npx tsc --noEmit` shows zero errors
+- No `@nestjs` import in any file under `src/domain/`
+- `NotificationController` delegates only to CommandBus/QueryBus
+- All 5 Kafka event types consumed and mapped to appropriate notifications
+- Template variables correctly interpolated
+- Retry logic with exponential backoff (max 3 retries) and DLQ routing
+- Prometheus metrics exposed at `/metrics`

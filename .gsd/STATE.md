@@ -21,4 +21,5 @@ Verification:
 - Clean architecture: 0 @nestjs imports in domain/
 
 ## Next Steps
-1. Proceed to Phase 12 (if any), or run integration tests with live DB/Redis/Kafka
+1. Run `/plan 12` to create detailed execution plans for Phase 12 (Production-Grade Notification Service)
+2. Phase 12 added: DDD/Clean Architecture notification-service refactoring with multi-channel providers, template system, retry/DLQ, and observability
