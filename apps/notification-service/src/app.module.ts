@@ -2,11 +2,10 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { getLoggerModule } from '@ecommerce/core';
-import { NotificationModule } from './notification/notification.module';
-import { ConsumerModule } from './consumer/consumer.module';
+import { NotificationCoreModule } from './notification.module';
 
 @Module({
-  imports: [getLoggerModule(), NotificationModule, ConsumerModule],
+  imports: [getLoggerModule(), NotificationCoreModule],
   controllers: [AppController],
   providers: [AppService],
 })
