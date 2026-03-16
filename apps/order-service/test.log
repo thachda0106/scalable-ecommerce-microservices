@@ -1,0 +1,39 @@
+
+> order-service@0.0.1 test C:\sources\personal-source\scalable-ecommerce-microservices\apps\order-service
+> jest
+
+PASS src/domain/value-objects/__tests__/money.vo.spec.ts
+PASS src/domain/entities/__tests__/order-item.entity.spec.ts
+PASS src/domain/value-objects/__tests__/value-objects.spec.ts
+PASS src/domain/value-objects/__tests__/order-status.vo.spec.ts
+PASS src/domain/entities/__tests__/order.spec.ts
+PASS src/application/handlers/__tests__/cancel-order.handler.spec.ts
+FAIL src/application/handlers/__tests__/create-order.handler.spec.ts
+  ● CreateOrderHandler › should create an order, save it, and publish events
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 200
+    Received: 20000
+
+    [0m [90m 43 |[39m     expect(savedOrder[33m.[39muserId[33m.[39mvalue)[33m.[39mtoBe([32m'user-1'[39m)[33m;[39m
+     [90m 44 |[39m     expect(savedOrder[33m.[39mitems[33m.[39mlength)[33m.[39mtoBe([35m1[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 45 |[39m     expect(savedOrder[33m.[39mtotalPrice[33m.[39mamountInCents)[33m.[39mtoBe([35m200[39m)[33m;[39m
+     [90m    |[39m                                                 [31m[1m^[22m[39m
+     [90m 46 |[39m   })[33m;[39m
+     [90m 47 |[39m })[33m;[39m
+     [90m 48 |[39m[0m
+
+      at Object.<anonymous> (application/handlers/__tests__/create-order.handler.spec.ts:45:49)
+
+PASS src/application/handlers/__tests__/confirm-payment.handler.spec.ts
+
+Test Suites: 1 failed, 7 passed, 8 total
+Tests:       1 failed, 49 passed, 50 total
+Snapshots:   0 total
+Time:        4.062 s, estimated 6 s
+Ran all test suites.
+[32m[Nest] 36432  - [39m03/16/2026, 1:55:29 PM [32m    LOG[39m [38;5;3m[CreateOrderHandler] [39m[32mOrder 70f5dc74-0835-410b-9481-acbeca025a57 created for user user-1[39m
+[32m[Nest] 34320  - [39m03/16/2026, 1:55:29 PM [32m    LOG[39m [38;5;3m[CancelOrderHandler] [39m[32mOrder 5b08e29d-d3d5-4cff-b502-0c37b515efe7 cancelled: User requested cancellation[39m
+[32m[Nest] 28520  - [39m03/16/2026, 1:55:29 PM [32m    LOG[39m [38;5;3m[ConfirmPaymentHandler] [39m[32mPayment confirmed for order 3679e30a-5ee1-40c4-a1ca-67891af05c2b[39m
+ ELIFECYCLE  Test failed. See above for more details.

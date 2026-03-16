@@ -1,0 +1,13 @@
+src/application/handlers/__tests__/cancel-order.handler.spec.ts(36,9): error TS2322: Type 'OrderItem' is not assignable to type '{ productId: string; productName: string; quantity: number; unitPrice: number; currency?: string; }'.
+  Types of property 'unitPrice' are incompatible.
+    Type 'Money' is not assignable to type 'number'.
+src/application/handlers/__tests__/confirm-payment.handler.spec.ts(36,9): error TS2322: Type 'OrderItem' is not assignable to type '{ productId: string; productName: string; quantity: number; unitPrice: number; currency?: string; }'.
+  Types of property 'unitPrice' are incompatible.
+    Type 'Money' is not assignable to type 'number'.
+src/domain/entities/__tests__/order-item.entity.spec.ts(10,18): error TS2673: Constructor of class 'Money' is private and only accessible within the class declaration.
+src/domain/entities/__tests__/order-item.entity.spec.ts(16,34): error TS2673: Constructor of class 'Money' is private and only accessible within the class declaration.
+src/domain/entities/__tests__/order-item.entity.spec.ts(17,17): error TS6234: This expression is not callable because it is a 'get' accessor. Did you mean to use it without '()'?
+  Type 'Money' has no call signatures.
+src/domain/entities/__tests__/order-item.entity.spec.ts(17,37): error TS2673: Constructor of class 'Money' is private and only accessible within the class declaration.
+src/domain/entities/__tests__/order-item.entity.spec.ts(26,20): error TS2673: Constructor of class 'Money' is private and only accessible within the class declaration.
+src/domain/entities/__tests__/order-item.entity.spec.ts(37,20): error TS2673: Constructor of class 'Money' is private and only accessible within the class declaration.

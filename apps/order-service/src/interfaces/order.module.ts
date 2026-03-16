@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
-import { LoggerModule } from 'nestjs-pino';
 
 // Domain Ports
 import { ORDER_REPOSITORY } from '../domain/ports/order-repository.port';

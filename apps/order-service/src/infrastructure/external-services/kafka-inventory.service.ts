@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnApplicationBootstrap, OnApplicationShutdown } from '@nestjs/common';
 import { Kafka, Producer } from 'kafkajs';
-import { IInventoryService } from '../../../application/ports/inventory-service.port';
+import { IInventoryService } from '../../application/ports/inventory-service.port';
 
 @Injectable()
 export class KafkaInventoryService

@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnApplicationBootstrap, OnApplicationShutdown } from '@nestjs/common';
 import { Kafka, Producer } from 'kafkajs';
-import { IPaymentService } from '../../../application/ports/payment-service.port';
+import { IPaymentService } from '../../application/ports/payment-service.port';
 
 @Injectable()
 export class KafkaPaymentService
