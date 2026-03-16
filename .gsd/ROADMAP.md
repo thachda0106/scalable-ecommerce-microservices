@@ -143,3 +143,32 @@
 - Template variables correctly interpolated
 - Retry logic with exponential backoff (max 3 retries) and DLQ routing
 - Prometheus metrics exposed at `/metrics`
+
+---
+
+### Phase 13: Production-Grade Order Service
+**Status**: ⬜ Not Started
+**Objective**: Full redesign and production hardening of the order-service. Transform it from a basic scaffold into a production-grade microservice following DDD, Clean Architecture, CQRS, and event-driven patterns. Implements Order aggregate (Order, OrderItem entities; OrderId, UserId, Money, OrderStatus value objects), complete order lifecycle (CREATED → PENDING_PAYMENT → PAID → CONFIRMED → SHIPPED → DELIVERED → CANCELLED → REFUNDED), Saga orchestration for distributed transactions across payment/inventory/cart/notification services, Kafka producers and consumers for order domain events, idempotent event handling with processed_events tracking, database design with indexing strategy, observability (structured logging, Prometheus metrics, OpenTelemetry tracing), and scalability patterns (Kafka partitioning, consumer groups, horizontal scaling, caching).
+**Depends on**: Phase 12
+
+**Tasks**:
+- [ ] Wave 1: Analyze current order-service — document existing behavior, communication patterns, event handling, and design problems
+- [ ] Wave 2: Domain layer — Order aggregate root, OrderItem entity, OrderId/UserId/Money/OrderStatus value objects, domain events (OrderCreated, OrderPaidEvent, OrderCancelledEvent, OrderShippedEvent, OrderCompletedEvent), domain services, repository ports
+- [ ] Wave 3: Application layer — CQRS commands (CreateOrder, ConfirmPayment, CancelOrder, ShipOrder), queries (GetOrderById, GetOrdersByUser), command/query handlers orchestrating domain + repos + events
+- [ ] Wave 4: Infrastructure layer — TypeORM entities/repos/mappers, Kafka producers (OrderCreated, OrderPaid, OrderCancelled), Kafka consumers (PaymentCompleted, PaymentFailed, InventoryReserved, InventoryFailed), Saga orchestrator (CreateOrder → ReserveInventory → RequestPayment → ConfirmOrder with compensation), processed_events table for idempotency, external service clients
+- [ ] Wave 5: Interface layer — DTOs with class-validator, thin OrderController, Kafka consumer handlers, module wiring, AppModule update
+- [ ] Wave 6: Database design — orders/order_items tables, indexing strategy (user_id, status, created_at), migration scripts
+- [ ] Wave 7: Observability & production hardening — structured logging, Prometheus metrics (orders_created, orders_cancelled, payment_failures, order_processing_latency), OpenTelemetry tracing, retry mechanisms, dead letter queue
+- [ ] Wave 8: Tests — Domain unit tests, handler tests, Saga tests, `tsc --noEmit`
+- [ ] Wave 9: Documentation — `order-service-architecture.md`, `order-service-events.md`, `order-service-saga.md`, `order-service-database.md`
+
+**Verification**:
+- `pnpm test` passes in order-service
+- `npx tsc --noEmit` shows zero errors
+- No `@nestjs` import in any file under `src/domain/`
+- `OrderController` delegates only to CommandBus/QueryBus
+- Order lifecycle state machine enforced in domain layer
+- Saga orchestrator handles both happy path and compensation flows
+- All Kafka events consumed idempotently (processed_events deduplication)
+- Prometheus metrics exposed at `/metrics`
+- Dead letter queue configured for failed event processing
