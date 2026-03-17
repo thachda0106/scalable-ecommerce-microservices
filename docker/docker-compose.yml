@@ -1,60 +1,188 @@
+# =============================================================================
+# Ecommerce Microservices — Local Development Stack
+# =============================================================================
+# Usage:
+#   cp docker/.env.example docker/.env     (first time only)
+#   docker-compose -f docker/docker-compose.yml up -d
+#
+# Developer UIs:
+#   pgAdmin          → http://localhost:5050
+#   RedisInsight     → http://localhost:8001
+#   Kafka UI         → http://localhost:8080
+#   OpenSearch Dash  → http://localhost:5601
+# =============================================================================
+
+# Load variables from .env file in the same directory as this file.
+# Create it first: cp docker/.env.example docker/.env
+
+x-common-logging: &common-logging
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "10m"
+      max-file: "3"
+
 services:
+
+  # ===========================================================================
+  # SECTION 1: DATABASES
+  # ===========================================================================
+
   postgres:
     image: postgres:15-alpine
+    container_name: ecom_postgres
+    # We expose the port so developers can connect directly with DBeaver/TablePlus.
+    # In a real cluster, this would NOT be exposed.
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: ${POSTGRES_DB:-ecommerce}
-    ports:
-      - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-ecommerce}",
-        ]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-ecommerce}"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
+    networks:
+      - ecom_net
+    restart: unless-stopped
+    <<: *common-logging
+
+  # ---------------------------------------------------------------------------
 
   redis:
     image: redis:7-alpine
+    container_name: ecom_redis
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT:-6379}:6379"
+    # Persist data to disk so it survives container restarts.
+    # appendonly yes = write every operation to AOF log (safer than RDB snapshot).
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis_secret}
     volumes:
       - redisdata:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis_secret}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 5s
+    networks:
+      - ecom_net
+    restart: unless-stopped
+    <<: *common-logging
+
+  # ===========================================================================
+  # SECTION 2: MESSAGE BROKER (KAFKA - KRaft mode, no ZooKeeper)
+  # ===========================================================================
 
   kafka:
     image: apache/kafka:4.1.1
-    container_name: kafka
+    container_name: ecom_kafka
     ports:
-      - "9092:9092"
+      # EXTERNAL listener: used when connecting from your host machine (e.g., kafkacat, Kafka UI on host)
+      - "${KAFKA_EXTERNAL_PORT:-9094}:9094"
+      # PLAINTEXT listener: used for inter-container communication (services call kafka:9092)
+      # NOT exposed to host — components inside Docker use this
     environment:
+      # --- KRaft Identity ---
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
-      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+
+      # --- Listeners ---
+      # PLAINTEXT: for internal Docker network communication (service → kafka)
+      # EXTERNAL:  for host machine access (developer tools, local testing)
+      # CONTROLLER: internal only, used for KRaft consensus — never exposed
+      KAFKA_LISTENERS: PLAINTEXT://:9092,EXTERNAL://:9094,CONTROLLER://:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
+
+      # CRITICAL: advertised listeners must match how clients actually reach Kafka.
+      # - Inside Docker: clients connect via container name "kafka" on port 9092
+      # - From host machine: clients connect via "localhost" on port 9094
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://localhost:${KAFKA_EXTERNAL_PORT:-9094}
+
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
-      KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
+
+      # --- Storage ---
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+
+      # --- Topic defaults ---
+      # Allow auto-creation: convenient for local dev, should be FALSE in prod.
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_NUM_PARTITIONS: ${KAFKA_DEFAULT_PARTITIONS:-3}
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 1       # Single broker, so RF=1
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1 # Must be <= num brokers
+
+      # --- Retention (local dev: shorter to avoid disk fill) ---
+      KAFKA_LOG_RETENTION_HOURS: 48
+      KAFKA_LOG_SEGMENT_BYTES: 104857600         # 100MB per segment
+
+      # --- Performance tuning for local dev ---
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0  # Don't wait before rebalancing in dev
+    volumes:
+      - kafkadata:/var/lib/kafka/data
+    healthcheck:
+      # kafka-topics.sh can only run after the broker is fully up and registered
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list > /dev/null 2>&1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    networks:
+      - ecom_net
+    restart: unless-stopped
+    <<: *common-logging
+
+  # ---------------------------------------------------------------------------
+  # Kafka Topic Initializer
+  # This one-shot container creates all required topics on startup.
+  # Running this separately avoids race conditions in individual services
+  # and provides a single source of truth for topic configuration.
+  kafka-init:
+    image: apache/kafka:4.1.1
+    container_name: ecom_kafka_init
+    depends_on:
+      kafka:
+        condition: service_healthy
+    # The command creates topics idempotently (--if-not-exists).
+    # Customize partitions/replication per topic for important streams.
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        echo "Creating Kafka topics..."
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic order.events        --partitions 3 --replication-factor 1
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic payment.events      --partitions 3 --replication-factor 1
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic inventory.events    --partitions 3 --replication-factor 1
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic notification.events --partitions 1 --replication-factor 1
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic user.events         --partitions 1 --replication-factor 1
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic product.events      --partitions 3 --replication-factor 1
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic order.events.dlq    --partitions 1 --replication-factor 1
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic payment.events.dlq  --partitions 1 --replication-factor 1
+        echo "All topics created successfully!"
+        sleep 2
+    networks:
+      - ecom_net
+    restart: on-failure
+
+  # ===========================================================================
+  # SECTION 3: SEARCH ENGINE
+  # ===========================================================================
 
   opensearch:
     image: opensearchproject/opensearch:2.11.0
+    container_name: ecom_opensearch
     environment:
       - discovery.type=single-node
       - bootstrap.memory_lock=true
+      # TLS/security is disabled for local dev to keep things simple.
+      # Enable OPENSEARCH_INITIAL_ADMIN_PASSWORD and remove this flag in staging.
+      - plugins.security.disabled=true
       - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
-      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_PASSWORD:-admin_Admin_123!}
-    ports:
-      - "9200:9200"
-      - "9600:9600"
     ulimits:
       memlock:
         soft: -1
@@ -62,10 +190,124 @@ services:
       nofile:
         soft: 65536
         hard: 65536
+    ports:
+      - "${OPENSEARCH_PORT:-9200}:9200"
     volumes:
       - osdata:/usr/share/opensearch/data
+    healthcheck:
+      # Hits the cluster health API. "yellow" is fine for single-node (replicas can't be placed).
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health | grep -q '\"status\":\"\\(green\\|yellow\\)\"'"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    networks:
+      - ecom_net
+    restart: unless-stopped
+    <<: *common-logging
 
+  # ===========================================================================
+  # SECTION 4: DEVELOPER TOOLS & UIs
+  # These services are for local development only.
+  # Add a profile in production to skip them: `docker-compose --profile dev up`
+  # ===========================================================================
+
+  # --- pgAdmin: PostgreSQL GUI ---
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: ecom_pgadmin
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@local.dev}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+      # Suppress the pgAdmin login page warning about default credentials
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+    volumes:
+      - pgadmindata:/var/lib/pgadmin
+    networks:
+      - ecom_net
+    restart: unless-stopped
+
+  # --- RedisInsight: Redis GUI by Redis Labs ---
+  redisinsight:
+    image: redis/redisinsight:latest
+    container_name: ecom_redisinsight
+    depends_on:
+      redis:
+        condition: service_healthy
+    ports:
+      - "${REDISINSIGHT_PORT:-8001}:5540"
+    volumes:
+      - redisinsightdata:/data
+    networks:
+      - ecom_net
+    restart: unless-stopped
+
+  # --- Kafka UI by Provectus: Best-in-class Kafka management console ---
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: ecom_kafka_ui
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - "${KAFKA_UI_PORT:-8080}:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local-ecommerce
+      # Connect using the INTERNAL listener (container-to-container)
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      KAFKA_CLUSTERS_0_PROPERTIES_SECURITY_PROTOCOL: PLAINTEXT
+      # Optional: enable read-only mode to prevent accidental topic deletion
+      DYNAMIC_CONFIG_ENABLED: "true"
+    networks:
+      - ecom_net
+    restart: unless-stopped
+
+  # --- OpenSearch Dashboards: Kibana equivalent for OpenSearch ---
+  opensearch-dashboards:
+    image: opensearchproject/opensearch-dashboards:2.11.0
+    container_name: ecom_opensearch_dashboards
+    depends_on:
+      opensearch:
+        condition: service_healthy
+    ports:
+      - "${OPENSEARCH_DASHBOARDS_PORT:-5601}:5601"
+    environment:
+      OPENSEARCH_HOSTS: '["http://opensearch:9200"]'
+      # Security is disabled to match the opensearch node config above
+      DISABLE_SECURITY_DASHBOARDS_PLUGIN: "true"
+    networks:
+      - ecom_net
+    restart: unless-stopped
+
+# =============================================================================
+# VOLUMES — Named volumes persist data across `docker-compose down` restarts.
+# To fully wipe all data: `docker-compose down -v`
+# =============================================================================
 volumes:
   pgdata:
+    name: ecom_pgdata
   redisdata:
+    name: ecom_redisdata
+  kafkadata:
+    name: ecom_kafkadata
   osdata:
+    name: ecom_osdata
+  pgadmindata:
+    name: ecom_pgadmindata
+  redisinsightdata:
+    name: ecom_redisinsightdata
+
+# =============================================================================
+# NETWORKS — Isolated bridge network so all containers can talk by name.
+# Your application services should join this same network.
+# =============================================================================
+networks:
+  ecom_net:
+    name: ecom_net
+    driver: bridge
