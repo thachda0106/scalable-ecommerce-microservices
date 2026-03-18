@@ -6,9 +6,11 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import helmet from 'helmet';
+import * as express from 'express';
 
 // ── Startup validation ─────────────────────────────────────────────────────
-const requiredEnvVars = ['JWT_SECRET'];
+const requiredEnvVars = ['JWT_SECRET', 'INTERNAL_AUTH_SECRET'];
 for (const envVar of requiredEnvVars) {
   if (!process.env[envVar]) {
     throw new Error(`Missing required environment variable: ${envVar}`);
@@ -27,6 +29,10 @@ async function bootstrap() {
   app.enableShutdownHooks();
 
   app.useLogger(app.get<LoggerService>(Logger));
+
+  app.use(helmet());
+  app.use(express.json({ limit: '1mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
   app.enableCors({
     origin: configService.get<string>('gateway.corsOrigin', '*'),

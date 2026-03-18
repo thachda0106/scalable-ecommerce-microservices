@@ -225,7 +225,10 @@ export class GatewayController {
     summary: 'Notification service proxy',
     description: 'Proxies all requests to the Notification Service.',
   })
-  @ApiResponse({ status: 200, description: 'Response from Notification Service' })
+  @ApiResponse({
+    status: 200,
+    description: 'Response from Notification Service',
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @All('notifications/*path')
   async routeNotifications(@Req() req: GatewayRequest) {

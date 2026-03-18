@@ -29,7 +29,13 @@ export class HealthController {
     summary: 'Liveness probe',
     description: 'Returns 200 if the API Gateway process is running.',
   })
-  @ApiResponse({ status: 200, description: 'Service is alive', schema: { example: { status: 'ok', timestamp: '2026-03-15T09:00:00.000Z' } } })
+  @ApiResponse({
+    status: 200,
+    description: 'Service is alive',
+    schema: {
+      example: { status: 'ok', timestamp: '2026-03-15T09:00:00.000Z' },
+    },
+  })
   @Get()
   check() {
     return { status: 'ok', timestamp: new Date().toISOString() };
@@ -40,7 +46,10 @@ export class HealthController {
     description: 'Returns 200 when all dependencies (Redis) are reachable.',
   })
   @ApiResponse({ status: 200, description: 'Service is ready' })
-  @ApiResponse({ status: 503, description: 'One or more dependencies are down' })
+  @ApiResponse({
+    status: 503,
+    description: 'One or more dependencies are down',
+  })
   @Get('ready')
   @HealthCheck()
   async readiness() {

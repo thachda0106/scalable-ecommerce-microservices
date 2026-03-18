@@ -9,20 +9,44 @@ import { signInternalHeaders } from '@ecommerce/core';
 
 @Injectable()
 export class BaseHttpClient {
-  private breaker: CircuitBreaker<[AxiosRequestConfig], AxiosResponse>;
+  private breakers: Map<
+    string,
+    CircuitBreaker<[AxiosRequestConfig], AxiosResponse>
+  > = new Map();
+  private readonly breakerOptions = {
+    timeout: 4000, // Timeout slightly under the global 5000ms interceptor
+    errorThresholdPercentage: 50, // Open breaker if 50% operations fail
+    resetTimeout: 10000, // Retry after 10 seconds
+  };
 
-  constructor(private readonly httpService: HttpService) {
-    const breakerOptions = {
-      timeout: 4000, // Timeout slightly under the global 5000ms interceptor
-      errorThresholdPercentage: 50, // Open breaker if 50% operations fail
-      resetTimeout: 10000, // Retry after 10 seconds
-    };
+  constructor(private readonly httpService: HttpService) {}
 
-    this.breaker = new CircuitBreaker(
-      (config: AxiosRequestConfig) => this.executeRequest(config),
-      breakerOptions,
-    );
-    this.breaker.fallback(() => Promise.reject(new Error('Breaker is open')));
+  private getBreaker(
+    url: string | undefined,
+  ): CircuitBreaker<[AxiosRequestConfig], AxiosResponse> {
+    try {
+      const origin = url ? new URL(url).origin : 'default';
+      if (!this.breakers.has(origin)) {
+        const breaker = new CircuitBreaker(
+          (config: AxiosRequestConfig) => this.executeRequest(config),
+          this.breakerOptions,
+        );
+        breaker.fallback(() => Promise.reject(new Error('Breaker is open')));
+        this.breakers.set(origin, breaker);
+      }
+      return this.breakers.get(origin)!;
+    } catch {
+      const origin = 'default';
+      if (!this.breakers.has(origin)) {
+        const breaker = new CircuitBreaker(
+          (config: AxiosRequestConfig) => this.executeRequest(config),
+          this.breakerOptions,
+        );
+        breaker.fallback(() => Promise.reject(new Error('Breaker is open')));
+        this.breakers.set(origin, breaker);
+      }
+      return this.breakers.get(origin)!;
+    }
   }
 
   /**
@@ -83,7 +107,11 @@ export class BaseHttpClient {
       const internalSecret = process.env.INTERNAL_AUTH_SECRET;
       if (internalSecret && userId) {
         // HMAC-sign the identity headers for downstream verification
-        const signedHeaders = signInternalHeaders(userId, roles, internalSecret);
+        const signedHeaders = signInternalHeaders(
+          userId,
+          roles,
+          internalSecret,
+        );
         Object.assign(headers, signedHeaders);
       } else {
         // Fallback: forward unsigned identity headers (dev mode)
@@ -108,7 +136,8 @@ export class BaseHttpClient {
    */
   private async execute(config: AxiosRequestConfig): Promise<unknown> {
     try {
-      const response = await this.breaker.fire(config);
+      const breaker = this.getBreaker(config.url);
+      const response = await breaker.fire(config);
       return response.data;
     } catch (error: unknown) {
       if (error instanceof Error && error.message === 'Breaker is open') {

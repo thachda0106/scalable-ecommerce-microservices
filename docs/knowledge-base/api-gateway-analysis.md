@@ -452,10 +452,10 @@ Each aggregation endpoint handles partial failure differently:
 
 | # | Improvement | Rationale |
 |---|---|---|
-| 1 | **Per-service circuit breakers** | Currently one `opossum` instance is shared across all 9 services. A single failing service trips the breaker for everything. Create a `Map<string, CircuitBreaker>` keyed by service name. |
-| 2 | **Validate `INTERNAL_AUTH_SECRET` at startup** | Add to the `requiredEnvVars` array in `main.ts`. Without it, identity headers are sent unsigned in production. |
-| 3 | **Add Helmet middleware** | Install `helmet` for security headers (CSP, HSTS, X-Content-Type-Options, X-Frame-Options). One-liner: `app.use(helmet())`. |
-| 4 | **Request body size limit** | Explicitly set `express.json({ limit: '1mb' })` to prevent memory-based DoS. |
+| 1 | **Per-service circuit breakers** | ✅ Completed. Currently one `opossum` instance is shared across all 9 services. A single failing service trips the breaker for everything. Create a `Map<string, CircuitBreaker>` keyed by service name. |
+| 2 | **Validate `INTERNAL_AUTH_SECRET` at startup** | ✅ Completed. Add to the `requiredEnvVars` array in `main.ts`. Without it, identity headers are sent unsigned in production. |
+| 3 | **Add Helmet middleware** | ✅ Completed. Install `helmet` for security headers (CSP, HSTS, X-Content-Type-Options, X-Frame-Options). One-liner: `app.use(helmet())`. |
+| 4 | **Request body size limit** | ✅ Completed. Explicitly set `express.json({ limit: '1mb' })` to prevent memory-based DoS. |
 
 ### 🟡 High Priority
 

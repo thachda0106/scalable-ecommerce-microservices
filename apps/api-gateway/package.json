@@ -36,6 +36,7 @@
     "axios": "^1.13.6",
     "express": "^5.2.1",
     "express-http-proxy": "^2.1.2",
+    "helmet": "^8.1.0",
     "ioredis": "^5.10.0",
     "nestjs-throttler-storage-redis": "^0.5.1",
     "opossum": "^9.0.0",
@@ -72,6 +73,7 @@
     "ts-loader": "^9.5.2",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
+    "typeorm": "^0.3.28",
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.20.0"
   },
