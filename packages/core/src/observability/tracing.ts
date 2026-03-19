@@ -1,5 +1,8 @@
+import { Logger } from '@nestjs/common';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
+
+const logger = new Logger('Tracing');
 
 let sdk: NodeSDK | null = null;
 
@@ -16,15 +19,15 @@ export const initTracing = (serviceName: string) => {
 
   try {
     sdk.start();
-    console.log(`OpenTelemetry tracing initialized for ${serviceName}`);
+    logger.log(`OpenTelemetry tracing initialized for ${serviceName}`);
   } catch (error) {
-    console.error('Error initializing tracing', error);
+    logger.error('Error initializing tracing', error);
   }
 
   process.on('SIGTERM', () => {
     sdk?.shutdown()
-      .then(() => console.log('Tracing terminated'))
-      .catch((error) => console.log('Error terminating tracing', error))
+      .then(() => logger.log('Tracing terminated'))
+      .catch((error) => logger.error('Error terminating tracing', error))
       .finally(() => process.exit(0));
   });
 };

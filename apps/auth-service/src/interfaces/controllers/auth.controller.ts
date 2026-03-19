@@ -1,5 +1,6 @@
 import {
   Controller,
+  Get,
   Post,
   Body,
   HttpCode,
@@ -14,6 +15,7 @@ import {
   ApiResponse,
 } from '@nestjs/swagger';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
+import { safeExecute, StrategyType } from '@ecommerce/core';
 import { RegisterDto, LoginDto } from '../dto/auth.dto';
 import { RefreshTokenDto } from '../dto/refresh-token.dto';
 import { LogoutDto } from '../dto/logout.dto';
@@ -80,5 +82,65 @@ export class AuthController {
     return this.commandBus.execute(
       new LogoutCommand(logoutDto.refreshToken, userId, jti),
     );
+  }
+
+  // ─── Resilience Usage Examples ────────────────────────────────────────────
+
+  @ApiOperation({ summary: 'Demo — safeExecute resilience patterns' })
+  @ApiResponse({ status: 200, description: 'Resilience demo executed' })
+  @Get('demo/resilience')
+  async demoResilience(): Promise<any> {
+    // 1. Redis → FAIL_OPEN: return fallback on failure
+    const redis = await safeExecute(
+      async () => {
+        throw new Error('Redis connection lost');
+      },
+      {
+        strategy: StrategyType.FAIL_OPEN,
+        timeout: 1000,
+        fallback: () => ({ cached: true, value: 'fallback-session' }),
+        circuitBreakerKey: 'redis',
+        label: 'redis:getSession',
+      },
+    );
+
+    // 2. DB → FAIL_CLOSE: retry then throw
+    let dbResult: any = null;
+    let dbAttempts = 0;
+    try {
+      dbResult = await safeExecute(
+        async () => {
+          dbAttempts++;
+          if (dbAttempts < 3) throw new Error('DB connection timeout');
+          return { users: ['alice', 'bob'] };
+        },
+        {
+          strategy: StrategyType.FAIL_CLOSE,
+          retry: { attempts: 3, backoffMs: 100 },
+          circuitBreakerKey: 'db-primary',
+          label: 'db:findUsers',
+        },
+      );
+    } catch (e: any) {
+      dbResult = { error: e.message };
+    }
+
+    // 3. Kafka → NON_BLOCKING: log and ignore
+    await safeExecute(
+      async () => {
+        throw new Error('Kafka broker not available');
+      },
+      {
+        strategy: StrategyType.NON_BLOCKING,
+        label: 'kafka:publishAuditLog',
+      },
+    );
+
+    return {
+      message: 'Resilience demo completed',
+      redis,
+      db: dbResult,
+      dbAttempts,
+    };
   }
 }
