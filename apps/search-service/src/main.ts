@@ -2,8 +2,13 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module';
-import { Logger, initTracing } from '@ecommerce/core';
-import { DomainExceptionFilter } from './interfaces/filters/domain-exception.filter';
+import {
+  Logger,
+  initTracing,
+  GlobalExceptionFilter,
+  HttpLoggingInterceptor,
+  MetricsInterceptor,
+} from '@ecommerce/core';
 
 initTracing('search-service');
 
@@ -19,7 +24,11 @@ async function bootstrap() {
     }),
   );
 
-  app.useGlobalFilters(new DomainExceptionFilter());
+  app.useGlobalFilters(new GlobalExceptionFilter());
+  app.useGlobalInterceptors(
+    new HttpLoggingInterceptor(),
+    new MetricsInterceptor('search-service'),
+  );
 
   const configService = app.get(ConfigService);
   const port = configService.get<number>('PORT', 3000);

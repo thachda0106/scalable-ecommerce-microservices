@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/unbound-method */
 import { CreateUserHandler } from '../create-user.handler';
 import { CreateUserCommand } from '../../commands/create-user.command';
 import type { IUserRepository } from '../../../domain/ports/user-repository.port';
@@ -26,7 +27,7 @@ describe('CreateUserHandler', () => {
 
     unitOfWork = {
       commitUserWithEvents: jest.fn(),
-    } as any;
+    } as unknown as jest.Mocked<UnitOfWork>;
 
     metrics = {
       incrementUsersCreated: jest.fn(),
@@ -38,13 +39,18 @@ describe('CreateUserHandler', () => {
       startTimer: jest.fn().mockReturnValue(jest.fn()),
       setActiveUsers: jest.fn(),
       getMetrics: jest.fn(),
-    } as any;
+    } as unknown as jest.Mocked<UserMetricsService>;
 
     auditLog = {
       log: jest.fn(),
-    } as any;
+    } as unknown as jest.Mocked<AuditLogService>;
 
-    handler = new CreateUserHandler(userRepository, unitOfWork, metrics, auditLog);
+    handler = new CreateUserHandler(
+      userRepository,
+      unitOfWork,
+      metrics,
+      auditLog,
+    );
   });
 
   it('should create user, commit via UnitOfWork, and return userId', async () => {

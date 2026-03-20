@@ -9,10 +9,12 @@ import { databaseConfig } from './infrastructure/config/database.config';
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRoot(databaseConfig()),
-    ThrottlerModule.forRoot([{
-      ttl: parseInt(process.env.THROTTLE_TTL || '60000', 10),
-      limit: parseInt(process.env.THROTTLE_LIMIT || '100', 10),
-    }]),
+    ThrottlerModule.forRoot([
+      {
+        ttl: parseInt(process.env.THROTTLE_TTL || '60000', 10),
+        limit: parseInt(process.env.THROTTLE_LIMIT || '100', 10),
+      },
+    ]),
     UserModule,
   ],
 })

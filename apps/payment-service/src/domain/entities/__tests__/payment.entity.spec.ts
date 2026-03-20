@@ -27,7 +27,7 @@ describe('Payment Entity', () => {
       expect(payment.id).toBeDefined();
       expect(payment.orderId).toBe(defaultCreateProps.orderId);
       expect(payment.status.value).toBe(PaymentStatusEnum.PENDING);
-      
+
       const events = payment.pullDomainEvents();
       expect(events).toHaveLength(1);
       expect(events[0]).toBeInstanceOf(PaymentCreatedEvent);
@@ -51,7 +51,7 @@ describe('Payment Entity', () => {
     it('PENDING -> PROCESSING', () => {
       payment.startProcessing();
       expect(payment.status.value).toBe(PaymentStatusEnum.PROCESSING);
-      
+
       const events = payment.pullDomainEvents();
       expect(events).toHaveLength(1);
       expect(events[0]).toBeInstanceOf(PaymentProcessingEvent);
@@ -60,7 +60,7 @@ describe('Payment Entity', () => {
     it('PROCESSING -> SUCCESS', () => {
       payment.startProcessing();
       payment.pullDomainEvents();
-      
+
       payment.complete('tx-123');
       expect(payment.status.value).toBe(PaymentStatusEnum.SUCCESS);
       expect(payment.transactionId).toBe('tx-123');
@@ -97,22 +97,28 @@ describe('Payment Entity', () => {
     });
 
     it('prevents PENDING -> SUCCESS (invalid transition)', () => {
-      expect(() => payment.complete('tx-123')).toThrow(InvalidPaymentStatusTransitionError);
+      expect(() => payment.complete('tx-123')).toThrow(
+        InvalidPaymentStatusTransitionError,
+      );
     });
 
     it('prevents SUCCESS -> FAILED (invalid transition)', () => {
       payment.startProcessing();
       payment.complete('tx-123');
-      
-      expect(() => payment.fail('Card declined')).toThrow(InvalidPaymentStatusTransitionError);
+
+      expect(() => payment.fail('Card declined')).toThrow(
+        InvalidPaymentStatusTransitionError,
+      );
     });
 
     it('prevents REFUNDED -> PROCESSING (invalid transition)', () => {
       payment.startProcessing();
       payment.complete('tx-123');
       payment.refund('Customer requested');
-      
-      expect(() => payment.startProcessing()).toThrow(InvalidPaymentStatusTransitionError);
+
+      expect(() => payment.startProcessing()).toThrow(
+        InvalidPaymentStatusTransitionError,
+      );
     });
   });
 });

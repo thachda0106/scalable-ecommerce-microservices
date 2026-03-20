@@ -1,8 +1,26 @@
 import {
-  Controller, Get, Post, Patch, Delete, Param, Body, Query,
-  HttpCode, HttpStatus, UseGuards, UseFilters, ParseUUIDPipe,
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Param,
+  Body,
+  Query,
+  HttpCode,
+  HttpStatus,
+  UseGuards,
+  UseFilters,
+  ParseUUIDPipe,
 } from '@nestjs/common';
-import { CreateUserDto, UpdateUserDto, UpdateUserProfileDto, UpdateUserSettingsDto, SuspendUserDto, GetUsersQueryDto } from '../dto';
+import {
+  CreateUserDto,
+  UpdateUserDto,
+  UpdateUserProfileDto,
+  UpdateUserSettingsDto,
+  SuspendUserDto,
+  GetUsersQueryDto,
+} from '../dto';
 import { CreateUserHandler } from '../../application/handlers/create-user.handler';
 import { UpdateUserHandler } from '../../application/handlers/update-user.handler';
 import { DeleteUserHandler } from '../../application/handlers/delete-user.handler';
@@ -71,11 +89,15 @@ export class UserController {
 
   @Get('by-username/:username')
   async getUserByUsername(@Param('username') username: string) {
-    return this.getUserByUsernameHandler.execute(new GetUserByUsernameQuery(username));
+    return this.getUserByUsernameHandler.execute(
+      new GetUserByUsernameQuery(username),
+    );
   }
 
   @Get(':id')
-  async getUserById(@Param('id', new ParseUUIDPipe({ version: '4' })) id: string) {
+  async getUserById(
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+  ) {
     return this.getUserByIdHandler.execute(new GetUserByIdQuery(id));
   }
 
@@ -93,7 +115,9 @@ export class UserController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @Roles('admin')
-  async deleteUser(@Param('id', new ParseUUIDPipe({ version: '4' })) id: string) {
+  async deleteUser(
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+  ) {
     await this.deleteUserHandler.execute(new DeleteUserCommand(id));
   }
 
@@ -139,13 +163,17 @@ export class UserController {
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @Body() dto: SuspendUserDto,
   ) {
-    await this.suspendUserHandler.execute(new SuspendUserCommand(id, dto.reason));
+    await this.suspendUserHandler.execute(
+      new SuspendUserCommand(id, dto.reason),
+    );
     return { message: 'User suspended' };
   }
 
   @Post(':id/reactivate')
   @Roles('admin')
-  async reactivateUser(@Param('id', new ParseUUIDPipe({ version: '4' })) id: string) {
+  async reactivateUser(
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+  ) {
     await this.reactivateUserHandler.execute(new ReactivateUserCommand(id));
     return { message: 'User reactivated' };
   }

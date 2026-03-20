@@ -14,7 +14,9 @@ export class GetUserByIdHandler {
   ) {}
 
   async execute(query: GetUserByIdQuery) {
-    const user = await this.userRepository.findById(UserId.create(query.userId));
+    const user = await this.userRepository.findById(
+      UserId.create(query.userId),
+    );
     if (!user) {
       throw new NotFoundException(`User ${query.userId} not found`);
     }

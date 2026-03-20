@@ -4,8 +4,6 @@ import { IOrderRepository } from '../../../domain/ports/order-repository.port';
 import { IEventPublisher } from '../../../application/ports/event-publisher.port';
 import { OrderId } from '../../../domain/value-objects/order-id.vo';
 import { Order } from '../../../domain/entities/order.entity';
-import { OrderItem } from '../../../domain/entities/order-item.entity';
-import { Money } from '../../../domain/value-objects/money.vo';
 import { OrderMetricsService } from '../../../infrastructure/observability/order-metrics.service';
 
 describe('ConfirmPaymentHandler', () => {

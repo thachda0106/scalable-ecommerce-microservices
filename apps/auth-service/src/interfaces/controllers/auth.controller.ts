@@ -105,9 +105,7 @@ export class AuthController {
   async demoResilience(): Promise<any> {
     // 1. Redis → FAIL_OPEN: return fallback on failure
     const redis = await safeExecute(
-      async () => {
-        throw new Error('Redis connection lost');
-      },
+      () => Promise.reject(new Error('Redis connection lost')),
       {
         strategy: StrategyType.FAIL_OPEN,
         timeout: 1000,
@@ -118,14 +116,15 @@ export class AuthController {
     );
 
     // 2. DB → FAIL_CLOSE: retry then throw
-    let dbResult: any = null;
+    let dbResult: unknown = null;
     let dbAttempts = 0;
     try {
       dbResult = await safeExecute(
-        async () => {
+        () => {
           dbAttempts++;
-          if (dbAttempts < 3) throw new Error('DB connection timeout');
-          return { users: ['alice', 'bob'] };
+          if (dbAttempts < 3)
+            return Promise.reject(new Error('DB connection timeout'));
+          return Promise.resolve({ users: ['alice', 'bob'] });
         },
         {
           strategy: StrategyType.FAIL_CLOSE,
@@ -134,15 +133,13 @@ export class AuthController {
           label: 'db:findUsers',
         },
       );
-    } catch (e: any) {
-      dbResult = { error: e.message };
+    } catch (e: unknown) {
+      dbResult = { error: e instanceof Error ? e.message : String(e) };
     }
 
     // 3. Kafka → NON_BLOCKING: log and ignore
     await safeExecute(
-      async () => {
-        throw new Error('Kafka broker not available');
-      },
+      () => Promise.reject(new Error('Kafka broker not available')),
       {
         strategy: StrategyType.NON_BLOCKING,
         label: 'kafka:publishAuditLog',

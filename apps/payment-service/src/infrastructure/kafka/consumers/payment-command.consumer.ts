@@ -48,7 +48,9 @@ export class PaymentCommandConsumer implements OnModuleInit, OnModuleDestroy {
         },
       });
 
-      this.logger.log('Payment command consumer started — listening on payment.commands');
+      this.logger.log(
+        'Payment command consumer started — listening on payment.commands',
+      );
     } catch (error) {
       this.logger.error(
         `Failed to start payment command consumer: ${(error as Error).message}`,
@@ -71,8 +73,10 @@ export class PaymentCommandConsumer implements OnModuleInit, OnModuleDestroy {
 
     try {
       const event = JSON.parse(message.value.toString());
-      const eventId = event.eventId || event.id || `${event.type}_${event.payload?.orderId}`;
-      const correlationId = message.headers?.['x-correlation-id']?.toString() || eventId;
+      const eventId =
+        event.eventId || event.id || `${event.type}_${event.payload?.orderId}`;
+      const correlationId =
+        message.headers?.['x-correlation-id']?.toString() || eventId;
 
       if (!eventId) {
         this.logger.warn('Received payment command without ID, skipping');
@@ -98,7 +102,7 @@ export class PaymentCommandConsumer implements OnModuleInit, OnModuleDestroy {
               amountInCents,
               currency,
               undefined, // provider — use default
-              orderId,   // idempotencyKey — use orderId for dedup
+              orderId, // idempotencyKey — use orderId for dedup
             ),
           );
           break;
@@ -116,7 +120,9 @@ export class PaymentCommandConsumer implements OnModuleInit, OnModuleDestroy {
       await this.processedRepo.save(processed);
 
       this.retryCounts.delete(eventId);
-      this.logger.log(`Processed command: ${eventType} (${eventId}, correlationId: ${correlationId})`);
+      this.logger.log(
+        `Processed command: ${eventType} (${eventId}, correlationId: ${correlationId})`,
+      );
     } catch (error) {
       const event = JSON.parse(message.value!.toString());
       const eventId = event.eventId || event.id || `unknown_${Date.now()}`;
@@ -155,8 +161,9 @@ export class PaymentCommandConsumer implements OnModuleInit, OnModuleDestroy {
       });
       this.logger.warn(`Message sent to DLQ: payment.commands.dlq`);
     } catch (dlqError) {
-      this.logger.error(`Failed to send message to DLQ: ${(dlqError as Error).message}`);
+      this.logger.error(
+        `Failed to send message to DLQ: ${(dlqError as Error).message}`,
+      );
     }
   }
 }
-

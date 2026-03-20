@@ -29,7 +29,9 @@ export class CreateUserHandler {
       Email.create(command.email),
     );
     if (existingByEmail) {
-      throw new ConflictException(`User with email '${command.email}' already exists`);
+      throw new ConflictException(
+        `User with email '${command.email}' already exists`,
+      );
     }
 
     // Check username uniqueness
@@ -37,7 +39,9 @@ export class CreateUserHandler {
       Username.create(command.username),
     );
     if (existingByUsername) {
-      throw new ConflictException(`User with username '${command.username}' already exists`);
+      throw new ConflictException(
+        `User with username '${command.username}' already exists`,
+      );
     }
 
     const user = User.create({
@@ -58,7 +62,9 @@ export class CreateUserHandler {
       details: { email: command.email, username: command.username },
     });
 
-    this.logger.log(`User ${user.id.value} created with email ${command.email}`);
+    this.logger.log(
+      `User ${user.id.value} created with email ${command.email}`,
+    );
     return user.id.value;
   }
 }

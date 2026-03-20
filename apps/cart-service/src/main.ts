@@ -1,8 +1,13 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { Logger } from '@ecommerce/core';
+import {
+  Logger,
+  initTracing,
+  GlobalExceptionFilter,
+  HttpLoggingInterceptor,
+  MetricsInterceptor,
+} from '@ecommerce/core';
 import { ValidationPipe, VersioningType } from '@nestjs/common';
-import { initTracing } from '@ecommerce/core';
 import { ResponseInterceptor } from './interfaces/interceptors/response.interceptor';
 
 // Initialize OpenTelemetry tracing BEFORE NestFactory.create
@@ -27,8 +32,14 @@ async function bootstrap() {
     }),
   );
 
+  app.useGlobalFilters(new GlobalExceptionFilter());
+
   // Global response interceptor — wraps all responses in { success, data, timestamp }
-  app.useGlobalInterceptors(new ResponseInterceptor());
+  app.useGlobalInterceptors(
+    new MetricsInterceptor('cart-service'),
+    new HttpLoggingInterceptor(),
+    new ResponseInterceptor(),
+  );
 
   // Enable graceful shutdown — ensures OnModuleDestroy hooks fire (Redis, Kafka)
   app.enableShutdownHooks();

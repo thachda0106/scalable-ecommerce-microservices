@@ -13,7 +13,6 @@ import {
   ApiOperation,
   ApiParam,
   ApiResponse,
-  ApiExcludeEndpoint,
 } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import { BaseHttpClient } from '../common/http-client';

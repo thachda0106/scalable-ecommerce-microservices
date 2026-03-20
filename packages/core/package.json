@@ -4,7 +4,8 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "test": "jest --passWithNoTests"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
@@ -16,13 +17,27 @@
     "nestjs-pino": "^3.5.0",
     "pino-http": "^8.5.1",
     "pino-pretty": "^13.1.3",
-    "prom-client": "^14.2.0"
+    "prom-client": "^14.2.0",
+    "rxjs": "^7.8.2"
   },
   "peerDependencies": {
     "typeorm": "^0.3.0"
   },
   "devDependencies": {
+    "@nestjs/testing": "^11.1.17",
+    "@types/express": "^5.0.6",
+    "@types/jest": "^30.0.0",
+    "jest": "^30.3.0",
+    "ts-jest": "^29.4.6",
     "typeorm": "^0.3.0",
     "typescript": "^5.1.3"
+  },
+  "jest": {
+    "rootDir": "src",
+    "testRegex": ".*\\.spec\\.ts$",
+    "transform": {
+      "^.+\\.(t|j)s$": "ts-jest"
+    },
+    "testEnvironment": "node"
   }
 }

@@ -1,8 +1,12 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { AppModule } from './app.module';
-import { initTracing } from '@ecommerce/core';
-import { DomainExceptionFilter } from './interfaces/filters/domain-exception.filter';
+import {
+  initTracing,
+  GlobalExceptionFilter,
+  HttpLoggingInterceptor,
+  MetricsInterceptor,
+} from '@ecommerce/core';
 
 initTracing('user-service');
 
@@ -20,8 +24,12 @@ async function bootstrap() {
     }),
   );
 
-  // Global exception filter for domain errors → HTTP status mapping
-  app.useGlobalFilters(new DomainExceptionFilter());
+  // Global exception filter and interceptors
+  app.useGlobalFilters(new GlobalExceptionFilter());
+  app.useGlobalInterceptors(
+    new HttpLoggingInterceptor(),
+    new MetricsInterceptor('user-service'),
+  );
 
   // Enable graceful shutdown — ensures OnModuleDestroy hooks fire (Kafka)
   app.enableShutdownHooks();
@@ -32,4 +40,4 @@ async function bootstrap() {
   const logger = new Logger('Bootstrap');
   logger.log(`User service running on port ${port}`);
 }
-bootstrap();
+void bootstrap();

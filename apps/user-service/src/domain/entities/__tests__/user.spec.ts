@@ -6,7 +6,10 @@ import { InvalidUserOperationError } from '../../errors/invalid-user-operation.e
 describe('User', () => {
   describe('create', () => {
     it('should create a new user with ACTIVE status', () => {
-      const user = User.create({ email: 'test@example.com', username: 'testuser' });
+      const user = User.create({
+        email: 'test@example.com',
+        username: 'testuser',
+      });
 
       expect(user.id).toBeDefined();
       expect(user.email.value).toBe('test@example.com');
@@ -16,7 +19,10 @@ describe('User', () => {
     });
 
     it('should create default profile and settings', () => {
-      const user = User.create({ email: 'test@example.com', username: 'testuser' });
+      const user = User.create({
+        email: 'test@example.com',
+        username: 'testuser',
+      });
 
       expect(user.profile.displayName).toBeNull();
       expect(user.settings.emailNotifications).toBe(true);
@@ -25,7 +31,10 @@ describe('User', () => {
     });
 
     it('should raise UserCreatedEvent', () => {
-      const user = User.create({ email: 'test@example.com', username: 'testuser' });
+      const user = User.create({
+        email: 'test@example.com',
+        username: 'testuser',
+      });
       const events = user.pullDomainEvents();
 
       expect(events).toHaveLength(1);
@@ -35,7 +44,10 @@ describe('User', () => {
 
   describe('pullDomainEvents', () => {
     it('should return events and clear the list', () => {
-      const user = User.create({ email: 'test@example.com', username: 'testuser' });
+      const user = User.create({
+        email: 'test@example.com',
+        username: 'testuser',
+      });
       const events1 = user.pullDomainEvents();
       const events2 = user.pullDomainEvents();
 
@@ -46,7 +58,10 @@ describe('User', () => {
 
   describe('suspend', () => {
     it('should transition ACTIVE → SUSPENDED and raise UserSuspendedEvent', () => {
-      const user = User.create({ email: 'test@example.com', username: 'testuser' });
+      const user = User.create({
+        email: 'test@example.com',
+        username: 'testuser',
+      });
       user.pullDomainEvents(); // clear creation event
 
       user.suspend('policy violation');
@@ -58,16 +73,24 @@ describe('User', () => {
     });
 
     it('should throw on SUSPENDED → SUSPENDED', () => {
-      const user = User.create({ email: 'test@example.com', username: 'testuser' });
+      const user = User.create({
+        email: 'test@example.com',
+        username: 'testuser',
+      });
       user.suspend('reason');
 
-      expect(() => user.suspend('again')).toThrow(InvalidUserStatusTransitionError);
+      expect(() => user.suspend('again')).toThrow(
+        InvalidUserStatusTransitionError,
+      );
     });
   });
 
   describe('reactivate', () => {
     it('should transition SUSPENDED → ACTIVE and raise UserReactivatedEvent', () => {
-      const user = User.create({ email: 'test@example.com', username: 'testuser' });
+      const user = User.create({
+        email: 'test@example.com',
+        username: 'testuser',
+      });
       user.suspend('test');
       user.pullDomainEvents();
 
@@ -80,7 +103,10 @@ describe('User', () => {
     });
 
     it('should throw on ACTIVE → ACTIVE (reactivate)', () => {
-      const user = User.create({ email: 'test@example.com', username: 'testuser' });
+      const user = User.create({
+        email: 'test@example.com',
+        username: 'testuser',
+      });
 
       expect(() => user.reactivate()).toThrow(InvalidUserStatusTransitionError);
     });
@@ -88,7 +114,10 @@ describe('User', () => {
 
   describe('delete', () => {
     it('should transition to DELETED and raise UserDeletedEvent', () => {
-      const user = User.create({ email: 'test@example.com', username: 'testuser' });
+      const user = User.create({
+        email: 'test@example.com',
+        username: 'testuser',
+      });
       user.pullDomainEvents();
 
       user.delete();
@@ -100,17 +129,25 @@ describe('User', () => {
     });
 
     it('should throw on any operation after DELETED', () => {
-      const user = User.create({ email: 'test@example.com', username: 'testuser' });
+      const user = User.create({
+        email: 'test@example.com',
+        username: 'testuser',
+      });
       user.delete();
 
-      expect(() => user.suspend('reason')).toThrow(InvalidUserStatusTransitionError);
+      expect(() => user.suspend('reason')).toThrow(
+        InvalidUserStatusTransitionError,
+      );
       expect(() => user.reactivate()).toThrow(InvalidUserStatusTransitionError);
     });
   });
 
   describe('updateProfile', () => {
     it('should update profile and raise UserUpdatedEvent', () => {
-      const user = User.create({ email: 'test@example.com', username: 'testuser' });
+      const user = User.create({
+        email: 'test@example.com',
+        username: 'testuser',
+      });
       user.pullDomainEvents();
 
       user.updateProfile({ displayName: 'Test User', bio: 'Hello' });
@@ -124,16 +161,24 @@ describe('User', () => {
     });
 
     it('should throw on deleted user', () => {
-      const user = User.create({ email: 'test@example.com', username: 'testuser' });
+      const user = User.create({
+        email: 'test@example.com',
+        username: 'testuser',
+      });
       user.delete();
 
-      expect(() => user.updateProfile({ displayName: 'x' })).toThrow(InvalidUserOperationError);
+      expect(() => user.updateProfile({ displayName: 'x' })).toThrow(
+        InvalidUserOperationError,
+      );
     });
   });
 
   describe('updateSettings', () => {
     it('should update settings and raise UserUpdatedEvent', () => {
-      const user = User.create({ email: 'test@example.com', username: 'testuser' });
+      const user = User.create({
+        email: 'test@example.com',
+        username: 'testuser',
+      });
       user.pullDomainEvents();
 
       user.updateSettings({ language: 'vi', smsNotifications: true });

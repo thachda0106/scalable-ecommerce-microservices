@@ -5,4 +5,3 @@ export class RefundPaymentDto {
   @IsNotEmpty()
   reason: string;
 }
-

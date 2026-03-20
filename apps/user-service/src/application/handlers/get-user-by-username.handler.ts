@@ -14,9 +14,13 @@ export class GetUserByUsernameHandler {
   ) {}
 
   async execute(query: GetUserByUsernameQuery) {
-    const user = await this.userRepository.findByUsername(Username.create(query.username));
+    const user = await this.userRepository.findByUsername(
+      Username.create(query.username),
+    );
     if (!user) {
-      throw new NotFoundException(`User with username ${query.username} not found`);
+      throw new NotFoundException(
+        `User with username ${query.username} not found`,
+      );
     }
     return user.toJSON();
   }

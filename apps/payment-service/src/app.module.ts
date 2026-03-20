@@ -11,8 +11,14 @@ import { ProcessedEventOrmEntity } from './infrastructure/persistence/entities/p
     getLoggerModule(),
     TypeOrmModule.forRoot({
       type: 'postgres',
-      url: process.env.DATABASE_URL || 'postgres://postgres:postgres@localhost:5432/ecommerce',
-      entities: [PaymentOrmEntity, OutboxEventOrmEntity, ProcessedEventOrmEntity],
+      url:
+        process.env.DATABASE_URL ||
+        'postgres://postgres:postgres@localhost:5432/ecommerce',
+      entities: [
+        PaymentOrmEntity,
+        OutboxEventOrmEntity,
+        ProcessedEventOrmEntity,
+      ],
       synchronize: process.env.DB_SYNC === 'true', // Default false — use migrations in production
     }),
     PaymentModule,

@@ -1,9 +1,13 @@
-import { NestFactory, HttpAdapterHost } from '@nestjs/core';
+import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { LoggerService } from '@nestjs/common';
-import { Logger, initTracing } from '@ecommerce/core';
-import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
-import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
+import {
+  Logger,
+  initTracing,
+  GlobalExceptionFilter,
+  HttpLoggingInterceptor,
+  MetricsInterceptor,
+} from '@ecommerce/core';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
@@ -40,10 +44,12 @@ async function bootstrap() {
     credentials: true,
   });
 
-  const httpAdapterHost = app.get(HttpAdapterHost);
-  app.useGlobalFilters(new AllExceptionsFilter(httpAdapterHost));
+  app.useGlobalFilters(new GlobalExceptionFilter());
 
-  app.useGlobalInterceptors(new LoggingInterceptor());
+  app.useGlobalInterceptors(
+    new HttpLoggingInterceptor(),
+    new MetricsInterceptor('api-gateway'),
+  );
 
   // ── Swagger ────────────────────────────────────────────────────────────────
   const swaggerConfig = new DocumentBuilder()

@@ -14,7 +14,9 @@ export class GetUserByEmailHandler {
   ) {}
 
   async execute(query: GetUserByEmailQuery) {
-    const user = await this.userRepository.findByEmail(Email.create(query.email));
+    const user = await this.userRepository.findByEmail(
+      Email.create(query.email),
+    );
     if (!user) {
       throw new NotFoundException(`User with email ${query.email} not found`);
     }

@@ -2,7 +2,13 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, LoggerService } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
-import { Logger, initTracing } from '@ecommerce/core';
+import {
+  Logger,
+  initTracing,
+  GlobalExceptionFilter,
+  HttpLoggingInterceptor,
+  MetricsInterceptor,
+} from '@ecommerce/core';
 
 initTracing('auth-service');
 
@@ -10,6 +16,12 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
 
   app.useLogger(app.get<LoggerService>(Logger));
+
+  app.useGlobalFilters(new GlobalExceptionFilter());
+  app.useGlobalInterceptors(
+    new HttpLoggingInterceptor(),
+    new MetricsInterceptor('auth-service'),
+  );
 
   // Global input validation — strips unknown properties, enforces DTO rules
   app.useGlobalPipes(

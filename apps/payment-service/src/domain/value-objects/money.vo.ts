@@ -44,14 +44,20 @@ export class Money {
 
   add(other: Money): Money {
     this.assertSameCurrency(other);
-    return new Money(this._amountInCents + other._amountInCents, this._currency);
+    return new Money(
+      this._amountInCents + other._amountInCents,
+      this._currency,
+    );
   }
 
   multiply(quantity: number): Money {
     if (quantity < 0) {
       throw new Error('Cannot multiply money by negative quantity');
     }
-    return new Money(Math.round(this._amountInCents * quantity), this._currency);
+    return new Money(
+      Math.round(this._amountInCents * quantity),
+      this._currency,
+    );
   }
 
   isPositive(): boolean {

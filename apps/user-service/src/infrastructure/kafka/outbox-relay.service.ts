@@ -44,7 +44,9 @@ export class OutboxRelayService {
           { id: In(deadLetterIds) },
           { processed: true, error: `Exceeded max retries (${MAX_RETRIES})` },
         );
-        this.logger.warn(`${deadLettered.length} event(s) dead-lettered after ${MAX_RETRIES} retries`);
+        this.logger.warn(
+          `${deadLettered.length} event(s) dead-lettered after ${MAX_RETRIES} retries`,
+        );
       }
 
       if (processable.length === 0) return;
@@ -91,7 +93,10 @@ export class OutboxRelayService {
         }
         await this.outboxRepo.save(events);
       } catch (retryError) {
-        this.logger.error('Failed to update retry counts', (retryError as Error).stack);
+        this.logger.error(
+          'Failed to update retry counts',
+          (retryError as Error).stack,
+        );
       }
     } finally {
       this.isProcessing = false;

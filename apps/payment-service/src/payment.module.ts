@@ -106,4 +106,3 @@ const QueryHandlers = [GetPaymentByIdHandler, GetPaymentsByOrderHandler];
   exports: [],
 })
 export class PaymentModule {}
-

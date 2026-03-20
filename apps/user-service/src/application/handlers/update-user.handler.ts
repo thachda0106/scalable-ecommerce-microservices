@@ -1,4 +1,10 @@
-import { Injectable, Inject, Logger, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  Inject,
+  Logger,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { UpdateUserCommand } from '../commands/update-user.command';
 import { UserId } from '../../domain/value-objects/user-id.vo';
 import { Email } from '../../domain/value-objects/email.vo';
@@ -24,16 +30,22 @@ export class UpdateUserHandler {
   async execute(command: UpdateUserCommand): Promise<void> {
     const stopTimer = this.metrics.startTimer('update_user');
 
-    const user = await this.userRepository.findById(UserId.create(command.userId));
+    const user = await this.userRepository.findById(
+      UserId.create(command.userId),
+    );
     if (!user) {
       throw new NotFoundException(`User ${command.userId} not found`);
     }
 
     // H2: Check uniqueness before updating email
     if (command.email) {
-      const existingByEmail = await this.userRepository.findByEmail(Email.create(command.email));
+      const existingByEmail = await this.userRepository.findByEmail(
+        Email.create(command.email),
+      );
       if (existingByEmail && existingByEmail.id.value !== command.userId) {
-        throw new ConflictException(`Email '${command.email}' is already taken`);
+        throw new ConflictException(
+          `Email '${command.email}' is already taken`,
+        );
       }
       user.updateEmail(Email.create(command.email));
       this.metrics.incrementUsersUpdated('email');
@@ -47,9 +59,16 @@ export class UpdateUserHandler {
 
     // H2: Check uniqueness before updating username
     if (command.username) {
-      const existingByUsername = await this.userRepository.findByUsername(Username.create(command.username));
-      if (existingByUsername && existingByUsername.id.value !== command.userId) {
-        throw new ConflictException(`Username '${command.username}' is already taken`);
+      const existingByUsername = await this.userRepository.findByUsername(
+        Username.create(command.username),
+      );
+      if (
+        existingByUsername &&
+        existingByUsername.id.value !== command.userId
+      ) {
+        throw new ConflictException(
+          `Username '${command.username}' is already taken`,
+        );
       }
       user.updateUsername(Username.create(command.username));
       this.metrics.incrementUsersUpdated('username');

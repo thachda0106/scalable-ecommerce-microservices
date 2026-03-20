@@ -39,6 +39,7 @@ export class TypeOrmUserRepository implements IUserRepository {
     } catch (error) {
       // H1: Catch DB unique constraint violations and rethrow as domain errors
       if (error instanceof QueryFailedError) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         const detail = (error as any).detail as string | undefined;
         if (detail?.includes('email')) {
           throw new DomainException(
@@ -103,7 +104,7 @@ export class TypeOrmUserRepository implements IUserRepository {
     });
 
     return {
-      users: orms.map(UserMapper.toDomain),
+      users: orms.map((orm) => UserMapper.toDomain(orm)),
       total,
     };
   }

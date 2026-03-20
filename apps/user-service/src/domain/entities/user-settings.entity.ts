@@ -54,21 +54,38 @@ export class UserSettings {
   }
 
   update(props: UpdateUserSettingsProps): void {
-    if (props.emailNotifications !== undefined) this._emailNotifications = props.emailNotifications;
-    if (props.pushNotifications !== undefined) this._pushNotifications = props.pushNotifications;
-    if (props.smsNotifications !== undefined) this._smsNotifications = props.smsNotifications;
+    if (props.emailNotifications !== undefined)
+      this._emailNotifications = props.emailNotifications;
+    if (props.pushNotifications !== undefined)
+      this._pushNotifications = props.pushNotifications;
+    if (props.smsNotifications !== undefined)
+      this._smsNotifications = props.smsNotifications;
     if (props.language !== undefined) this._language = props.language;
     if (props.timezone !== undefined) this._timezone = props.timezone;
     this._updatedAt = new Date();
   }
 
-  get userId(): UserId { return this._userId; }
-  get emailNotifications(): boolean { return this._emailNotifications; }
-  get pushNotifications(): boolean { return this._pushNotifications; }
-  get smsNotifications(): boolean { return this._smsNotifications; }
-  get language(): string { return this._language; }
-  get timezone(): string { return this._timezone; }
-  get updatedAt(): Date { return this._updatedAt; }
+  get userId(): UserId {
+    return this._userId;
+  }
+  get emailNotifications(): boolean {
+    return this._emailNotifications;
+  }
+  get pushNotifications(): boolean {
+    return this._pushNotifications;
+  }
+  get smsNotifications(): boolean {
+    return this._smsNotifications;
+  }
+  get language(): string {
+    return this._language;
+  }
+  get timezone(): string {
+    return this._timezone;
+  }
+  get updatedAt(): Date {
+    return this._updatedAt;
+  }
 
   toJSON() {
     return {

@@ -1,4 +1,12 @@
-import { Entity, Column, PrimaryColumn, OneToOne, JoinColumn, CreateDateColumn, UpdateDateColumn, VersionColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryColumn,
+  OneToOne,
+  CreateDateColumn,
+  UpdateDateColumn,
+  VersionColumn,
+} from 'typeorm';
 import { UserProfileOrmEntity } from './user-profile.orm-entity';
 import { UserSettingsOrmEntity } from './user-settings.orm-entity';
 

@@ -90,7 +90,10 @@ export class UserMetricsService {
   }
 
   recordStatusChange(fromStatus: string, toStatus: string): void {
-    this.userStatusChangesTotal.inc({ from_status: fromStatus, to_status: toStatus });
+    this.userStatusChangesTotal.inc({
+      from_status: fromStatus,
+      to_status: toStatus,
+    });
   }
 
   startTimer(operation: string): () => void {

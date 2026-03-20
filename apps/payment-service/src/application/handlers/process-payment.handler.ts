@@ -4,9 +4,18 @@ import { ProcessPaymentCommand } from '../commands/process-payment.command';
 import { Payment } from '../../domain/entities/payment.entity';
 import { PaymentProviderEnum } from '../../domain/enums/payment-provider.enum';
 import { PaymentStatusEnum } from '../../domain/value-objects/payment-status.vo';
-import { PAYMENT_REPOSITORY, IPaymentRepository } from '../../domain/ports/payment-repository.port';
-import { EVENT_PUBLISHER, IEventPublisher } from '../ports/event-publisher.port';
-import { PAYMENT_PROVIDER_FACTORY, IPaymentProviderFactory } from '../ports/payment-provider-factory.port';
+import {
+  PAYMENT_REPOSITORY,
+  IPaymentRepository,
+} from '../../domain/ports/payment-repository.port';
+import {
+  EVENT_PUBLISHER,
+  IEventPublisher,
+} from '../ports/event-publisher.port';
+import {
+  PAYMENT_PROVIDER_FACTORY,
+  IPaymentProviderFactory,
+} from '../ports/payment-provider-factory.port';
 import { MetricsService } from '../../infrastructure/observability/metrics.service';
 
 export class ProcessPaymentHandler {
@@ -22,7 +31,9 @@ export class ProcessPaymentHandler {
     private readonly metricsService: MetricsService,
   ) {}
 
-  async execute(command: ProcessPaymentCommand): Promise<Record<string, unknown>> {
+  async execute(
+    command: ProcessPaymentCommand,
+  ): Promise<Record<string, unknown>> {
     const {
       orderId,
       userId,
@@ -34,7 +45,8 @@ export class ProcessPaymentHandler {
 
     // 1. Idempotency check
     if (idempotencyKey) {
-      const existing = await this.paymentRepository.findByIdempotencyKey(idempotencyKey);
+      const existing =
+        await this.paymentRepository.findByIdempotencyKey(idempotencyKey);
       if (existing && existing.status.value === PaymentStatusEnum.SUCCESS) {
         this.logger.log(
           `Idempotent hit: payment for key ${idempotencyKey} already SUCCESS — returning existing`,
@@ -84,7 +96,10 @@ export class ProcessPaymentHandler {
         );
       } else {
         payment.fail('Provider returned unsuccessful result');
-        this.metricsService.incrementFailure(resolvedProvider, 'Provider Unsuccessful');
+        this.metricsService.incrementFailure(
+          resolvedProvider,
+          'Provider Unsuccessful',
+        );
         this.logger.warn(
           `Payment ${payment.id.value} failed — provider returned unsuccessful`,
         );
@@ -110,12 +125,20 @@ export class ProcessPaymentHandler {
   private resolveProvider(providerName?: string): PaymentProviderEnum {
     if (!providerName) {
       const defaultProvider = process.env.DEFAULT_PAYMENT_PROVIDER || 'MOCK';
-      return PaymentProviderEnum[defaultProvider as keyof typeof PaymentProviderEnum]
-        ?? PaymentProviderEnum.MOCK;
+      return (
+        PaymentProviderEnum[
+          defaultProvider as keyof typeof PaymentProviderEnum
+        ] ?? PaymentProviderEnum.MOCK
+      );
     }
-    const resolved = PaymentProviderEnum[providerName.toUpperCase() as keyof typeof PaymentProviderEnum];
+    const resolved =
+      PaymentProviderEnum[
+        providerName.toUpperCase() as keyof typeof PaymentProviderEnum
+      ];
     if (!resolved) {
-      this.logger.warn(`Unknown provider "${providerName}", falling back to MOCK`);
+      this.logger.warn(
+        `Unknown provider "${providerName}", falling back to MOCK`,
+      );
       return PaymentProviderEnum.MOCK;
     }
     return resolved;

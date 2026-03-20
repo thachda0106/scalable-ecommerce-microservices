@@ -16,12 +16,6 @@
     "noImplicitAny": false,
     "strictBindCallApply": false,
     "forceConsistentCasingInFileNames": false,
-    "noFallthroughCasesInSwitch": false,
-    "paths": {
-      "@ecommerce/core": ["../../packages/core/src"],
-      "@ecommerce/core/*": ["../../packages/core/src/*"],
-      "@ecommerce/events": ["../../packages/events/src"],
-      "@ecommerce/events/*": ["../../packages/events/src/*"]
-    }
+    "noFallthroughCasesInSwitch": false
   }
 }

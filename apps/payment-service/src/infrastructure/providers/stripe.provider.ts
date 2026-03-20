@@ -9,13 +9,18 @@ import {
 import { Money } from '../../domain/value-objects/money.vo';
 import { PaymentProviderEnum } from '../../domain/enums/payment-provider.enum';
 
-const PROVIDER_TIMEOUT_MS = parseInt(process.env.PAYMENT_TIMEOUT_MS || '30000', 10);
+const PROVIDER_TIMEOUT_MS = parseInt(
+  process.env.PAYMENT_TIMEOUT_MS || '30000',
+  10,
+);
 
 @Injectable()
 export class StripeProvider implements IPaymentProvider {
   private readonly logger = new Logger(StripeProvider.name);
 
-  async processPayment(request: PaymentProviderRequest): Promise<PaymentProviderResult> {
+  async processPayment(
+    request: PaymentProviderRequest,
+  ): Promise<PaymentProviderResult> {
     this.logger.log(
       `[STRIPE] Processing payment ${request.paymentId} — $${(request.amountInCents / 100).toFixed(2)} ${request.currency}`,
     );
@@ -36,7 +41,10 @@ export class StripeProvider implements IPaymentProvider {
     return result;
   }
 
-  async refundPayment(transactionId: string, amount: Money): Promise<RefundResult> {
+  async refundPayment(
+    transactionId: string,
+    amount: Money,
+  ): Promise<RefundResult> {
     this.logger.log(
       `[STRIPE] Refunding ${amount.toString()} for transaction ${transactionId}`,
     );
@@ -60,7 +68,10 @@ export class StripeProvider implements IPaymentProvider {
     return PaymentProviderEnum.STRIPE;
   }
 
-  private async simulateStripeCall(request: PaymentProviderRequest): Promise<PaymentProviderResult> {
+  private async simulateStripeCall(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _request: PaymentProviderRequest,
+  ): Promise<PaymentProviderResult> {
     await new Promise((resolve) => setTimeout(resolve, 200));
     return {
       success: true,
@@ -69,7 +80,12 @@ export class StripeProvider implements IPaymentProvider {
     };
   }
 
-  private async simulateStripeRefund(transactionId: string, amount: Money): Promise<RefundResult> {
+  private async simulateStripeRefund(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _transactionId: string,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _amount: Money,
+  ): Promise<RefundResult> {
     await new Promise((resolve) => setTimeout(resolve, 150));
     return {
       success: true,
@@ -82,7 +98,11 @@ export class StripeProvider implements IPaymentProvider {
     return Promise.race([
       promise,
       new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error(`Stripe request timed out after ${timeoutMs}ms`)), timeoutMs),
+        setTimeout(
+          () =>
+            reject(new Error(`Stripe request timed out after ${timeoutMs}ms`)),
+          timeoutMs,
+        ),
       ),
     ]);
   }

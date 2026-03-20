@@ -1,8 +1,13 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
-import { Logger, initTracing } from '@ecommerce/core';
-import { DomainExceptionFilter } from './interfaces/filters/domain-exception.filter';
+import {
+  Logger,
+  initTracing,
+  GlobalExceptionFilter,
+  HttpLoggingInterceptor,
+  MetricsInterceptor,
+} from '@ecommerce/core';
 
 initTracing('payment-service');
 
@@ -22,8 +27,12 @@ async function bootstrap() {
     }),
   );
 
-  // Global exception filter for domain errors
-  app.useGlobalFilters(new DomainExceptionFilter());
+  // Global exception filter and interceptors
+  app.useGlobalFilters(new GlobalExceptionFilter());
+  app.useGlobalInterceptors(
+    new HttpLoggingInterceptor(),
+    new MetricsInterceptor('payment-service'),
+  );
 
   await app.listen(process.env.PORT ?? 3004);
 }

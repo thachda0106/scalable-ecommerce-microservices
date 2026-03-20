@@ -5,12 +5,7 @@ import {
   HealthCheckService,
   HealthIndicatorResult,
 } from '@nestjs/terminus';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiExcludeController,
-} from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import Redis from 'ioredis';
 import { REDIS_CLIENT } from '../common/constants';
 import { Public } from '../common/decorators/public.decorator';

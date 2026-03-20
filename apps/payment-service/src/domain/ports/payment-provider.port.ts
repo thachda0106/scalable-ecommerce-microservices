@@ -23,7 +23,9 @@ export interface RefundResult {
 }
 
 export interface IPaymentProvider {
-  processPayment(request: PaymentProviderRequest): Promise<PaymentProviderResult>;
+  processPayment(
+    request: PaymentProviderRequest,
+  ): Promise<PaymentProviderResult>;
   refundPayment(transactionId: string, amount: Money): Promise<RefundResult>;
   getName(): PaymentProviderEnum;
 }

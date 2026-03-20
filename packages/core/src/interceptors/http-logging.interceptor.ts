@@ -1,0 +1,51 @@
+import {
+  Injectable,
+  NestInterceptor,
+  ExecutionContext,
+  CallHandler,
+  Logger,
+} from '@nestjs/common';
+import { Observable } from 'rxjs';
+import { tap } from 'rxjs/operators';
+import { Request, Response } from 'express';
+
+@Injectable()
+export class HttpLoggingInterceptor implements NestInterceptor {
+  private readonly logger = new Logger('HTTP');
+
+  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+    const ctx = context.switchToHttp();
+    const req = ctx.getRequest<Request>();
+    const res = ctx.getResponse<Response>();
+
+    const { method, originalUrl } = req;
+    const userAgent = req.get('user-agent') || '-';
+    const correlationId =
+      (req.headers['x-correlation-id'] as string) ||
+      (req.headers['x-request-id'] as string) ||
+      '-';
+
+    const now = Date.now();
+
+    return next.handle().pipe(
+      tap({
+        next: () => {
+          const latencyMs = Date.now() - now;
+          const { statusCode } = res;
+          this.logger.log(
+            `[${correlationId}] ${method} ${originalUrl} ${statusCode} - ${userAgent} [${latencyMs}ms]`,
+          );
+        },
+        error: (error: any) => {
+          const latencyMs = Date.now() - now;
+          // The GlobalExceptionFilter will log the detailed error with stack,
+          // so we don't need to log identical error payload here, just that
+          // the sequence resulted in an error from the interceptor perspective.
+          this.logger.warn(
+            `[${correlationId}] ${method} ${originalUrl} FAILED - ${userAgent} [${latencyMs}ms] ${error?.message || 'Unknown Error'}`,
+          );
+        },
+      }),
+    );
+  }
+}

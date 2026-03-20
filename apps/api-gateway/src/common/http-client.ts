@@ -2,7 +2,7 @@ import { Injectable, HttpException } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { Request } from 'express';
 import { firstValueFrom } from 'rxjs';
-import { AxiosRequestConfig, AxiosError, AxiosResponse } from 'axios';
+import { AxiosRequestConfig, AxiosError } from 'axios';
 import { randomUUID } from 'crypto';
 import {
   signInternalHeaders,

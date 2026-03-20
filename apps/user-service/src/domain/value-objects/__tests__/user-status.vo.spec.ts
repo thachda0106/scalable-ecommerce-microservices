@@ -46,8 +46,9 @@ describe('UserStatus', () => {
 
     it('should throw on invalid transition', () => {
       const status = UserStatus.create(UserStatusEnum.DELETED);
-      expect(() => status.transitionTo(UserStatusEnum.ACTIVE))
-        .toThrow(InvalidUserStatusTransitionError);
+      expect(() => status.transitionTo(UserStatusEnum.ACTIVE)).toThrow(
+        InvalidUserStatusTransitionError,
+      );
     });
 
     it('transitionTo returns new UserStatus', () => {

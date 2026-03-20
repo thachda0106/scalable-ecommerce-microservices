@@ -1,7 +1,13 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
-import { Logger, initTracing } from '@ecommerce/core';
+import {
+  Logger,
+  initTracing,
+  GlobalExceptionFilter,
+  HttpLoggingInterceptor,
+  MetricsInterceptor,
+} from '@ecommerce/core';
 
 initTracing('product-service');
 
@@ -15,6 +21,12 @@ async function bootstrap() {
       whitelist: true,
       forbidNonWhitelisted: true,
     }),
+  );
+
+  app.useGlobalFilters(new GlobalExceptionFilter());
+  app.useGlobalInterceptors(
+    new HttpLoggingInterceptor(),
+    new MetricsInterceptor('product-service'),
   );
   await app.listen(process.env.PORT ?? 3000);
 }

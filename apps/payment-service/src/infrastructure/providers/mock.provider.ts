@@ -13,7 +13,9 @@ import { PaymentProviderEnum } from '../../domain/enums/payment-provider.enum';
 export class MockProvider implements IPaymentProvider {
   private readonly logger = new Logger(MockProvider.name);
 
-  async processPayment(request: PaymentProviderRequest): Promise<PaymentProviderResult> {
+  async processPayment(
+    request: PaymentProviderRequest,
+  ): Promise<PaymentProviderResult> {
     this.logger.log(
       `[MOCK] Processing payment ${request.paymentId} for order ${request.orderId} — $${(request.amountInCents / 100).toFixed(2)} ${request.currency}`,
     );
@@ -32,7 +34,10 @@ export class MockProvider implements IPaymentProvider {
     };
   }
 
-  async refundPayment(transactionId: string, amount: Money): Promise<RefundResult> {
+  async refundPayment(
+    transactionId: string,
+    amount: Money,
+  ): Promise<RefundResult> {
     this.logger.log(
       `[MOCK] Refunding ${amount.toString()} for transaction ${transactionId}`,
     );

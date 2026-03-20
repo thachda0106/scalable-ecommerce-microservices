@@ -37,7 +37,9 @@ export class AuditLogService {
     entity.targetId = entry.targetId;
     entity.details = entry.details ?? {};
     this.auditRepo.save(entity).catch((err) => {
-      this.logger.error(`Failed to persist audit log: ${(err as Error).message}`);
+      this.logger.error(
+        `Failed to persist audit log: ${(err as Error).message}`,
+      );
     });
   }
 }

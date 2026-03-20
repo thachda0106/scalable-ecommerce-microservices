@@ -4,7 +4,6 @@ import { CommandBus } from '@nestjs/cqrs';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { OAuthLoginCommand } from '../../application/commands/oauth-login.command';
 import type { Request, Response } from 'express';
-import type { AuthTokens } from '../../infrastructure/jwt/jwt-adapter.service';
 
 interface OAuthUser {
   email: string;
@@ -61,6 +60,7 @@ export class OAuthController {
     oauthUser: OAuthUser,
     res: Response,
   ): Promise<void> {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const tokens = await this.commandBus.execute(
       new OAuthLoginCommand({
         email: oauthUser.email,
@@ -73,6 +73,7 @@ export class OAuthController {
     );
 
     // SEC: Set refresh token in HttpOnly cookie — not accessible to JavaScript
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     res.cookie('refresh_token', tokens.refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -82,7 +83,9 @@ export class OAuthController {
 
     // Return only the access token and jti in the JSON body
     res.json({
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
       accessToken: tokens.accessToken,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
       jti: tokens.jti,
     });
   }

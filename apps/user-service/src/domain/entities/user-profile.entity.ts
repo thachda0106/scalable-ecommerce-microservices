@@ -62,13 +62,27 @@ export class UserProfile {
     this._updatedAt = new Date();
   }
 
-  get userId(): UserId { return this._userId; }
-  get displayName(): string | null { return this._displayName; }
-  get avatar(): string | null { return this._avatar; }
-  get bio(): string | null { return this._bio; }
-  get phoneNumber(): string | null { return this._phoneNumber; }
-  get dateOfBirth(): Date | null { return this._dateOfBirth; }
-  get updatedAt(): Date { return this._updatedAt; }
+  get userId(): UserId {
+    return this._userId;
+  }
+  get displayName(): string | null {
+    return this._displayName;
+  }
+  get avatar(): string | null {
+    return this._avatar;
+  }
+  get bio(): string | null {
+    return this._bio;
+  }
+  get phoneNumber(): string | null {
+    return this._phoneNumber;
+  }
+  get dateOfBirth(): Date | null {
+    return this._dateOfBirth;
+  }
+  get updatedAt(): Date {
+    return this._updatedAt;
+  }
 
   toJSON() {
     return {

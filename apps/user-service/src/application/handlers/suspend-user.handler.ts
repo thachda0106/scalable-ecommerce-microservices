@@ -22,7 +22,9 @@ export class SuspendUserHandler {
   async execute(command: SuspendUserCommand): Promise<void> {
     const stopTimer = this.metrics.startTimer('suspend_user');
 
-    const user = await this.userRepository.findById(UserId.create(command.userId));
+    const user = await this.userRepository.findById(
+      UserId.create(command.userId),
+    );
     if (!user) {
       throw new NotFoundException(`User ${command.userId} not found`);
     }

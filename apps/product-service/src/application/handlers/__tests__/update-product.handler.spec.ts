@@ -2,7 +2,6 @@ import { UpdateProductHandler } from '../update-product.handler';
 import { UpdateProductCommand } from '../../commands/update-product.command';
 import { Product } from '../../../domain/entities/product.entity';
 import { ProductNotFoundError } from '../../../domain/errors';
-import { ProductId } from '../../../domain/value-objects';
 
 describe('UpdateProductHandler', () => {
   let handler: UpdateProductHandler;

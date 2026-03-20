@@ -29,7 +29,10 @@ export class KafkaEventPublisher implements IEventPublisher {
         occurredOn: event.occurredOn.toISOString(),
         data: Object.entries(event)
           .filter(([key]) => key !== 'occurredOn' && key !== 'eventType')
-          .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {}),
+          .reduce<Record<string, unknown>>((acc, [key, value]) => {
+            acc[key] = value;
+            return acc;
+          }, {}),
       };
       entry.processed = false;
       return entry;

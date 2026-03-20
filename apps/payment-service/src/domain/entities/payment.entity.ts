@@ -1,5 +1,8 @@
 import { PaymentId } from '../value-objects/payment-id.vo';
-import { PaymentStatus, PaymentStatusEnum } from '../value-objects/payment-status.vo';
+import {
+  PaymentStatus,
+  PaymentStatusEnum,
+} from '../value-objects/payment-status.vo';
 import { Money } from '../value-objects/money.vo';
 import { PaymentProviderEnum } from '../enums/payment-provider.enum';
 import { BaseDomainEvent } from '../events/base-domain.event';
@@ -108,11 +111,7 @@ export class Payment {
     this._updatedAt = new Date();
 
     this._domainEvents.push(
-      new PaymentProcessingEvent(
-        this._id.value,
-        this._orderId,
-        this._provider,
-      ),
+      new PaymentProcessingEvent(this._id.value, this._orderId, this._provider),
     );
   }
 
@@ -138,11 +137,7 @@ export class Payment {
     this._updatedAt = new Date();
 
     this._domainEvents.push(
-      new PaymentFailedEvent(
-        this._id.value,
-        this._orderId,
-        reason,
-      ),
+      new PaymentFailedEvent(this._id.value, this._orderId, reason),
     );
   }
 

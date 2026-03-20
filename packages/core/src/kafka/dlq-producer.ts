@@ -28,7 +28,8 @@ export interface KafkaProducer {
       value: string | Buffer | null;
       headers?: Record<string, string | Buffer>;
     }>;
-  }): Promise<void>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  }): Promise<any>;
 }
 
 export class KafkaDlqProducer {

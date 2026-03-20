@@ -1,4 +1,11 @@
-import { Entity, Column, PrimaryColumn, OneToOne, JoinColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryColumn,
+  OneToOne,
+  JoinColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 import { UserOrmEntity } from './user.orm-entity';
 
 @Entity('user_settings')

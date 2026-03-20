@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/unbound-method */
 import { SuspendUserHandler } from '../suspend-user.handler';
 import { SuspendUserCommand } from '../../commands/suspend-user.command';
 import type { IUserRepository } from '../../../domain/ports/user-repository.port';
@@ -24,29 +25,48 @@ describe('SuspendUserHandler', () => {
       delete: jest.fn(),
     };
 
-    unitOfWork = { commitUserWithEvents: jest.fn() } as any;
+    unitOfWork = {
+      commitUserWithEvents: jest.fn(),
+    } as unknown as jest.Mocked<UnitOfWork>;
     metrics = {
-      incrementUsersCreated: jest.fn(), incrementUsersUpdated: jest.fn(),
-      incrementUsersDeleted: jest.fn(), incrementUsersSuspended: jest.fn(),
-      incrementUsersReactivated: jest.fn(), recordStatusChange: jest.fn(),
+      incrementUsersCreated: jest.fn(),
+      incrementUsersUpdated: jest.fn(),
+      incrementUsersDeleted: jest.fn(),
+      incrementUsersSuspended: jest.fn(),
+      incrementUsersReactivated: jest.fn(),
+      recordStatusChange: jest.fn(),
       startTimer: jest.fn().mockReturnValue(jest.fn()),
-      setActiveUsers: jest.fn(), getMetrics: jest.fn(),
-    } as any;
-    auditLog = { log: jest.fn() } as any;
+      setActiveUsers: jest.fn(),
+      getMetrics: jest.fn(),
+    } as unknown as jest.Mocked<UserMetricsService>;
+    auditLog = { log: jest.fn() } as unknown as jest.Mocked<AuditLogService>;
 
-    handler = new SuspendUserHandler(userRepository, unitOfWork, metrics, auditLog);
+    handler = new SuspendUserHandler(
+      userRepository,
+      unitOfWork,
+      metrics,
+      auditLog,
+    );
   });
 
   it('should suspend user and commit via UnitOfWork', async () => {
-    const user = User.create({ email: 'test@example.com', username: 'testuser' });
+    const user = User.create({
+      email: 'test@example.com',
+      username: 'testuser',
+    });
     user.pullDomainEvents();
     userRepository.findById.mockResolvedValue(user);
 
-    await handler.execute(new SuspendUserCommand(user.id.value, 'policy violation'));
+    await handler.execute(
+      new SuspendUserCommand(user.id.value, 'policy violation'),
+    );
 
     expect(unitOfWork.commitUserWithEvents).toHaveBeenCalledTimes(1);
     expect(metrics.incrementUsersSuspended).toHaveBeenCalledTimes(1);
-    expect(metrics.recordStatusChange).toHaveBeenCalledWith('ACTIVE', 'SUSPENDED');
+    expect(metrics.recordStatusChange).toHaveBeenCalledWith(
+      'ACTIVE',
+      'SUSPENDED',
+    );
     expect(auditLog.log).toHaveBeenCalledTimes(1);
   });
 

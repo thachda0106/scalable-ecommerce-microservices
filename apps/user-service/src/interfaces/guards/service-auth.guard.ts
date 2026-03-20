@@ -18,8 +18,10 @@ export class ServiceAuthGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest<Request>();
     const apiKey = request.headers['x-api-key'] as string | undefined;
-    const serviceToken = request.headers['x-service-token'] as string | undefined;
-    const authHeader = request.headers['authorization'] as string | undefined;
+    const serviceToken = request.headers['x-service-token'] as
+      | string
+      | undefined;
+    const authHeader = request.headers['authorization'];
 
     // Internal service API key
     if (apiKey && apiKey === process.env.INTERNAL_API_KEY) {

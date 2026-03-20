@@ -19,7 +19,10 @@ export class UnitOfWork {
   /**
    * Saves user aggregate and domain events atomically within a single transaction.
    */
-  async commitUserWithEvents(user: User, events: BaseDomainEvent[]): Promise<void> {
+  async commitUserWithEvents(
+    user: User,
+    events: BaseDomainEvent[],
+  ): Promise<void> {
     await this.dataSource.transaction(async (manager: EntityManager) => {
       // 1. Persist the user aggregate
       const userOrm = UserMapper.toPersistence(user);
@@ -35,8 +38,14 @@ export class UnitOfWork {
             eventType: event.eventType,
             occurredOn: event.occurredOn.toISOString(),
             data: Object.entries(event)
-              .filter(([key]) => !['occurredOn', 'eventType', 'eventId'].includes(key))
-              .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {}),
+              .filter(
+                ([key]) =>
+                  !['occurredOn', 'eventType', 'eventId'].includes(key),
+              )
+              .reduce<Record<string, unknown>>((acc, [key, value]) => {
+                acc[key] = value;
+                return acc;
+              }, {}),
           };
           entry.processed = false;
           return entry;

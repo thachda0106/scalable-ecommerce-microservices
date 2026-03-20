@@ -1,4 +1,10 @@
-import { IsEmail, IsOptional, IsString, Length, Matches } from 'class-validator';
+import {
+  IsEmail,
+  IsOptional,
+  IsString,
+  Length,
+  Matches,
+} from 'class-validator';
 
 export class UpdateUserDto {
   @IsOptional()
@@ -9,7 +15,8 @@ export class UpdateUserDto {
   @IsString()
   @Length(3, 30)
   @Matches(/^[a-zA-Z0-9_]+$/, {
-    message: 'Username must contain only alphanumeric characters and underscores',
+    message:
+      'Username must contain only alphanumeric characters and underscores',
   })
   username?: string;
 }

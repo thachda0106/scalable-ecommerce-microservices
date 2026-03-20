@@ -35,7 +35,11 @@ import { KafkaEventPublisher } from '../infrastructure/kafka/kafka-event-publish
 import { OutboxRelayService } from '../infrastructure/kafka/outbox-relay.service';
 
 // Infrastructure — Observability
-import { UserMetricsService, MetricsController, AuditLogService } from '../infrastructure/observability';
+import {
+  UserMetricsService,
+  MetricsController,
+  AuditLogService,
+} from '../infrastructure/observability';
 
 // Interface Layer
 import { UserController } from './controllers/user.controller';
@@ -54,11 +58,7 @@ import { RolesGuard } from './guards/roles.guard';
     ]),
     ScheduleModule.forRoot(),
   ],
-  controllers: [
-    UserController,
-    HealthController,
-    MetricsController,
-  ],
+  controllers: [UserController, HealthController, MetricsController],
   providers: [
     // Shared Kafka client
     KafkaClientFactory,

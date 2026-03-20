@@ -51,4 +51,3 @@ export class PaymentOrmEntity {
   @UpdateDateColumn()
   updatedAt: Date;
 }
-

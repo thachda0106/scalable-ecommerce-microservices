@@ -1,9 +1,18 @@
 import { Inject, Logger } from '@nestjs/common';
 import { RefundPaymentCommand } from '../commands/refund-payment.command';
 import { PaymentId } from '../../domain/value-objects/payment-id.vo';
-import { PAYMENT_REPOSITORY, IPaymentRepository } from '../../domain/ports/payment-repository.port';
-import { EVENT_PUBLISHER, IEventPublisher } from '../ports/event-publisher.port';
-import { PAYMENT_PROVIDER_FACTORY, IPaymentProviderFactory } from '../ports/payment-provider-factory.port';
+import {
+  PAYMENT_REPOSITORY,
+  IPaymentRepository,
+} from '../../domain/ports/payment-repository.port';
+import {
+  EVENT_PUBLISHER,
+  IEventPublisher,
+} from '../ports/event-publisher.port';
+import {
+  PAYMENT_PROVIDER_FACTORY,
+  IPaymentProviderFactory,
+} from '../ports/payment-provider-factory.port';
 
 export class RefundPaymentHandler {
   private readonly logger = new Logger(RefundPaymentHandler.name);
@@ -17,11 +26,15 @@ export class RefundPaymentHandler {
     private readonly eventPublisher: IEventPublisher,
   ) {}
 
-  async execute(command: RefundPaymentCommand): Promise<Record<string, unknown>> {
+  async execute(
+    command: RefundPaymentCommand,
+  ): Promise<Record<string, unknown>> {
     const { paymentId, reason } = command;
 
     // 1. Find payment
-    const payment = await this.paymentRepository.findById(PaymentId.create(paymentId));
+    const payment = await this.paymentRepository.findById(
+      PaymentId.create(paymentId),
+    );
     if (!payment) {
       throw new Error(`Payment ${paymentId} not found`);
     }

@@ -22,7 +22,9 @@ export class DeleteUserHandler {
   async execute(command: DeleteUserCommand): Promise<void> {
     const stopTimer = this.metrics.startTimer('delete_user');
 
-    const user = await this.userRepository.findById(UserId.create(command.userId));
+    const user = await this.userRepository.findById(
+      UserId.create(command.userId),
+    );
     if (!user) {
       throw new NotFoundException(`User ${command.userId} not found`);
     }

@@ -68,10 +68,10 @@ describe('ProcessPaymentHandler', () => {
 
     expect(result.status).toBe(PaymentStatusEnum.SUCCESS);
     expect(result.transactionId).toBe('tx-mock-123');
-    
+
     // Expect save to be called 3 times (create, startProcessing, complete)
     expect(mockPaymentRepo.save).toHaveBeenCalledTimes(3);
-    
+
     // Expect 3 events to be published (created, processing, completed)
     expect(mockEventPublisher.publishAll).toHaveBeenCalledWith(
       expect.arrayContaining([
@@ -80,7 +80,7 @@ describe('ProcessPaymentHandler', () => {
         expect.objectContaining({ eventType: 'PaymentCompleted' }),
       ]),
     );
-    
+
     expect(mockMetricsService.incrementSuccess).toHaveBeenCalled();
   });
 
@@ -105,16 +105,26 @@ describe('ProcessPaymentHandler', () => {
   });
 
   it('should return idempotent success if already processed', async () => {
-    const command = new ProcessPaymentCommand('o1', 'u1', 1000, 'USD', 'MOCK', 'key1');
+    const command = new ProcessPaymentCommand(
+      'o1',
+      'u1',
+      1000,
+      'USD',
+      'MOCK',
+      'key1',
+    );
     const existingPayment = {
       status: { value: PaymentStatusEnum.SUCCESS },
-      toJSON: () => ({ status: PaymentStatusEnum.SUCCESS, idempotencyKey: 'key1' }),
+      toJSON: () => ({
+        status: PaymentStatusEnum.SUCCESS,
+        idempotencyKey: 'key1',
+      }),
     };
-    
+
     mockPaymentRepo.findByIdempotencyKey.mockResolvedValue(existingPayment);
 
     const result = await handler.execute(command);
-    
+
     expect(result.status).toBe(PaymentStatusEnum.SUCCESS);
     expect(mockProvider.processPayment).not.toHaveBeenCalled();
     expect(mockPaymentRepo.save).not.toHaveBeenCalled();

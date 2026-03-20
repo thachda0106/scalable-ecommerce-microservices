@@ -9,8 +9,14 @@ export enum PaymentStatusEnum {
 }
 
 const VALID_TRANSITIONS: Map<PaymentStatusEnum, PaymentStatusEnum[]> = new Map([
-  [PaymentStatusEnum.PENDING, [PaymentStatusEnum.PROCESSING, PaymentStatusEnum.FAILED]],
-  [PaymentStatusEnum.PROCESSING, [PaymentStatusEnum.SUCCESS, PaymentStatusEnum.FAILED]],
+  [
+    PaymentStatusEnum.PENDING,
+    [PaymentStatusEnum.PROCESSING, PaymentStatusEnum.FAILED],
+  ],
+  [
+    PaymentStatusEnum.PROCESSING,
+    [PaymentStatusEnum.SUCCESS, PaymentStatusEnum.FAILED],
+  ],
   [PaymentStatusEnum.SUCCESS, [PaymentStatusEnum.REFUNDED]],
   [PaymentStatusEnum.FAILED, []],
   [PaymentStatusEnum.REFUNDED, []],

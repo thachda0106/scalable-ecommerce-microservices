@@ -2,7 +2,6 @@ import { CommandHandler, ICommandHandler, EventBus } from '@nestjs/cqrs';
 import { Inject, Logger } from '@nestjs/common';
 import { RebuildIndexCommand } from '../commands/rebuild-index.command';
 import { SEARCH_INDEX_PORT, ISearchIndexPort } from '../../domain/ports';
-import { SEARCH_QUERY_PORT, ISearchQueryPort } from '../../domain/ports';
 import { IndexManagementService } from '../../infrastructure/opensearch/index-management.service';
 import { IndexRebuiltEvent } from '../../domain/events';
 import { SearchMetricsService } from '../../infrastructure/metrics/search-metrics.service';

@@ -88,9 +88,7 @@ export class User {
     this._email = newEmail;
     this._updatedAt = new Date();
 
-    this._domainEvents.push(
-      new UserUpdatedEvent(this._id.value, ['email']),
-    );
+    this._domainEvents.push(new UserUpdatedEvent(this._id.value, ['email']));
   }
 
   updateUsername(newUsername: Username): void {
@@ -98,9 +96,7 @@ export class User {
     this._username = newUsername;
     this._updatedAt = new Date();
 
-    this._domainEvents.push(
-      new UserUpdatedEvent(this._id.value, ['username']),
-    );
+    this._domainEvents.push(new UserUpdatedEvent(this._id.value, ['username']));
   }
 
   updateProfile(props: UpdateUserProfileProps): void {
@@ -108,9 +104,7 @@ export class User {
     this._profile.update(props);
     this._updatedAt = new Date();
 
-    this._domainEvents.push(
-      new UserUpdatedEvent(this._id.value, ['profile']),
-    );
+    this._domainEvents.push(new UserUpdatedEvent(this._id.value, ['profile']));
   }
 
   updateSettings(props: UpdateUserSettingsProps): void {
@@ -118,33 +112,25 @@ export class User {
     this._settings.update(props);
     this._updatedAt = new Date();
 
-    this._domainEvents.push(
-      new UserUpdatedEvent(this._id.value, ['settings']),
-    );
+    this._domainEvents.push(new UserUpdatedEvent(this._id.value, ['settings']));
   }
 
   suspend(reason: string): void {
     this.transitionStatus(UserStatusEnum.SUSPENDED);
 
-    this._domainEvents.push(
-      new UserSuspendedEvent(this._id.value, reason),
-    );
+    this._domainEvents.push(new UserSuspendedEvent(this._id.value, reason));
   }
 
   reactivate(): void {
     this.transitionStatus(UserStatusEnum.ACTIVE);
 
-    this._domainEvents.push(
-      new UserReactivatedEvent(this._id.value),
-    );
+    this._domainEvents.push(new UserReactivatedEvent(this._id.value));
   }
 
   delete(): void {
     this.transitionStatus(UserStatusEnum.DELETED);
 
-    this._domainEvents.push(
-      new UserDeletedEvent(this._id.value),
-    );
+    this._domainEvents.push(new UserDeletedEvent(this._id.value));
   }
 
   // ─── Event Handling ──────────────────────────────────────────────────
@@ -159,10 +145,7 @@ export class User {
 
   private transitionStatus(target: UserStatusEnum): void {
     if (!this._status.canTransitionTo(target)) {
-      throw new InvalidUserStatusTransitionError(
-        this._status.value,
-        target,
-      );
+      throw new InvalidUserStatusTransitionError(this._status.value, target);
     }
     this._status = this._status.transitionTo(target);
     this._updatedAt = new Date();
@@ -179,15 +162,33 @@ export class User {
 
   // ─── Getters ─────────────────────────────────────────────────────────
 
-  get id(): UserId { return this._id; }
-  get email(): Email { return this._email; }
-  get username(): Username { return this._username; }
-  get status(): UserStatus { return this._status; }
-  get profile(): UserProfile { return this._profile; }
-  get settings(): UserSettings { return this._settings; }
-  get version(): number { return this._version; }
-  get createdAt(): Date { return this._createdAt; }
-  get updatedAt(): Date { return this._updatedAt; }
+  get id(): UserId {
+    return this._id;
+  }
+  get email(): Email {
+    return this._email;
+  }
+  get username(): Username {
+    return this._username;
+  }
+  get status(): UserStatus {
+    return this._status;
+  }
+  get profile(): UserProfile {
+    return this._profile;
+  }
+  get settings(): UserSettings {
+    return this._settings;
+  }
+  get version(): number {
+    return this._version;
+  }
+  get createdAt(): Date {
+    return this._createdAt;
+  }
+  get updatedAt(): Date {
+    return this._updatedAt;
+  }
 
   toJSON() {
     return {

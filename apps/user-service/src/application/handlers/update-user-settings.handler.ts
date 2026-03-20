@@ -22,7 +22,9 @@ export class UpdateUserSettingsHandler {
   async execute(command: UpdateUserSettingsCommand): Promise<void> {
     const stopTimer = this.metrics.startTimer('update_user_settings');
 
-    const user = await this.userRepository.findById(UserId.create(command.userId));
+    const user = await this.userRepository.findById(
+      UserId.create(command.userId),
+    );
     if (!user) {
       throw new NotFoundException(`User ${command.userId} not found`);
     }

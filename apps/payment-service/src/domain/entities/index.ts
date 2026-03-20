@@ -1,1 +1,5 @@
-export { Payment, CreatePaymentProps, ReconstitutePaymentProps } from './payment.entity';
+export {
+  Payment,
+  CreatePaymentProps,
+  ReconstitutePaymentProps,
+} from './payment.entity';
