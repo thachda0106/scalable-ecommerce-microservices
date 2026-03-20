@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
+import { safeExecute, StrategyType } from '@ecommerce/core';
 
 @Injectable()
 export class InventoryServiceClient {
@@ -17,18 +18,30 @@ export class InventoryServiceClient {
    */
   async checkStock(productId: string, quantity: number): Promise<boolean> {
     try {
-      const { data, status } = await firstValueFrom(
-        this.httpService.get(
-          `${this.baseUrl}/inventory/${productId}/available`,
-          { params: { quantity } },
-        ),
+      const response = await safeExecute(
+        async () => {
+          const { data, status } = await firstValueFrom(
+            this.httpService.get(
+              `${this.baseUrl}/inventory/${productId}/available`,
+              { params: { quantity } },
+            ),
+          );
+
+          if (status !== 200) return false;
+          return data?.available === true;
+        },
+        {
+          strategy: StrategyType.FAIL_CLOSE,
+          timeout: 3000,
+          retry: { attempts: 2, backoffMs: 500 },
+          circuitBreakerKey: 'inventory-service-http',
+          label: `CheckStock:${productId}`,
+        },
       );
 
-      if (status !== 200) return false;
-
-      return data?.available === true;
+      return response ?? false;
     } catch (err: any) {
-      // Service unreachable — degrade gracefully
+      // System error (timeout, 5xx, circuit breaker open) => degrade gracefully
       this.logger.warn(
         `inventory-service unavailable for product ${productId}: ${err?.message}. Allowing add.`,
       );

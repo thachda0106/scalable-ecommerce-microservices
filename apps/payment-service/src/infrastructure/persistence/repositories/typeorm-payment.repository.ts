@@ -6,6 +6,7 @@ import { PaymentId } from '../../../domain/value-objects/payment-id.vo';
 import { IPaymentRepository } from '../../../domain/ports/payment-repository.port';
 import { PaymentOrmEntity } from '../entities/payment.orm-entity';
 import { PaymentMapper } from '../mappers/payment.mapper';
+import { safeExecute, StrategyType } from '@ecommerce/core';
 
 @Injectable()
 export class TypeOrmPaymentRepository implements IPaymentRepository {
@@ -18,8 +19,18 @@ export class TypeOrmPaymentRepository implements IPaymentRepository {
 
   async save(payment: Payment): Promise<void> {
     try {
-      const orm = PaymentMapper.toOrm(payment);
-      await this.paymentRepo.save(orm);
+      await safeExecute(
+        async () => {
+          const orm = PaymentMapper.toOrm(payment);
+          await this.paymentRepo.save(orm);
+        },
+        {
+          strategy: StrategyType.FAIL_CLOSE,
+          retry: { attempts: 3, backoffMs: 200 },
+          circuitBreakerKey: 'payment-db',
+          label: 'DB:SavePayment',
+        },
+      );
     } catch (error) {
       this.logger.error(`Failed to save payment: ${(error as Error).message}`);
       throw error;

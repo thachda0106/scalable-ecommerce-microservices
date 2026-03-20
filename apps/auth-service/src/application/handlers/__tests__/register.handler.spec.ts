@@ -38,7 +38,7 @@ describe('RegisterHandler', () => {
         RegisterHandler,
         { provide: USER_REPOSITORY, useValue: userRepository },
         { provide: KAFKA_SERVICE, useValue: kafkaClient },
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+
         { provide: Logger, useValue: logger },
       ],
     }).compile();
@@ -51,7 +51,10 @@ describe('RegisterHandler', () => {
     userRepository.save.mockResolvedValue(makeUser());
 
     const result = await handler.execute(
-      new RegisterCommand({ email: 'test@example.com', password: 'Password123!' }),
+      new RegisterCommand({
+        email: 'test@example.com',
+        password: 'Password123!',
+      }),
     );
 
     expect(result.email).toBe('test@example.com');
@@ -65,7 +68,10 @@ describe('RegisterHandler', () => {
 
     await expect(
       handler.execute(
-        new RegisterCommand({ email: 'test@example.com', password: 'Password123!' }),
+        new RegisterCommand({
+          email: 'test@example.com',
+          password: 'Password123!',
+        }),
       ),
     ).rejects.toThrow(ConflictException);
     expect(userRepository.save).not.toHaveBeenCalled();
@@ -76,7 +82,10 @@ describe('RegisterHandler', () => {
     userRepository.save.mockResolvedValue(makeUser());
 
     await handler.execute(
-      new RegisterCommand({ email: 'test@example.com', password: 'Password123!' }),
+      new RegisterCommand({
+        email: 'test@example.com',
+        password: 'Password123!',
+      }),
     );
 
     // Topic must be 'user.registered', not the old 'identity' topic
@@ -95,7 +104,10 @@ describe('RegisterHandler', () => {
 
     await expect(
       handler.execute(
-        new RegisterCommand({ email: 'test@example.com', password: 'Password123!' }),
+        new RegisterCommand({
+          email: 'test@example.com',
+          password: 'Password123!',
+        }),
       ),
     ).resolves.toBeDefined();
     expect(logger.error).toHaveBeenCalled();
@@ -110,7 +122,10 @@ describe('RegisterHandler', () => {
     });
 
     await handler.execute(
-      new RegisterCommand({ email: 'test@example.com', password: 'PlaintextPass1!' }),
+      new RegisterCommand({
+        email: 'test@example.com',
+        password: 'PlaintextPass1!',
+      }),
     );
 
     const storedHash = savedArgs?.password?.getValue();

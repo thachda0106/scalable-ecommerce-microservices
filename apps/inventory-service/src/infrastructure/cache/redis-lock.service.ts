@@ -29,7 +29,9 @@ export class RedisLockService {
       const result = await this.redis.set(key, requestId, 'PX', ttlMs, 'NX');
       return result === 'OK';
     } catch (error) {
-      this.logger.warn(`Failed to acquire lock ${key}: ${(error as Error).message}`);
+      this.logger.warn(
+        `Failed to acquire lock ${key}: ${(error as Error).message}`,
+      );
       return false;
     }
   }
@@ -38,7 +40,9 @@ export class RedisLockService {
     try {
       await this.redis.eval(this.RELEASE_LOCK_SCRIPT, 1, key, requestId);
     } catch (error) {
-      this.logger.warn(`Failed to release lock ${key}: ${(error as Error).message}`);
+      this.logger.warn(
+        `Failed to release lock ${key}: ${(error as Error).message}`,
+      );
     }
   }
 }

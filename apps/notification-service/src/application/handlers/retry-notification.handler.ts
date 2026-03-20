@@ -15,9 +15,7 @@ import {
 } from '../../domain/ports/event-publisher.port';
 
 @CommandHandler(RetryNotificationCommand)
-export class RetryNotificationHandler
-  implements ICommandHandler<RetryNotificationCommand>
-{
+export class RetryNotificationHandler implements ICommandHandler<RetryNotificationCommand> {
   private readonly logger = new Logger(RetryNotificationHandler.name);
 
   constructor(

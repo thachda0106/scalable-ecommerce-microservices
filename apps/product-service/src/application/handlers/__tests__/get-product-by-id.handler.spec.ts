@@ -28,19 +28,13 @@ describe('GetProductByIdHandler', () => {
       incrementCacheMiss: jest.fn(),
     };
 
-    handler = new GetProductByIdHandler(
-      mockRepository,
-      mockCache,
-      mockMetrics,
-    );
+    handler = new GetProductByIdHandler(mockRepository, mockCache, mockMetrics);
   });
 
   it('should return product from cache on hit', async () => {
     mockCache.getById.mockResolvedValue(testProduct);
 
-    const result = await handler.execute(
-      new GetProductByIdQuery('some-id'),
-    );
+    const result = await handler.execute(new GetProductByIdQuery('some-id'));
 
     expect(result).toBe(testProduct);
     expect(mockRepository.findById).not.toHaveBeenCalled();
@@ -51,9 +45,7 @@ describe('GetProductByIdHandler', () => {
     mockCache.getById.mockResolvedValue(null);
     mockRepository.findById.mockResolvedValue(testProduct);
 
-    const result = await handler.execute(
-      new GetProductByIdQuery('some-id'),
-    );
+    const result = await handler.execute(new GetProductByIdQuery('some-id'));
 
     expect(result).toBe(testProduct);
     expect(mockRepository.findById).toHaveBeenCalled();

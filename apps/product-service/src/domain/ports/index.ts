@@ -1,1 +1,6 @@
-export { PRODUCT_REPOSITORY, IProductRepository, ProductQuery, PaginatedResult } from './product-repository.port';
+export {
+  PRODUCT_REPOSITORY,
+  IProductRepository,
+  ProductQuery,
+  PaginatedResult,
+} from './product-repository.port';

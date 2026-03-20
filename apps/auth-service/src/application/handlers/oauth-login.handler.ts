@@ -90,7 +90,10 @@ export class OAuthLoginHandler implements ICommandHandler<OAuthLoginCommand> {
     });
 
     // 5. Store refresh token using namespaced key
-    await this.tokenStoreService.storeRefreshToken(user.id, tokens.refreshToken);
+    await this.tokenStoreService.storeRefreshToken(
+      user.id,
+      tokens.refreshToken,
+    );
 
     // 6. Emit user.logged_in event
     try {

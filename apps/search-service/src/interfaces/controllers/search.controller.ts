@@ -107,9 +107,7 @@ export class SearchController {
 
   @Post('reindex')
   @UseGuards(ServiceAuthGuard)
-  async reindex(
-    @Body() dto: ReindexRequestDto,
-  ): Promise<{ message: string }> {
+  async reindex(@Body() dto: ReindexRequestDto): Promise<{ message: string }> {
     await this.commandBus.execute(new RebuildIndexCommand(dto.batchSize));
     return { message: 'Reindex started' };
   }

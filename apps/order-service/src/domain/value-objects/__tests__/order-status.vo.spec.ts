@@ -16,20 +16,58 @@ describe('OrderStatus Value Object', () => {
   });
 
   it('should allow valid transitions', () => {
-    expect(OrderStatus.created().canTransitionTo(OrderStatusEnum.PENDING_PAYMENT)).toBe(true);
-    expect(OrderStatus.created().canTransitionTo(OrderStatusEnum.CANCELLED)).toBe(true);
-    expect(OrderStatus.create(OrderStatusEnum.PENDING_PAYMENT).canTransitionTo(OrderStatusEnum.PAID)).toBe(true);
-    expect(OrderStatus.create(OrderStatusEnum.PAID).canTransitionTo(OrderStatusEnum.CONFIRMED)).toBe(true);
-    expect(OrderStatus.create(OrderStatusEnum.CONFIRMED).canTransitionTo(OrderStatusEnum.SHIPPED)).toBe(true);
-    expect(OrderStatus.create(OrderStatusEnum.SHIPPED).canTransitionTo(OrderStatusEnum.DELIVERED)).toBe(true);
-    expect(OrderStatus.create(OrderStatusEnum.DELIVERED).canTransitionTo(OrderStatusEnum.REFUNDED)).toBe(true);
+    expect(
+      OrderStatus.created().canTransitionTo(OrderStatusEnum.PENDING_PAYMENT),
+    ).toBe(true);
+    expect(
+      OrderStatus.created().canTransitionTo(OrderStatusEnum.CANCELLED),
+    ).toBe(true);
+    expect(
+      OrderStatus.create(OrderStatusEnum.PENDING_PAYMENT).canTransitionTo(
+        OrderStatusEnum.PAID,
+      ),
+    ).toBe(true);
+    expect(
+      OrderStatus.create(OrderStatusEnum.PAID).canTransitionTo(
+        OrderStatusEnum.CONFIRMED,
+      ),
+    ).toBe(true);
+    expect(
+      OrderStatus.create(OrderStatusEnum.CONFIRMED).canTransitionTo(
+        OrderStatusEnum.SHIPPED,
+      ),
+    ).toBe(true);
+    expect(
+      OrderStatus.create(OrderStatusEnum.SHIPPED).canTransitionTo(
+        OrderStatusEnum.DELIVERED,
+      ),
+    ).toBe(true);
+    expect(
+      OrderStatus.create(OrderStatusEnum.DELIVERED).canTransitionTo(
+        OrderStatusEnum.REFUNDED,
+      ),
+    ).toBe(true);
   });
 
   it('should deny invalid transitions', () => {
-    expect(OrderStatus.created().canTransitionTo(OrderStatusEnum.DELIVERED)).toBe(false);
-    expect(OrderStatus.create(OrderStatusEnum.PAID).canTransitionTo(OrderStatusEnum.CREATED)).toBe(false);
-    expect(OrderStatus.create(OrderStatusEnum.CANCELLED).canTransitionTo(OrderStatusEnum.PAID)).toBe(false);
-    expect(OrderStatus.create(OrderStatusEnum.REFUNDED).canTransitionTo(OrderStatusEnum.CONFIRMED)).toBe(false);
+    expect(
+      OrderStatus.created().canTransitionTo(OrderStatusEnum.DELIVERED),
+    ).toBe(false);
+    expect(
+      OrderStatus.create(OrderStatusEnum.PAID).canTransitionTo(
+        OrderStatusEnum.CREATED,
+      ),
+    ).toBe(false);
+    expect(
+      OrderStatus.create(OrderStatusEnum.CANCELLED).canTransitionTo(
+        OrderStatusEnum.PAID,
+      ),
+    ).toBe(false);
+    expect(
+      OrderStatus.create(OrderStatusEnum.REFUNDED).canTransitionTo(
+        OrderStatusEnum.CONFIRMED,
+      ),
+    ).toBe(false);
   });
 
   it('should determine terminal states correctly', () => {

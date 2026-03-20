@@ -39,7 +39,9 @@ export class CartController {
   ) {}
 
   @Get(':userId')
-  getCart(@Param('userId', new ParseUUIDPipe({ version: '4' })) userId: string) {
+  getCart(
+    @Param('userId', new ParseUUIDPipe({ version: '4' })) userId: string,
+  ) {
     return this.queryBus.execute(new GetCartQuery(userId));
   }
 

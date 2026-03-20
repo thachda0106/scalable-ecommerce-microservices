@@ -4,7 +4,10 @@ import { Notification } from '../../../domain/entities/notification';
 import { NotificationChannel } from '../../../domain/enums/notification-channel.enum';
 import { NotificationStatus } from '../../../domain/enums/notification-status.enum';
 import { INotificationRepository } from '../../../domain/ports/notification-repository.port';
-import { IChannelProviderFactory, IChannelProvider } from '../../../domain/ports/channel-provider.port';
+import {
+  IChannelProviderFactory,
+  IChannelProvider,
+} from '../../../domain/ports/channel-provider.port';
 import { IEventPublisher } from '../../../domain/ports/event-publisher.port';
 
 describe('RetryNotificationHandler', () => {

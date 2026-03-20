@@ -12,6 +12,7 @@ import { ConfigType } from '@nestjs/config';
 import { Kafka, Producer } from 'kafkajs';
 import { OutboxEventOrmEntity } from '../persistence/entities/outbox-event.orm-entity';
 import { kafkaConfig } from '../../config/inventory.config';
+import { publishWithResilience, setCorrelationHeaders } from '@ecommerce/core';
 
 @Injectable()
 export class OutboxRelayService
@@ -83,9 +84,12 @@ export class OutboxRelayService
       }));
 
       // Send to Kafka
-      await this.producer.send({
+      await publishWithResilience(this.producer, {
         topic: 'inventory.events',
-        messages,
+        messages: messages.map((m) => ({
+          ...m,
+          headers: setCorrelationHeaders(m.key),
+        })),
       });
 
       // Mark as processed
@@ -99,9 +103,7 @@ export class OutboxRelayService
 
       this.logger.debug(`Relayed ${events.length} events to Kafka`);
     } catch (error) {
-      this.logger.error(
-        `Outbox relay failed: ${(error as Error).message}`,
-      );
+      this.logger.error(`Outbox relay failed: ${(error as Error).message}`);
     }
   }
 }

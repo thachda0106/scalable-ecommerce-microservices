@@ -1,7 +1,12 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import { OrderId } from '../../../domain/value-objects';
 import { IOrderRepository, ORDER_REPOSITORY } from '../../../domain/ports';
-import { IEventPublisher, EVENT_PUBLISHER, IPaymentService, PAYMENT_SERVICE } from '../../../application/ports';
+import {
+  IEventPublisher,
+  EVENT_PUBLISHER,
+  IPaymentService,
+  PAYMENT_SERVICE,
+} from '../../../application/ports';
 import { OrderStatusEnum } from '../../../domain/value-objects/order-status.vo';
 import { CancelOrderCommand } from '../../../application/commands/cancel-order.command';
 import { CancelOrderHandler } from '../../../application/handlers/cancel-order.handler';
@@ -44,7 +49,9 @@ export class CheckoutSagaOrchestrator {
     const order = await this.orderRepository.findById(OrderId.create(orderId));
 
     if (!order) {
-      this.logger.warn(`Saga: Order ${orderId} not found for inventory reserved`);
+      this.logger.warn(
+        `Saga: Order ${orderId} not found for inventory reserved`,
+      );
       return;
     }
 
@@ -83,9 +90,14 @@ export class CheckoutSagaOrchestrator {
       // Compensation: cancel the order to release inventory
       try {
         await this.cancelOrderHandler.execute(
-          new CancelOrderCommand(orderId, 'Payment request failed — saga compensation'),
+          new CancelOrderCommand(
+            orderId,
+            'Payment request failed — saga compensation',
+          ),
         );
-        this.logger.log(`Saga: Order ${orderId} cancelled as compensation for payment request failure.`);
+        this.logger.log(
+          `Saga: Order ${orderId} cancelled as compensation for payment request failure.`,
+        );
       } catch (compensationError) {
         this.logger.error(
           `Saga: CRITICAL — Compensation failed for order ${orderId}: ${(compensationError as Error).message}. Order stuck in PENDING_PAYMENT. Manual intervention required.`,

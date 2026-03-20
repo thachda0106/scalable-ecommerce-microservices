@@ -42,7 +42,10 @@ import { KafkaInventoryService } from '../infrastructure/external-services/kafka
 import { KafkaPaymentService } from '../infrastructure/external-services/kafka-payment.service';
 
 // Infrastructure — Observability
-import { OrderMetricsService, MetricsController } from '../infrastructure/observability';
+import {
+  OrderMetricsService,
+  MetricsController,
+} from '../infrastructure/observability';
 
 // Interface Layer
 import { OrderController } from '../interfaces/controllers/order.controller';
@@ -58,11 +61,7 @@ import { HealthController } from '../interfaces/controllers/health.controller';
     ]),
     ScheduleModule.forRoot(),
   ],
-  controllers: [
-    OrderController,
-    HealthController,
-    MetricsController,
-  ],
+  controllers: [OrderController, HealthController, MetricsController],
   providers: [
     // Shared Kafka client
     KafkaClientFactory,

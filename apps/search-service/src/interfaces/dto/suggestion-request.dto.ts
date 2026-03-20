@@ -1,4 +1,12 @@
-import { IsString, IsOptional, IsInt, Min, Max, MinLength, MaxLength } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsInt,
+  Min,
+  Max,
+  MinLength,
+  MaxLength,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class SuggestionRequestDto {

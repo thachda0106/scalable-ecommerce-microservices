@@ -32,7 +32,8 @@ export class ProductEventConsumer implements OnModuleInit, OnModuleDestroy {
     });
     this.consumer = kafka.consumer({ groupId: config.groupId });
     this.fromBeginning =
-      this.configService.get<string>('KAFKA_FROM_BEGINNING', 'false') === 'true';
+      this.configService.get<string>('KAFKA_FROM_BEGINNING', 'false') ===
+      'true';
   }
 
   async onModuleInit(): Promise<void> {
@@ -122,9 +123,7 @@ export class ProductEventConsumer implements OnModuleInit, OnModuleDestroy {
 
       case 'ProductDeleted':
       case 'product.deleted':
-        await this.commandBus.execute(
-          new RemoveProductCommand(payload.id),
-        );
+        await this.commandBus.execute(new RemoveProductCommand(payload.id));
         this.logger.log(
           `Dispatched RemoveProductCommand for product ${payload.id}`,
         );

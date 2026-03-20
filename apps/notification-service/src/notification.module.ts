@@ -1,6 +1,9 @@
 import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
-import { PrometheusModule, makeCounterProvider } from '@willsoto/nestjs-prometheus';
+import {
+  PrometheusModule,
+  makeCounterProvider,
+} from '@willsoto/nestjs-prometheus';
 
 // Kafka
 import { KafkaModule } from './infrastructure/kafka/kafka.module';

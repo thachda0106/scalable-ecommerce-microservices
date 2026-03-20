@@ -36,9 +36,14 @@ export class Money {
 
   add(other: Money): Money {
     if (this._currency !== other._currency) {
-      throw new Error(`Cannot add different currencies: ${this._currency} and ${other._currency}`);
+      throw new Error(
+        `Cannot add different currencies: ${this._currency} and ${other._currency}`,
+      );
     }
-    return new Money(this._amountInCents + other._amountInCents, this._currency);
+    return new Money(
+      this._amountInCents + other._amountInCents,
+      this._currency,
+    );
   }
 
   multiply(factor: number): Money {
@@ -54,7 +59,10 @@ export class Money {
   }
 
   equals(other: Money): boolean {
-    return this._amountInCents === other._amountInCents && this._currency === other._currency;
+    return (
+      this._amountInCents === other._amountInCents &&
+      this._currency === other._currency
+    );
   }
 
   toString(): string {

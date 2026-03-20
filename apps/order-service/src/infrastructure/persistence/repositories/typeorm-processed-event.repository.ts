@@ -5,9 +5,7 @@ import { IProcessedEventRepository } from '../../../domain/ports/processed-event
 import { ProcessedEventOrmEntity } from '../entities/processed-event.orm-entity';
 
 @Injectable()
-export class TypeOrmProcessedEventRepository
-  implements IProcessedEventRepository
-{
+export class TypeOrmProcessedEventRepository implements IProcessedEventRepository {
   constructor(
     @InjectRepository(ProcessedEventOrmEntity)
     private readonly repo: Repository<ProcessedEventOrmEntity>,

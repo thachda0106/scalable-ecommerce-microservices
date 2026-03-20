@@ -10,6 +10,7 @@ import { Product } from '../../../domain/entities/product.entity';
 import { ProductId } from '../../../domain/value-objects/product-id.vo';
 import { ProductOrmEntity } from '../entities/product.orm-entity';
 import { ProductMapper } from '../mappers/product.mapper';
+import { safeExecute, StrategyType } from '@ecommerce/core';
 
 const ALLOWED_SORT_FIELDS = ['name', 'price', 'createdAt'];
 
@@ -21,8 +22,18 @@ export class TypeOrmProductRepository implements IProductRepository {
   ) {}
 
   async save(product: Product): Promise<void> {
-    const orm = ProductMapper.toPersistence(product);
-    await this.repo.save(orm);
+    await safeExecute(
+      async () => {
+        const orm = ProductMapper.toPersistence(product);
+        await this.repo.save(orm);
+      },
+      {
+        strategy: StrategyType.FAIL_CLOSE,
+        retry: { attempts: 3, backoffMs: 200 },
+        circuitBreakerKey: 'product-db',
+        label: 'DB:SaveProduct',
+      },
+    );
   }
 
   async findById(id: ProductId): Promise<Product | null> {
@@ -84,6 +95,16 @@ export class TypeOrmProductRepository implements IProductRepository {
   }
 
   async delete(id: ProductId): Promise<void> {
-    await this.repo.delete({ id: id.value });
+    await safeExecute(
+      async () => {
+        await this.repo.delete({ id: id.value });
+      },
+      {
+        strategy: StrategyType.FAIL_CLOSE,
+        retry: { attempts: 3, backoffMs: 200 },
+        circuitBreakerKey: 'product-db',
+        label: 'DB:DeleteProduct',
+      },
+    );
   }
 }

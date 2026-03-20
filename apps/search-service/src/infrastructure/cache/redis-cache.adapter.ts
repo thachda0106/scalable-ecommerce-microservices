@@ -2,6 +2,7 @@ import { Injectable, Inject, Logger } from '@nestjs/common';
 import Redis from 'ioredis';
 import { ISearchCachePort } from '../../domain/ports/search-cache.port';
 import { SearchQuery } from '../../domain/value-objects/search-query.vo';
+import { safeExecute, StrategyType } from '@ecommerce/core';
 
 export const REDIS_CLIENT = Symbol('REDIS_CLIENT');
 
@@ -15,70 +16,93 @@ export class RedisCacheAdapter implements ISearchCachePort {
   ) {}
 
   async get<T>(key: string): Promise<T | null> {
-    try {
-      const value = await this.redis.get(key);
-      if (!value) return null;
-      return JSON.parse(value) as T;
-    } catch (error: any) {
-      this.logger.warn(`Cache get error for key ${key}: ${error.message}`);
-      return null; // Graceful degradation
-    }
+    return safeExecute(
+      async () => {
+        const value = await this.redis.get(key);
+        if (!value) return null;
+        return JSON.parse(value) as T;
+      },
+      {
+        strategy: StrategyType.FAIL_OPEN,
+        timeout: 1000,
+        circuitBreakerKey: 'redis',
+        fallback: () => null,
+        label: `cache:get:${key}`,
+      },
+    );
   }
 
   async set<T>(key: string, value: T, ttlSeconds: number): Promise<void> {
-    try {
-      await this.redis.setex(key, ttlSeconds, JSON.stringify(value));
-    } catch (error: any) {
-      this.logger.warn(`Cache set error for key ${key}: ${error.message}`);
-      // Graceful degradation — search still works without cache
-    }
+    await safeExecute(
+      async () => {
+        await this.redis.setex(key, ttlSeconds, JSON.stringify(value));
+      },
+      {
+        strategy: StrategyType.NON_BLOCKING,
+        timeout: 1000,
+        circuitBreakerKey: 'redis',
+        label: `cache:set:${key}`,
+      },
+    );
   }
 
   async delete(key: string): Promise<void> {
-    try {
-      await this.redis.del(key);
-    } catch (error: any) {
-      this.logger.warn(`Cache delete error for key ${key}: ${error.message}`);
-    }
+    await safeExecute(
+      async () => {
+        await this.redis.del(key);
+      },
+      {
+        strategy: StrategyType.NON_BLOCKING,
+        timeout: 1000,
+        circuitBreakerKey: 'redis',
+        label: `cache:delete:${key}`,
+      },
+    );
   }
 
   async invalidateAll(): Promise<void> {
-    try {
-      let cursor = '0';
-      do {
-        const [nextCursor, keys] = await this.redis.scan(
-          cursor,
-          'MATCH',
-          'search:*',
-          'COUNT',
-          100,
-        );
-        cursor = nextCursor;
-        if (keys.length > 0) {
-          await this.redis.del(...keys);
-        }
-      } while (cursor !== '0');
+    await safeExecute(
+      async () => {
+        let cursor = '0';
+        do {
+          const [nextCursor, keys] = await this.redis.scan(
+            cursor,
+            'MATCH',
+            'search:*',
+            'COUNT',
+            100,
+          );
+          cursor = nextCursor;
+          if (keys.length > 0) {
+            await this.redis.del(...keys);
+          }
+        } while (cursor !== '0');
 
-      // Also clear suggestion cache
-      cursor = '0';
-      do {
-        const [nextCursor, keys] = await this.redis.scan(
-          cursor,
-          'MATCH',
-          'suggest:*',
-          'COUNT',
-          100,
-        );
-        cursor = nextCursor;
-        if (keys.length > 0) {
-          await this.redis.del(...keys);
-        }
-      } while (cursor !== '0');
+        // Also clear suggestion cache
+        cursor = '0';
+        do {
+          const [nextCursor, keys] = await this.redis.scan(
+            cursor,
+            'MATCH',
+            'suggest:*',
+            'COUNT',
+            100,
+          );
+          cursor = nextCursor;
+          if (keys.length > 0) {
+            await this.redis.del(...keys);
+          }
+        } while (cursor !== '0');
 
-      this.logger.debug('Cache invalidated for search:* and suggest:* keys');
-    } catch (error: any) {
-      this.logger.warn(`Cache invalidation error: ${error.message}`);
-    }
+        this.logger.debug('Cache invalidated for search:* and suggest:* keys');
+      },
+      {
+        strategy: StrategyType.NON_BLOCKING,
+        timeout: 5000, // Invalidation scan might take longer
+        circuitBreakerKey: 'redis',
+        label: 'cache:invalidate-all',
+      },
+    );
   }
 
   generateKey(query: SearchQuery): string {

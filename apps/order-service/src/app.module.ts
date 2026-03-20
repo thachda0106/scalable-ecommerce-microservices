@@ -6,7 +6,9 @@ import { OrderModule } from './interfaces/order.module';
   imports: [
     TypeOrmModule.forRoot({
       type: 'postgres',
-      url: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/order_db',
+      url:
+        process.env.DATABASE_URL ||
+        'postgresql://postgres:postgres@localhost:5432/order_db',
       autoLoadEntities: true,
       synchronize: false, // Never use synchronize — use TypeORM migrations instead
       logging: process.env.NODE_ENV !== 'production',

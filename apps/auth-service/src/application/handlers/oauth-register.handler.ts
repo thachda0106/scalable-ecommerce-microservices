@@ -13,9 +13,7 @@ import { ClientKafka } from '@nestjs/microservices';
 import { Logger } from '@ecommerce/core';
 
 @CommandHandler(OAuthRegisterCommand)
-export class OAuthRegisterHandler
-  implements ICommandHandler<OAuthRegisterCommand>
-{
+export class OAuthRegisterHandler implements ICommandHandler<OAuthRegisterCommand> {
   constructor(
     @Inject(USER_REPOSITORY)
     private readonly userRepository: UserRepositoryPort,

@@ -90,7 +90,10 @@ export class ProductController {
   }
 
   @Patch(':id')
-  async update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateProductDto) {
+  async update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateProductDto,
+  ) {
     await this.updateProductHandler.execute(
       new UpdateProductCommand(
         id,

@@ -14,8 +14,12 @@ describe('AddItemHandler', () => {
   let mockRepo: jest.Mocked<ICartRepository>;
   let mockCache: jest.Mocked<ICartCache>;
   let mockOutbox: jest.Mocked<ICartOutbox>;
-  let mockProductClient: jest.Mocked<Pick<ProductServiceClient, 'validateProduct'>>;
-  let mockInventoryClient: jest.Mocked<Pick<InventoryServiceClient, 'checkStock'>>;
+  let mockProductClient: jest.Mocked<
+    Pick<ProductServiceClient, 'validateProduct'>
+  >;
+  let mockInventoryClient: jest.Mocked<
+    Pick<InventoryServiceClient, 'checkStock'>
+  >;
 
   beforeEach(() => {
     mockRepo = {

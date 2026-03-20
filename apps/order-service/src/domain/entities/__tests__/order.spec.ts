@@ -8,8 +8,18 @@ describe('Order Aggregate', () => {
   const validCreateProps: CreateOrderProps = {
     userId: 'user-123',
     items: [
-      { productId: 'prod-1', productName: 'Widget', quantity: 2, unitPrice: 19.99 },
-      { productId: 'prod-2', productName: 'Gadget', quantity: 1, unitPrice: 49.99 },
+      {
+        productId: 'prod-1',
+        productName: 'Widget',
+        quantity: 2,
+        unitPrice: 19.99,
+      },
+      {
+        productId: 'prod-2',
+        productName: 'Gadget',
+        quantity: 1,
+        unitPrice: 49.99,
+      },
     ],
   };
 
@@ -151,7 +161,12 @@ describe('Order Aggregate', () => {
             productId: 'p3',
             productName: 'Test',
             quantity: 1,
-            unitPrice: { amountInCents: 100, currency: 'USD', toDecimal: () => 1, isPositive: () => true } as any,
+            unitPrice: {
+              amountInCents: 100,
+              currency: 'USD',
+              toDecimal: () => 1,
+              isPositive: () => true,
+            } as any,
           }),
         ),
       ).toThrow(InvalidOrderOperationError);

@@ -32,7 +32,10 @@ import { OutboxRelayService } from '../infrastructure/kafka/outbox-relay.service
 import { ProductCacheRepository } from '../infrastructure/redis/product-cache.repository';
 
 // Infrastructure — Observability
-import { ProductMetricsService, MetricsController } from '../infrastructure/observability';
+import {
+  ProductMetricsService,
+  MetricsController,
+} from '../infrastructure/observability';
 
 // Interface Layer
 import { ProductController } from '../interfaces/controllers/product.controller';

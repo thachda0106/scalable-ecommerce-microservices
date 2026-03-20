@@ -42,7 +42,9 @@ describe('Money Value Object', () => {
     const moneyA = Money.fromCents(100, 'USD');
     const moneyB = Money.fromCents(50, 'EUR');
 
-    expect(() => moneyA.add(moneyB)).toThrow('Cannot operate on different currencies: USD vs EUR');
+    expect(() => moneyA.add(moneyB)).toThrow(
+      'Cannot operate on different currencies: USD vs EUR',
+    );
   });
 
   it('should multiply amount correctly', () => {

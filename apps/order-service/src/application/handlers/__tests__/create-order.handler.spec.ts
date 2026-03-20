@@ -2,7 +2,6 @@ import { CreateOrderHandler } from '../create-order.handler';
 import { CreateOrderCommand } from '../../commands/create-order.command';
 import { IOrderRepository } from '../../../domain/ports/order-repository.port';
 import { IEventPublisher } from '../../../application/ports/event-publisher.port';
-import { OrderId } from '../../../domain/value-objects/order-id.vo';
 import { Order } from '../../../domain/entities/order.entity';
 import { OrderMetricsService } from '../../../infrastructure/observability/order-metrics.service';
 
@@ -38,7 +37,12 @@ describe('CreateOrderHandler', () => {
 
   it('should create an order, save it, and publish events', async () => {
     const command = new CreateOrderCommand('user-1', [
-      { productId: 'prod-1', productName: 'Product 1', quantity: 2, unitPrice: 100 },
+      {
+        productId: 'prod-1',
+        productName: 'Product 1',
+        quantity: 2,
+        unitPrice: 100,
+      },
     ]);
 
     const orderId = await handler.execute(command);
@@ -48,7 +52,7 @@ describe('CreateOrderHandler', () => {
     expect(eventPublisher.publishAll).toHaveBeenCalledTimes(1);
     expect(metrics.incrementOrdersCreated).toHaveBeenCalledTimes(1);
     expect(metrics.startTimer).toHaveBeenCalledWith('create_order');
-    
+
     // Verify the aggregate was saved correctly
     const savedOrder = orderRepository.save.mock.calls[0][0] as Order;
     expect(savedOrder.userId.value).toBe('user-1');

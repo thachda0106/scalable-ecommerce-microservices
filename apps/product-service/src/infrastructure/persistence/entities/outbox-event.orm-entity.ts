@@ -1,4 +1,10 @@
-import { Entity, Column, PrimaryColumn, CreateDateColumn, Index } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryColumn,
+  CreateDateColumn,
+  Index,
+} from 'typeorm';
 
 @Entity('outbox_events')
 @Index('idx_outbox_unprocessed', ['processed', 'createdAt'])

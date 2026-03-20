@@ -84,7 +84,10 @@ export class LoginHandler implements IQueryHandler<LoginQuery> {
     });
 
     // 6. Store refresh token using namespaced key
-    await this.tokenStoreService.storeRefreshToken(user.id, tokens.refreshToken);
+    await this.tokenStoreService.storeRefreshToken(
+      user.id,
+      tokens.refreshToken,
+    );
 
     // 7. Emit user.logged_in event
     try {

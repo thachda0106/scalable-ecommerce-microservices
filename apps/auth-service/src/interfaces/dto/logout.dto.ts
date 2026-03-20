@@ -15,7 +15,9 @@ export class LogoutDto {
   @IsOptional()
   jti?: string;
 
-  @ApiPropertyOptional({ description: 'User ID (required when jti is provided)' })
+  @ApiPropertyOptional({
+    description: 'User ID (required when jti is provided)',
+  })
   @IsString()
   @IsOptional()
   userId?: string;

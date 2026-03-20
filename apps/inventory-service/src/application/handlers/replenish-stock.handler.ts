@@ -5,22 +5,20 @@ import {
   INVENTORY_REPOSITORY,
   IInventoryRepository,
 } from '../../domain/ports/inventory-repository.port';
-import {
-  STOCK_CACHE,
-  IStockCache,
-} from '../../domain/ports/stock-cache.port';
+import { STOCK_CACHE, IStockCache } from '../../domain/ports/stock-cache.port';
 import {
   EVENT_PUBLISHER,
   IEventPublisher,
 } from '../ports/event-publisher.port';
 import { ProductInventory } from '../../domain/entities/product-inventory';
-import { StockMovement, MovementType } from '../../domain/entities/stock-movement';
+import {
+  StockMovement,
+  MovementType,
+} from '../../domain/entities/stock-movement';
 import { BaseDomainEvent } from '../../domain/events/base-domain.event';
 
 @CommandHandler(ReplenishStockCommand)
-export class ReplenishStockHandler
-  implements ICommandHandler<ReplenishStockCommand>
-{
+export class ReplenishStockHandler implements ICommandHandler<ReplenishStockCommand> {
   private readonly logger = new Logger(ReplenishStockHandler.name);
 
   constructor(

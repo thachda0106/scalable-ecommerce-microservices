@@ -4,8 +4,16 @@ import { SearchProductsQuery } from '../queries/search-products.query';
 import { SEARCH_QUERY_PORT, ISearchQueryPort } from '../../domain/ports';
 import { SEARCH_CACHE_PORT, ISearchCachePort } from '../../domain/ports';
 import { SearchResult } from '../../domain/entities';
-import { SearchQuery, SearchFilter, SearchSort, Pagination } from '../../domain/value-objects';
-import { FilterOperator, FilterValue } from '../../domain/value-objects/search-filter.vo';
+import {
+  SearchQuery,
+  SearchFilter,
+  SearchSort,
+  Pagination,
+} from '../../domain/value-objects';
+import {
+  FilterOperator,
+  FilterValue,
+} from '../../domain/value-objects/search-filter.vo';
 import { InvalidSearchQueryError } from '../../domain/errors';
 import { SearchMetricsService } from '../../infrastructure/metrics/search-metrics.service';
 
@@ -69,7 +77,11 @@ export class SearchProductsHandler implements IQueryHandler<SearchProductsQuery>
     }
 
     const filters = (query.filters ?? []).map((f) =>
-      SearchFilter.create(f.field, f.operator as FilterOperator, f.value as FilterValue),
+      SearchFilter.create(
+        f.field,
+        f.operator as FilterOperator,
+        f.value as FilterValue,
+      ),
     );
 
     const sort = query.sort
@@ -82,6 +94,11 @@ export class SearchProductsHandler implements IQueryHandler<SearchProductsQuery>
       cursor: query.cursor,
     });
 
-    return SearchQuery.create({ query: query.query, filters, sort, pagination });
+    return SearchQuery.create({
+      query: query.query,
+      filters,
+      sort,
+      pagination,
+    });
   }
 }

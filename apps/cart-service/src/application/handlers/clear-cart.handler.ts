@@ -18,7 +18,9 @@ export class ClearCartHandler implements ICommandHandler<ClearCartCommand> {
     @Inject(CART_OUTBOX) private readonly outbox: ICartOutbox,
   ) {}
 
-  async execute(command: ClearCartCommand): Promise<ReturnType<Cart['toJSON']>> {
+  async execute(
+    command: ClearCartCommand,
+  ): Promise<ReturnType<Cart['toJSON']>> {
     const cart = await this.cartRepository.findByUserId(command.userId);
     if (!cart) {
       throw new CartNotFoundException(command.userId);

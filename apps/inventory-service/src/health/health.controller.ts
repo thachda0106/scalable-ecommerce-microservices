@@ -16,10 +16,7 @@ export class HealthController {
 
   @Get('ready')
   async readiness() {
-    const checks: Record<
-      string,
-      { status: string; latency_ms?: number }
-    > = {};
+    const checks: Record<string, { status: string; latency_ms?: number }> = {};
 
     // Database check
     const dbStart = Date.now();
@@ -42,9 +39,7 @@ export class HealthController {
       checks.redis = { status: 'down' };
     }
 
-    const allUp = Object.values(checks).every(
-      (c) => c.status === 'up',
-    );
+    const allUp = Object.values(checks).every((c) => c.status === 'up');
 
     return { status: allUp ? 'ready' : 'degraded', checks };
   }

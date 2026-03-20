@@ -2,6 +2,7 @@ import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { Producer } from 'kafkajs';
 import { IPaymentService } from '../../application/ports/payment-service.port';
 import { KafkaClientFactory } from '../kafka/kafka-client.factory';
+import { publishWithResilience, setCorrelationHeaders } from '@ecommerce/core';
 
 @Injectable()
 export class KafkaPaymentService
@@ -24,7 +25,7 @@ export class KafkaPaymentService
     currency: string,
     userId: string,
   ): Promise<void> {
-    await this.producer.send({
+    await publishWithResilience(this.producer, {
       topic: 'payment.commands',
       messages: [
         {
@@ -33,6 +34,7 @@ export class KafkaPaymentService
             type: 'ProcessPayment',
             payload: { orderId, amountInCents, currency, userId },
           }),
+          headers: setCorrelationHeaders(orderId),
         },
       ],
     });

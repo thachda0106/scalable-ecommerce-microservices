@@ -37,7 +37,7 @@ const QueryHandlers = [LoginHandler];
     ConfigModule.forRoot({ isGlobal: true }),
     CqrsModule,
     TerminusModule,
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+
     getLoggerModule(),
     DatabaseModule,
     RedisModule,

@@ -31,7 +31,11 @@ describe('RefreshTokenHandler', () => {
     updatedAt: new Date(),
   });
 
-  const mockNewTokens = { accessToken: 'new-at', refreshToken: 'new-rt', jti: 'new-jti' };
+  const mockNewTokens = {
+    accessToken: 'new-at',
+    refreshToken: 'new-rt',
+    jti: 'new-jti',
+  };
 
   beforeEach(async () => {
     jwtAdapter = { generateTokens: jest.fn().mockReturnValue(mockNewTokens) };
@@ -70,9 +74,15 @@ describe('RefreshTokenHandler', () => {
     // Old access token jti should be blocklisted
     expect(tokenStore.blocklistJti).toHaveBeenCalledWith('old-jti', 900);
     // Old refresh token revoked (namespaced)
-    expect(tokenStore.revokeRefreshToken).toHaveBeenCalledWith('user-id-1', 'old-rt');
+    expect(tokenStore.revokeRefreshToken).toHaveBeenCalledWith(
+      'user-id-1',
+      'old-rt',
+    );
     // New refresh token stored (namespaced)
-    expect(tokenStore.storeRefreshToken).toHaveBeenCalledWith('user-id-1', 'new-rt');
+    expect(tokenStore.storeRefreshToken).toHaveBeenCalledWith(
+      'user-id-1',
+      'new-rt',
+    );
   });
 
   it('should throw UnauthorizedException for invalid/expired token', async () => {
@@ -83,7 +93,9 @@ describe('RefreshTokenHandler', () => {
       refreshToken: 'invalid-token',
       currentJti: 'old-jti',
     });
-    await expect(handler.execute(command)).rejects.toThrow(UnauthorizedException);
+    await expect(handler.execute(command)).rejects.toThrow(
+      UnauthorizedException,
+    );
   });
 
   it('should throw UnauthorizedException if user no longer active', async () => {
@@ -106,7 +118,9 @@ describe('RefreshTokenHandler', () => {
       refreshToken: 'valid-rt',
       currentJti: 'old-jti',
     });
-    await expect(handler.execute(command)).rejects.toThrow(UnauthorizedException);
+    await expect(handler.execute(command)).rejects.toThrow(
+      UnauthorizedException,
+    );
   });
 
   it('should throw UnauthorizedException if user not found', async () => {
@@ -118,6 +132,8 @@ describe('RefreshTokenHandler', () => {
       refreshToken: 'valid-rt',
       currentJti: 'old-jti',
     });
-    await expect(handler.execute(command)).rejects.toThrow(UnauthorizedException);
+    await expect(handler.execute(command)).rejects.toThrow(
+      UnauthorizedException,
+    );
   });
 });

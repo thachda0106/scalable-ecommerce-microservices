@@ -1,4 +1,10 @@
-import { Injectable, Inject, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  Inject,
+  Logger,
+  OnModuleInit,
+  OnModuleDestroy,
+} from '@nestjs/common';
 import { CommandBus } from '@nestjs/cqrs';
 import {
   NOTIFICATION_REPOSITORY,
@@ -24,9 +30,7 @@ export class DlqProcessorService implements OnModuleInit, OnModuleDestroy {
   onModuleInit(): void {
     const intervalMs = parseInt(process.env.DLQ_INTERVAL_MS || '30000', 10);
     this.intervalId = setInterval(() => this.processDlq(), intervalMs);
-    this.logger.log(
-      `DLQ processor started (interval: ${intervalMs}ms)`,
-    );
+    this.logger.log(`DLQ processor started (interval: ${intervalMs}ms)`);
   }
 
   onModuleDestroy(): void {
@@ -40,13 +44,13 @@ export class DlqProcessorService implements OnModuleInit, OnModuleDestroy {
       const failed = await this.repo.findFailedForDlq(10);
       if (failed.length === 0) return;
 
-      this.logger.log(`Processing ${failed.length} failed notifications for DLQ`);
+      this.logger.log(
+        `Processing ${failed.length} failed notifications for DLQ`,
+      );
 
       for (const notification of failed) {
         try {
-          await this.commandBus.execute(
-            new MoveToDlqCommand(notification.id),
-          );
+          await this.commandBus.execute(new MoveToDlqCommand(notification.id));
         } catch (error) {
           this.logger.error(
             `DLQ processing failed for ${notification.id}: ${(error as Error).message}`,
@@ -54,9 +58,7 @@ export class DlqProcessorService implements OnModuleInit, OnModuleDestroy {
         }
       }
     } catch (error) {
-      this.logger.error(
-        `DLQ processor error: ${(error as Error).message}`,
-      );
+      this.logger.error(`DLQ processor error: ${(error as Error).message}`);
     }
   }
 }

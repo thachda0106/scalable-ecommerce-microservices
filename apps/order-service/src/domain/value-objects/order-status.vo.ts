@@ -12,10 +12,19 @@ export enum OrderStatusEnum {
 }
 
 const VALID_TRANSITIONS: Map<OrderStatusEnum, OrderStatusEnum[]> = new Map([
-  [OrderStatusEnum.CREATED, [OrderStatusEnum.PENDING_PAYMENT, OrderStatusEnum.CANCELLED]],
-  [OrderStatusEnum.PENDING_PAYMENT, [OrderStatusEnum.PAID, OrderStatusEnum.CANCELLED]],
+  [
+    OrderStatusEnum.CREATED,
+    [OrderStatusEnum.PENDING_PAYMENT, OrderStatusEnum.CANCELLED],
+  ],
+  [
+    OrderStatusEnum.PENDING_PAYMENT,
+    [OrderStatusEnum.PAID, OrderStatusEnum.CANCELLED],
+  ],
   [OrderStatusEnum.PAID, [OrderStatusEnum.CONFIRMED, OrderStatusEnum.REFUNDED]],
-  [OrderStatusEnum.CONFIRMED, [OrderStatusEnum.SHIPPED, OrderStatusEnum.CANCELLED]],
+  [
+    OrderStatusEnum.CONFIRMED,
+    [OrderStatusEnum.SHIPPED, OrderStatusEnum.CANCELLED],
+  ],
   [OrderStatusEnum.SHIPPED, [OrderStatusEnum.DELIVERED]],
   [OrderStatusEnum.DELIVERED, [OrderStatusEnum.REFUNDED]],
   [OrderStatusEnum.CANCELLED, []],

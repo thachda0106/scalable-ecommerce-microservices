@@ -13,9 +13,7 @@ import { Quantity } from '../../domain/value-objects/quantity.vo';
 import { CartNotFoundException } from '../../domain/exceptions';
 
 @CommandHandler(UpdateItemQuantityCommand)
-export class UpdateItemQuantityHandler
-  implements ICommandHandler<UpdateItemQuantityCommand>
-{
+export class UpdateItemQuantityHandler implements ICommandHandler<UpdateItemQuantityCommand> {
   constructor(
     @Inject(CART_REPOSITORY) private readonly cartRepository: ICartRepository,
     @Inject(CART_CACHE) private readonly cartCache: ICartCache,

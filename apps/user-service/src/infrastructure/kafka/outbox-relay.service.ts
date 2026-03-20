@@ -4,6 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { OutboxEventOrmEntity } from '../persistence/entities/outbox-event.orm-entity';
 import { KafkaClientFactory } from './kafka-client.factory';
+import { publishWithResilience, setCorrelationHeaders } from '@ecommerce/core';
 
 const MAX_RETRIES = 5;
 
@@ -50,19 +51,22 @@ export class OutboxRelayService {
 
       const producer = await this.kafkaClient.getProducer();
 
-      // Batch send all events to Kafka
-      await producer.sendBatch({
-        topicMessages: [
-          {
-            topic: 'user.events',
-            messages: processable.map((event) => ({
+      // Send all events to Kafka
+      for (const event of processable) {
+        await publishWithResilience(producer, {
+          topic: 'user.events',
+          messages: [
+            {
               key: event.id,
               value: JSON.stringify(event.payload),
-              headers: { eventType: event.type },
-            })),
-          },
-        ],
-      });
+              headers: {
+                ...setCorrelationHeaders(event.id),
+                eventType: event.type,
+              },
+            },
+          ],
+        });
+      }
 
       // Bulk mark all as processed in one update
       const processedIds = processable.map((e) => e.id);

@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+  OnModuleDestroy,
+} from '@nestjs/common';
 import { Kafka, Producer } from 'kafkajs';
 import { BaseDomainEvent } from '../../domain/events/base-domain.event';
 import { IEventPublisher } from '../../domain/ports/event-publisher.port';

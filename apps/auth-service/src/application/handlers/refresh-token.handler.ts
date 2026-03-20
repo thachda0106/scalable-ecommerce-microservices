@@ -16,9 +16,7 @@ import { Inject } from '@nestjs/common';
 const ACCESS_TOKEN_TTL_SECONDS = 15 * 60;
 
 @CommandHandler(RefreshTokenCommand)
-export class RefreshTokenHandler
-  implements ICommandHandler<RefreshTokenCommand>
-{
+export class RefreshTokenHandler implements ICommandHandler<RefreshTokenCommand> {
   constructor(
     private readonly jwtAdapterService: JwtAdapterService,
     private readonly tokenStoreService: TokenStoreService,

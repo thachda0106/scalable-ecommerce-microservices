@@ -65,7 +65,7 @@ describe('LoginHandler', () => {
         { provide: TokenStoreService, useValue: tokenStore },
         { provide: LoginAttemptService, useValue: loginAttemptService },
         { provide: KAFKA_SERVICE, useValue: kafkaClient },
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+
         { provide: Logger, useValue: logger },
       ],
     }).compile();
@@ -81,7 +81,10 @@ describe('LoginHandler', () => {
     );
 
     expect(result).toEqual(mockTokens);
-    expect(tokenStore.storeRefreshToken).toHaveBeenCalledWith('user-id-1', 'rt');
+    expect(tokenStore.storeRefreshToken).toHaveBeenCalledWith(
+      'user-id-1',
+      'rt',
+    );
   });
 
   it('should clear login attempts on successful login', async () => {
@@ -91,7 +94,9 @@ describe('LoginHandler', () => {
       new LoginQuery({ email: 'test@example.com', password: 'Password123!' }),
     );
 
-    expect(loginAttemptService.clearAttempts).toHaveBeenCalledWith('test@example.com');
+    expect(loginAttemptService.clearAttempts).toHaveBeenCalledWith(
+      'test@example.com',
+    );
   });
 
   it('should throw TooManyRequestsException when account is locked', async () => {
@@ -116,7 +121,9 @@ describe('LoginHandler', () => {
       ),
     ).rejects.toThrow(UnauthorizedException);
 
-    expect(loginAttemptService.recordFailedAttempt).toHaveBeenCalledWith('test@example.com');
+    expect(loginAttemptService.recordFailedAttempt).toHaveBeenCalledWith(
+      'test@example.com',
+    );
   });
 
   it('should throw UnauthorizedException for non-existent user', async () => {
@@ -124,7 +131,10 @@ describe('LoginHandler', () => {
 
     await expect(
       handler.execute(
-        new LoginQuery({ email: 'nobody@example.com', password: 'Password123!' }),
+        new LoginQuery({
+          email: 'nobody@example.com',
+          password: 'Password123!',
+        }),
       ),
     ).rejects.toThrow(UnauthorizedException);
 

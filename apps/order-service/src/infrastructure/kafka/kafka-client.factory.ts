@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnApplicationBootstrap, OnApplicationShutdown } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnApplicationBootstrap,
+  OnApplicationShutdown,
+} from '@nestjs/common';
 import { Kafka, Producer, Consumer, ConsumerConfig } from 'kafkajs';
 
 /**
@@ -6,7 +11,9 @@ import { Kafka, Producer, Consumer, ConsumerConfig } from 'kafkajs';
  * and reuses it for all producers and consumers in the service.
  */
 @Injectable()
-export class KafkaClientFactory implements OnApplicationBootstrap, OnApplicationShutdown {
+export class KafkaClientFactory
+  implements OnApplicationBootstrap, OnApplicationShutdown
+{
   private readonly logger = new Logger(KafkaClientFactory.name);
   private readonly kafka: Kafka;
   private readonly producers: Producer[] = [];
@@ -29,14 +36,18 @@ export class KafkaClientFactory implements OnApplicationBootstrap, OnApplication
       try {
         await producer.disconnect();
       } catch (error) {
-        this.logger.warn(`Error disconnecting producer: ${(error as Error).message}`);
+        this.logger.warn(
+          `Error disconnecting producer: ${(error as Error).message}`,
+        );
       }
     }
     for (const consumer of this.consumers) {
       try {
         await consumer.disconnect();
       } catch (error) {
-        this.logger.warn(`Error disconnecting consumer: ${(error as Error).message}`);
+        this.logger.warn(
+          `Error disconnecting consumer: ${(error as Error).message}`,
+        );
       }
     }
     this.logger.log('All Kafka connections closed');

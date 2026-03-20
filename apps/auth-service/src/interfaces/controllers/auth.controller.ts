@@ -48,17 +48,28 @@ export class AuthController {
   }
 
   @ApiOperation({ summary: '🔓 Login with email and password' })
-  @ApiResponse({ status: 200, description: 'Returns accessToken, refreshToken, jti' })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns accessToken, refreshToken, jti',
+  })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
-  @ApiResponse({ status: 429, description: 'Account locked — too many failed attempts' })
+  @ApiResponse({
+    status: 429,
+    description: 'Account locked — too many failed attempts',
+  })
   @HttpCode(HttpStatus.OK)
   @Post('login')
   async login(@Body() loginDto: LoginDto): Promise<unknown> {
     return this.queryBus.execute(new LoginQuery(loginDto));
   }
 
-  @ApiOperation({ summary: '🔓 Rotate refresh token and issue new access token' })
-  @ApiResponse({ status: 200, description: 'Returns new accessToken, refreshToken, jti' })
+  @ApiOperation({
+    summary: '🔓 Rotate refresh token and issue new access token',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns new accessToken, refreshToken, jti',
+  })
   @ApiResponse({ status: 401, description: 'Invalid or expired refresh token' })
   @HttpCode(HttpStatus.OK)
   @Post('refresh')
@@ -66,7 +77,9 @@ export class AuthController {
     return this.commandBus.execute(new RefreshTokenCommand(refreshTokenDto));
   }
 
-  @ApiOperation({ summary: 'Logout — revoke refresh token and blocklist access token jti' })
+  @ApiOperation({
+    summary: 'Logout — revoke refresh token and blocklist access token jti',
+  })
   @ApiBearerAuth()
   @ApiResponse({ status: 200, description: 'Logged out' })
   @HttpCode(HttpStatus.OK)

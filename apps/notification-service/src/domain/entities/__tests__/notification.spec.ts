@@ -47,7 +47,9 @@ describe('Notification', () => {
     });
 
     it('should accept custom priority', () => {
-      const notification = createNotification({ priority: NotificationPriority.HIGH });
+      const notification = createNotification({
+        priority: NotificationPriority.HIGH,
+      });
       expect(notification.priority).toBe(NotificationPriority.HIGH);
     });
   });

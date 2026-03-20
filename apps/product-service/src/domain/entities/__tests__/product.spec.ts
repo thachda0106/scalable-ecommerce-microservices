@@ -38,21 +38,21 @@ describe('Product Aggregate', () => {
     });
 
     it('should reject creation with empty name', () => {
-      expect(() =>
-        Product.create({ ...validProps, name: '' }),
-      ).toThrow(InvalidProductOperationError);
+      expect(() => Product.create({ ...validProps, name: '' })).toThrow(
+        InvalidProductOperationError,
+      );
     });
 
     it('should reject creation with zero price', () => {
-      expect(() =>
-        Product.create({ ...validProps, price: 0 }),
-      ).toThrow(InvalidProductOperationError);
+      expect(() => Product.create({ ...validProps, price: 0 })).toThrow(
+        InvalidProductOperationError,
+      );
     });
 
     it('should reject creation with negative price', () => {
-      expect(() =>
-        Product.create({ ...validProps, price: -5 }),
-      ).toThrow(InvalidProductOperationError);
+      expect(() => Product.create({ ...validProps, price: -5 })).toThrow(
+        InvalidProductOperationError,
+      );
     });
   });
 
@@ -61,7 +61,10 @@ describe('Product Aggregate', () => {
       const product = Product.create(validProps);
       product.pullDomainEvents(); // clear creation event
 
-      product.updateDetails({ name: 'Updated Name', description: 'Updated desc' });
+      product.updateDetails({
+        name: 'Updated Name',
+        description: 'Updated desc',
+      });
 
       expect(product.name).toBe('Updated Name');
       expect(product.description).toBe('Updated desc');
@@ -83,9 +86,9 @@ describe('Product Aggregate', () => {
       product.archive();
       product.pullDomainEvents();
 
-      expect(() =>
-        product.updateDetails({ name: 'New name' }),
-      ).toThrow(InvalidProductOperationError);
+      expect(() => product.updateDetails({ name: 'New name' })).toThrow(
+        InvalidProductOperationError,
+      );
     });
   });
 
@@ -142,7 +145,9 @@ describe('Product Aggregate', () => {
       const product = Product.create(validProps);
       product.archive();
 
-      expect(() => product.archive()).toThrow(InvalidProductStatusTransitionError);
+      expect(() => product.archive()).toThrow(
+        InvalidProductStatusTransitionError,
+      );
     });
   });
 

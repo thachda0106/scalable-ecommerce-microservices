@@ -21,9 +21,7 @@ import {
 import { TemplateNotFoundError } from '../../domain/errors/template-not-found.error';
 
 @CommandHandler(SendNotificationCommand)
-export class SendNotificationHandler
-  implements ICommandHandler<SendNotificationCommand>
-{
+export class SendNotificationHandler implements ICommandHandler<SendNotificationCommand> {
   private readonly logger = new Logger(SendNotificationHandler.name);
 
   constructor(

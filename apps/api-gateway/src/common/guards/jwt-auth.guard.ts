@@ -33,14 +33,14 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
 
   // Matches the base IAuthGuard generic signature — `any` params are required
   // by the Passport contract and cannot be narrowed further at the override level.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   handleRequest<TUser = AuthenticatedUser>(err: any, user: any): TUser {
     if (err || !user) {
       throw err instanceof Error
         ? err
         : new UnauthorizedException('Authentication failed');
     }
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+
     return user as TUser;
   }
 }

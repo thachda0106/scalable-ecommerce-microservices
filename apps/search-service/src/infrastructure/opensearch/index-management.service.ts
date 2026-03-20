@@ -23,7 +23,9 @@ export class IndexManagementService {
       });
 
       if (!exists.body) {
-        this.logger.log(`Index "${PRODUCT_INDEX_ALIAS}" not found. Creating...`);
+        this.logger.log(
+          `Index "${PRODUCT_INDEX_ALIAS}" not found. Creating...`,
+        );
         await this.client.indices.create({
           index: PRODUCT_INDEX_ALIAS,
           body: {
@@ -65,9 +67,7 @@ export class IndexManagementService {
     }
 
     await this.client.indices.updateAliases({ body: { actions } });
-    this.logger.log(
-      `Alias "${PRODUCT_INDEX_ALIAS}" swapped to "${newIndex}"`,
-    );
+    this.logger.log(`Alias "${PRODUCT_INDEX_ALIAS}" swapped to "${newIndex}"`);
   }
 
   async deleteIndex(indexName: string): Promise<void> {

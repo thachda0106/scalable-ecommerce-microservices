@@ -51,10 +51,7 @@ describe('UserIdGuard', () => {
   });
 
   it('should allow request when no userId param exists (e.g., health check)', () => {
-    const ctx = mockExecutionContext(
-      { 'x-user-id': 'user-123' },
-      {},
-    );
+    const ctx = mockExecutionContext({ 'x-user-id': 'user-123' }, {});
 
     expect(guard.canActivate(ctx)).toBe(true);
   });

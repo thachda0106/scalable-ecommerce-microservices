@@ -115,7 +115,9 @@ export class OutboxRelayService implements OnModuleInit, OnModuleDestroy {
             });
 
             await this.redis.xack(OUTBOX_STREAM_KEY, CONSUMER_GROUP, messageId);
-            this.logger.debug(`Relayed outbox event: ${eventType} [${messageId}]`);
+            this.logger.debug(
+              `Relayed outbox event: ${eventType} [${messageId}]`,
+            );
           } catch (err) {
             this.logger.warn(
               `Failed to relay event ${messageId}: ${err}. Will retry on next poll.`,

@@ -1,27 +1,30 @@
-import { Inject, Logger, ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  Inject,
+  Logger,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ReserveStockCommand } from '../commands/reserve-stock.command';
 import {
   INVENTORY_REPOSITORY,
   IInventoryRepository,
 } from '../../domain/ports/inventory-repository.port';
-import {
-  STOCK_CACHE,
-  IStockCache,
-} from '../../domain/ports/stock-cache.port';
+import { STOCK_CACHE, IStockCache } from '../../domain/ports/stock-cache.port';
 import {
   EVENT_PUBLISHER,
   IEventPublisher,
 } from '../ports/event-publisher.port';
 import { StockReservation } from '../../domain/entities/stock-reservation';
-import { StockMovement, MovementType } from '../../domain/entities/stock-movement';
+import {
+  StockMovement,
+  MovementType,
+} from '../../domain/entities/stock-movement';
 import { BaseDomainEvent } from '../../domain/events/base-domain.event';
 import { InsufficientStockError } from '../../domain/errors/insufficient-stock.error';
 
 @CommandHandler(ReserveStockCommand)
-export class ReserveStockHandler
-  implements ICommandHandler<ReserveStockCommand>
-{
+export class ReserveStockHandler implements ICommandHandler<ReserveStockCommand> {
   private readonly logger = new Logger(ReserveStockHandler.name);
 
   constructor(

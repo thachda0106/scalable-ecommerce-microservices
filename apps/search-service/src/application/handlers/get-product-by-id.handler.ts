@@ -6,9 +6,7 @@ import { SearchDocument } from '../../domain/entities';
 import { SearchMetricsService } from '../../infrastructure/metrics/search-metrics.service';
 
 @QueryHandler(GetProductByIdQuery)
-export class GetProductByIdHandler
-  implements IQueryHandler<GetProductByIdQuery>
-{
+export class GetProductByIdHandler implements IQueryHandler<GetProductByIdQuery> {
   private readonly logger = new Logger(GetProductByIdHandler.name);
 
   constructor(

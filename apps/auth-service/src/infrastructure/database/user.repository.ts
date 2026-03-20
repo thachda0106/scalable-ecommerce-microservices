@@ -25,7 +25,10 @@ export class UserRepository implements UserRepositoryPort {
     return orm ? this.toDomain(orm) : null;
   }
 
-  async findByProvider(provider: string, providerId: string): Promise<User | null> {
+  async findByProvider(
+    provider: string,
+    providerId: string,
+  ): Promise<User | null> {
     const orm = await this.ormRepo.findOne({ where: { provider, providerId } });
     return orm ? this.toDomain(orm) : null;
   }

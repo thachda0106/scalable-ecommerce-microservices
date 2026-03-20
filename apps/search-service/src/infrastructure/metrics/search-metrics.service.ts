@@ -61,10 +61,7 @@ export class SearchMetricsService implements OnModuleInit {
     this.searchLatency.observe({ type }, durationMs / 1000);
   }
 
-  recordIndex(
-    operation: 'index' | 'bulk' | 'delete',
-    success: boolean,
-  ): void {
+  recordIndex(operation: 'index' | 'bulk' | 'delete', success: boolean): void {
     this.indexOperations.inc({
       operation,
       status: success ? 'success' : 'failure',

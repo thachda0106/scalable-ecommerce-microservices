@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
+import { safeExecute, StrategyType } from '@ecommerce/core';
 
 @Injectable()
 export class ProductServiceClient {
@@ -17,15 +18,28 @@ export class ProductServiceClient {
    */
   async validateProduct(productId: string): Promise<boolean> {
     try {
-      const { status } = await firstValueFrom(
-        this.httpService.get(`${this.baseUrl}/products/${productId}`),
+      const response = await safeExecute(
+        async () => {
+          const { status } = await firstValueFrom(
+            this.httpService.get(`${this.baseUrl}/products/${productId}`),
+          );
+          return status === 200;
+        },
+        {
+          strategy: StrategyType.FAIL_CLOSE, // Fail close so we can catch 404s
+          timeout: 3000,
+          retry: { attempts: 2, backoffMs: 500 },
+          circuitBreakerKey: 'product-service-http',
+          label: `ValidateProduct:${productId}`,
+        },
       );
-      return status === 200;
+
+      return response ?? false;
     } catch (err: any) {
       if (err?.response?.status === 404) {
-        return false;
+        return false; // Business logic: product not found
       }
-      // Service unreachable — degrade gracefully
+      // System error (timeout, 5xx, circuit breaker open) => degrade gracefully
       this.logger.warn(
         `product-service unavailable for product ${productId}: ${err?.message}. Allowing add.`,
       );

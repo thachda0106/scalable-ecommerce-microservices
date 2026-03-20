@@ -134,10 +134,9 @@ describe('SearchProductsHandler', () => {
   });
 
   it('should throw InvalidSearchQueryError for invalid filter operator', async () => {
-    const query = new SearchProductsQuery(
-      'laptop',
-      [{ field: 'status', operator: 'invalid_op', value: 'ACTIVE' }],
-    );
+    const query = new SearchProductsQuery('laptop', [
+      { field: 'status', operator: 'invalid_op', value: 'ACTIVE' },
+    ]);
 
     await expect(handler.execute(query)).rejects.toThrow(
       'Invalid search query',

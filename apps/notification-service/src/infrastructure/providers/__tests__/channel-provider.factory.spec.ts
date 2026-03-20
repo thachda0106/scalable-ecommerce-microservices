@@ -51,8 +51,8 @@ describe('ChannelProviderFactory', () => {
   });
 
   it('should throw InvalidChannelError for unknown channel', () => {
-    expect(() =>
-      factory.getProvider('UNKNOWN' as NotificationChannel),
-    ).toThrow(InvalidChannelError);
+    expect(() => factory.getProvider('UNKNOWN' as NotificationChannel)).toThrow(
+      InvalidChannelError,
+    );
   });
 });

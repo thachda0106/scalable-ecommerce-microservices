@@ -21,7 +21,9 @@ export class DomainExceptionFilter implements ExceptionFilter {
 
     const statusCode = this.getStatusCode(exception);
 
-    this.logger.warn(`Domain exception: ${exception.code} - ${exception.message}`);
+    this.logger.warn(
+      `Domain exception: ${exception.code} - ${exception.message}`,
+    );
 
     response.status(statusCode).json({
       statusCode,

@@ -5,22 +5,20 @@ import {
   INVENTORY_REPOSITORY,
   IInventoryRepository,
 } from '../../domain/ports/inventory-repository.port';
-import {
-  STOCK_CACHE,
-  IStockCache,
-} from '../../domain/ports/stock-cache.port';
+import { STOCK_CACHE, IStockCache } from '../../domain/ports/stock-cache.port';
 import {
   EVENT_PUBLISHER,
   IEventPublisher,
 } from '../ports/event-publisher.port';
-import { StockMovement, MovementType } from '../../domain/entities/stock-movement';
+import {
+  StockMovement,
+  MovementType,
+} from '../../domain/entities/stock-movement';
 import { BaseDomainEvent } from '../../domain/events/base-domain.event';
 import { ReservationNotFoundError } from '../../domain/errors/reservation-not-found.error';
 
 @CommandHandler(ConfirmStockCommand)
-export class ConfirmStockHandler
-  implements ICommandHandler<ConfirmStockCommand>
-{
+export class ConfirmStockHandler implements ICommandHandler<ConfirmStockCommand> {
   private readonly logger = new Logger(ConfirmStockHandler.name);
 
   constructor(
@@ -56,18 +54,16 @@ export class ConfirmStockHandler
     for (const reservation of reservations) {
       const inventory = await this.repo.findByProductId(reservation.productId);
       if (!inventory) {
-        this.logger.warn(`Inventory not found for product ${reservation.productId}, skipping`);
+        this.logger.warn(
+          `Inventory not found for product ${reservation.productId}, skipping`,
+        );
         continue;
       }
 
       const prevReserved = inventory.reservedStock;
 
       // 3. Domain mutation — reserved → sold
-      inventory.confirm(
-        reservation.quantity,
-        reservation.id,
-        cmd.referenceId,
-      );
+      inventory.confirm(reservation.quantity, reservation.id, cmd.referenceId);
 
       // 4. Update reservation status
       reservation.confirm();

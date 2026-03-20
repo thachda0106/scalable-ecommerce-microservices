@@ -41,9 +41,9 @@ export class GithubStrategy extends PassportStrategy(Strategy, 'github') {
     const { id, username, displayName, emails, photos } = profile;
 
     // Prefer a primary + verified email from GitHub
-    const verifiedEmail = emails?.find(
-      (e) => e.primary === true && e.verified === true,
-    ) ?? emails?.find((e) => e.verified === true);
+    const verifiedEmail =
+      emails?.find((e) => e.primary === true && e.verified === true) ??
+      emails?.find((e) => e.verified === true);
 
     if (!verifiedEmail) {
       // Never synthesize {username}@github.com — reject instead

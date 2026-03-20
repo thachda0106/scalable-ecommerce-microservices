@@ -5,15 +5,10 @@ import {
   INVENTORY_REPOSITORY,
   IInventoryRepository,
 } from '../../domain/ports/inventory-repository.port';
-import {
-  STOCK_CACHE,
-  IStockCache,
-} from '../../domain/ports/stock-cache.port';
+import { STOCK_CACHE, IStockCache } from '../../domain/ports/stock-cache.port';
 
 @QueryHandler(GetInventoryQuery)
-export class GetInventoryHandler
-  implements IQueryHandler<GetInventoryQuery>
-{
+export class GetInventoryHandler implements IQueryHandler<GetInventoryQuery> {
   constructor(
     @Inject(INVENTORY_REPOSITORY) private readonly repo: IInventoryRepository,
     @Inject(STOCK_CACHE) private readonly cache: IStockCache,

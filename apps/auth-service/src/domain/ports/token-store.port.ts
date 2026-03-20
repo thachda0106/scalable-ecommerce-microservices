@@ -7,12 +7,19 @@ export interface TokenStorePort {
    * Store a refresh token for a user with 7-day TTL.
    * Key pattern: refresh:{userId}:{tokenId}
    */
-  storeRefreshToken(userId: string, tokenId: string, ttlSeconds?: number): Promise<void>;
+  storeRefreshToken(
+    userId: string,
+    tokenId: string,
+    ttlSeconds?: number,
+  ): Promise<void>;
 
   /**
    * Retrieve the userId for a given refresh token (null if expired/not found).
    */
-  getUserIdByRefreshToken(userId: string, tokenId: string): Promise<string | null>;
+  getUserIdByRefreshToken(
+    userId: string,
+    tokenId: string,
+  ): Promise<string | null>;
 
   /**
    * Revoke a single refresh token and remove from session index.

@@ -53,7 +53,10 @@ export class Order {
 
   static create(props: CreateOrderProps): Order {
     if (!props.items || props.items.length === 0) {
-      throw new InvalidOrderOperationError('createOrder', 'Order must have at least one item');
+      throw new InvalidOrderOperationError(
+        'createOrder',
+        'Order must have at least one item',
+      );
     }
 
     const order = new Order();
@@ -101,7 +104,10 @@ export class Order {
     order._userId = UserId.create(props.userId);
     order._items = props.items;
     order._status = OrderStatus.create(props.status);
-    order._totalPrice = Money.fromCents(props.totalPriceInCents, props.currency);
+    order._totalPrice = Money.fromCents(
+      props.totalPriceInCents,
+      props.currency,
+    );
     order._version = props.version;
     order._createdAt = props.createdAt;
     order._updatedAt = props.updatedAt;
@@ -126,25 +132,19 @@ export class Order {
   confirmPayment(paymentId: string): void {
     this.transitionStatus(OrderStatusEnum.PAID);
 
-    this._domainEvents.push(
-      new OrderPaidEvent(this._id.value, paymentId),
-    );
+    this._domainEvents.push(new OrderPaidEvent(this._id.value, paymentId));
   }
 
   confirm(): void {
     this.transitionStatus(OrderStatusEnum.CONFIRMED);
 
-    this._domainEvents.push(
-      new OrderConfirmedEvent(this._id.value),
-    );
+    this._domainEvents.push(new OrderConfirmedEvent(this._id.value));
   }
 
   cancel(reason: string = 'No reason provided'): void {
     this.transitionStatus(OrderStatusEnum.CANCELLED);
 
-    this._domainEvents.push(
-      new OrderCancelledEvent(this._id.value, reason),
-    );
+    this._domainEvents.push(new OrderCancelledEvent(this._id.value, reason));
   }
 
   ship(trackingNumber: string): void {
@@ -158,9 +158,7 @@ export class Order {
   deliver(): void {
     this.transitionStatus(OrderStatusEnum.DELIVERED);
 
-    this._domainEvents.push(
-      new OrderCompletedEvent(this._id.value),
-    );
+    this._domainEvents.push(new OrderCompletedEvent(this._id.value));
   }
 
   refund(reason: string = 'No reason provided'): void {
@@ -221,10 +219,7 @@ export class Order {
 
   private transitionStatus(target: OrderStatusEnum): void {
     if (!this._status.canTransitionTo(target)) {
-      throw new InvalidOrderStatusTransitionError(
-        this._status.value,
-        target,
-      );
+      throw new InvalidOrderStatusTransitionError(this._status.value, target);
     }
     this._status = this._status.transitionTo(target);
     this._updatedAt = new Date();

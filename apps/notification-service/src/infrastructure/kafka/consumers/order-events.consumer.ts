@@ -96,9 +96,7 @@ export class OrderEventsConsumer implements OnModuleInit, OnModuleDestroy {
       case 'OrderFailed':
       case 'order.failed':
         // No notification for failed orders currently
-        this.logger.debug(
-          `Order failed event received, skipping notification`,
-        );
+        this.logger.debug(`Order failed event received, skipping notification`);
         break;
 
       default:

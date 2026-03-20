@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  Logger,
-  OnApplicationBootstrap,
-} from '@nestjs/common';
+import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { Producer } from 'kafkajs';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -39,7 +35,9 @@ export class OutboxRelayService implements OnApplicationBootstrap {
 
     try {
       const messages = events.map((event) => ({
-        key: (event.payload as Record<string, unknown>).orderId as string || event.id,
+        key:
+          ((event.payload as Record<string, unknown>).orderId as string) ||
+          event.id,
         value: JSON.stringify({
           eventId: event.id,
           type: event.type,
@@ -60,9 +58,7 @@ export class OutboxRelayService implements OnApplicationBootstrap {
 
       this.logger.log(`Relayed ${events.length} order events to Kafka`);
     } catch (error) {
-      this.logger.error(
-        `Failed to relay events: ${(error as Error).message}`,
-      );
+      this.logger.error(`Failed to relay events: ${(error as Error).message}`);
     }
   }
 }

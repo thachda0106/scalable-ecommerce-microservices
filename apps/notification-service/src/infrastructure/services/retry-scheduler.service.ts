@@ -1,4 +1,10 @@
-import { Injectable, Inject, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  Inject,
+  Logger,
+  OnModuleInit,
+  OnModuleDestroy,
+} from '@nestjs/common';
 import { CommandBus } from '@nestjs/cqrs';
 import {
   NOTIFICATION_REPOSITORY,
@@ -26,9 +32,7 @@ export class RetrySchedulerService implements OnModuleInit, OnModuleDestroy {
   onModuleInit(): void {
     const intervalMs = parseInt(process.env.RETRY_INTERVAL_MS || '10000', 10);
     this.intervalId = setInterval(() => this.processRetries(), intervalMs);
-    this.logger.log(
-      `Retry scheduler started (interval: ${intervalMs}ms)`,
-    );
+    this.logger.log(`Retry scheduler started (interval: ${intervalMs}ms)`);
   }
 
   onModuleDestroy(): void {
@@ -57,9 +61,7 @@ export class RetrySchedulerService implements OnModuleInit, OnModuleDestroy {
         }
       }
     } catch (error) {
-      this.logger.error(
-        `Retry scheduler error: ${(error as Error).message}`,
-      );
+      this.logger.error(`Retry scheduler error: ${(error as Error).message}`);
     }
   }
 }

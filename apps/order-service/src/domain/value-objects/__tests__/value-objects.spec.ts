@@ -17,7 +17,7 @@ describe('Value Objects', () => {
     });
 
     it('should add two Money values', () => {
-      const a = Money.fromDecimal(10.50, 'USD');
+      const a = Money.fromDecimal(10.5, 'USD');
       const b = Money.fromDecimal(5.25, 'USD');
       const result = a.add(b);
       expect(result.toDecimal()).toBeCloseTo(15.75, 2);
@@ -32,7 +32,9 @@ describe('Value Objects', () => {
     it('should throw on different currencies', () => {
       const usd = Money.fromDecimal(10, 'USD');
       const eur = Money.fromDecimal(10, 'EUR');
-      expect(() => usd.add(eur)).toThrow('Cannot operate on different currencies');
+      expect(() => usd.add(eur)).toThrow(
+        'Cannot operate on different currencies',
+      );
     });
 
     it('should throw on negative amount', () => {
@@ -43,7 +45,9 @@ describe('Value Objects', () => {
   describe('OrderStatus', () => {
     it('should allow valid transitions', () => {
       const status = OrderStatus.created();
-      expect(status.canTransitionTo(OrderStatusEnum.PENDING_PAYMENT)).toBe(true);
+      expect(status.canTransitionTo(OrderStatusEnum.PENDING_PAYMENT)).toBe(
+        true,
+      );
       expect(status.canTransitionTo(OrderStatusEnum.CANCELLED)).toBe(true);
     });
 

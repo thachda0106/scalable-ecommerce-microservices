@@ -5,21 +5,19 @@ import {
   INVENTORY_REPOSITORY,
   IInventoryRepository,
 } from '../../domain/ports/inventory-repository.port';
-import {
-  STOCK_CACHE,
-  IStockCache,
-} from '../../domain/ports/stock-cache.port';
+import { STOCK_CACHE, IStockCache } from '../../domain/ports/stock-cache.port';
 import {
   EVENT_PUBLISHER,
   IEventPublisher,
 } from '../ports/event-publisher.port';
-import { StockMovement, MovementType } from '../../domain/entities/stock-movement';
+import {
+  StockMovement,
+  MovementType,
+} from '../../domain/entities/stock-movement';
 import { BaseDomainEvent } from '../../domain/events/base-domain.event';
 
 @CommandHandler(ReleaseStockCommand)
-export class ReleaseStockHandler
-  implements ICommandHandler<ReleaseStockCommand>
-{
+export class ReleaseStockHandler implements ICommandHandler<ReleaseStockCommand> {
   private readonly logger = new Logger(ReleaseStockHandler.name);
 
   constructor(
@@ -32,7 +30,12 @@ export class ReleaseStockHandler
     // 1. Idempotency check
     if (await this.repo.checkIdempotencyKey(cmd.idempotencyKey)) {
       this.logger.log(`Idempotent release request: ${cmd.idempotencyKey}`);
-      return { success: true, idempotent: true, releasedCount: 0, releasedItems: [] };
+      return {
+        success: true,
+        idempotent: true,
+        releasedCount: 0,
+        releasedItems: [],
+      };
     }
 
     // 2. Find active reservations for this reference
@@ -49,18 +52,25 @@ export class ReleaseStockHandler
     }
 
     if (reservations.length === 0) {
-      this.logger.log(`No active reservations to release for ${cmd.referenceId}`);
+      this.logger.log(
+        `No active reservations to release for ${cmd.referenceId}`,
+      );
       return { success: true, releasedCount: 0, releasedItems: [] };
     }
 
     const allEvents: BaseDomainEvent[] = [];
-    const releasedItems: Array<{ productId: string; quantityReleased: number }> = [];
+    const releasedItems: Array<{
+      productId: string;
+      quantityReleased: number;
+    }> = [];
 
     for (const reservation of reservations) {
       // 4. Load inventory
       const inventory = await this.repo.findByProductId(reservation.productId);
       if (!inventory) {
-        this.logger.warn(`Inventory not found for product ${reservation.productId}, skipping`);
+        this.logger.warn(
+          `Inventory not found for product ${reservation.productId}, skipping`,
+        );
         continue;
       }
 
@@ -121,6 +131,10 @@ export class ReleaseStockHandler
       `Released ${releasedItems.length} items for ${cmd.referenceType} ${cmd.referenceId}`,
     );
 
-    return { success: true, releasedCount: releasedItems.length, releasedItems };
+    return {
+      success: true,
+      releasedCount: releasedItems.length,
+      releasedItems,
+    };
   }
 }

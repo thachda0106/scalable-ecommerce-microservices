@@ -8,6 +8,7 @@ import { UserId } from '../../../domain/value-objects/user-id.vo';
 import { OrderStatusEnum } from '../../../domain/value-objects/order-status.vo';
 import { OrderOrmEntity } from '../entities/order.orm-entity';
 import { OrderMapper } from '../mappers/order.mapper';
+import { safeExecute, StrategyType } from '@ecommerce/core';
 
 @Injectable()
 export class TypeOrmOrderRepository implements IOrderRepository {
@@ -17,8 +18,18 @@ export class TypeOrmOrderRepository implements IOrderRepository {
   ) {}
 
   async save(order: Order): Promise<void> {
-    const orm = OrderMapper.toPersistence(order);
-    await this.ormRepo.save(orm);
+    await safeExecute(
+      async () => {
+        const orm = OrderMapper.toPersistence(order);
+        await this.ormRepo.save(orm);
+      },
+      {
+        strategy: StrategyType.FAIL_CLOSE,
+        retry: { attempts: 3, backoffMs: 200 },
+        circuitBreakerKey: 'order-db',
+        label: 'DB:SaveOrder',
+      },
+    );
   }
 
   async findById(id: OrderId): Promise<Order | null> {

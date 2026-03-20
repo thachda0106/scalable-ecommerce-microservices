@@ -4,15 +4,15 @@ import {
   INVENTORY_REPOSITORY,
   IInventoryRepository,
 } from '../../domain/ports/inventory-repository.port';
-import {
-  STOCK_CACHE,
-  IStockCache,
-} from '../../domain/ports/stock-cache.port';
+import { STOCK_CACHE, IStockCache } from '../../domain/ports/stock-cache.port';
 import {
   EVENT_PUBLISHER,
   IEventPublisher,
 } from '../../application/ports/event-publisher.port';
-import { StockMovement, MovementType } from '../../domain/entities/stock-movement';
+import {
+  StockMovement,
+  MovementType,
+} from '../../domain/entities/stock-movement';
 import { BaseDomainEvent } from '../../domain/events/base-domain.event';
 
 @Injectable()
@@ -105,14 +105,10 @@ export class ReservationExpiryWorker {
       }
 
       if (processedCount > 0) {
-        this.logger.log(
-          `Released ${processedCount} expired reservations`,
-        );
+        this.logger.log(`Released ${processedCount} expired reservations`);
       }
     } catch (error) {
-      this.logger.error(
-        `Expiry worker failed: ${(error as Error).message}`,
-      );
+      this.logger.error(`Expiry worker failed: ${(error as Error).message}`);
     }
   }
 }

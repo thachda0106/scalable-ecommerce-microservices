@@ -1,10 +1,4 @@
-import {
-  IsArray,
-  IsString,
-  IsUUID,
-  IsIn,
-  IsOptional,
-} from 'class-validator';
+import { IsArray, IsString, IsUUID, IsIn, IsOptional } from 'class-validator';
 
 export class ReleaseStockDto {
   @IsUUID('4')

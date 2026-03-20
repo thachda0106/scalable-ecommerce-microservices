@@ -13,7 +13,8 @@ export class RefreshTokenDto {
   refreshToken!: string;
 
   @ApiProperty({
-    description: 'JWT ID (jti) of the current access token — blocklisted during rotation',
+    description:
+      'JWT ID (jti) of the current access token — blocklisted during rotation',
     required: false,
   })
   @IsString()

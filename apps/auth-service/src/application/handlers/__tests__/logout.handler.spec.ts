@@ -36,7 +36,11 @@ describe('LogoutHandler', () => {
   });
 
   it('should blocklist the jti if provided', async () => {
-    const command = new LogoutCommand('my-refresh-token', 'user-id-1', 'my-jti');
+    const command = new LogoutCommand(
+      'my-refresh-token',
+      'user-id-1',
+      'my-jti',
+    );
     await handler.execute(command);
 
     expect(tokenStore.blocklistJti).toHaveBeenCalledWith('my-jti', 900);

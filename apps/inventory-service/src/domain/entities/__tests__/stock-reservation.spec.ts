@@ -25,9 +25,7 @@ describe('StockReservation', () => {
     expect(res.expiresAt.getTime()).toBeGreaterThanOrEqual(
       expectedExpiry - 1000,
     );
-    expect(res.expiresAt.getTime()).toBeLessThanOrEqual(
-      expectedExpiry + 1000,
-    );
+    expect(res.expiresAt.getTime()).toBeLessThanOrEqual(expectedExpiry + 1000);
   });
 
   describe('confirm()', () => {

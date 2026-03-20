@@ -5,7 +5,10 @@ import { NotificationStatus } from '../../../domain/enums/notification-status.en
 import { NotificationTemplate } from '../../../domain/entities/notification-template';
 import { ITemplateRepository } from '../../../domain/ports/template-repository.port';
 import { INotificationRepository } from '../../../domain/ports/notification-repository.port';
-import { IChannelProviderFactory, IChannelProvider } from '../../../domain/ports/channel-provider.port';
+import {
+  IChannelProviderFactory,
+  IChannelProvider,
+} from '../../../domain/ports/channel-provider.port';
 import { IEventPublisher } from '../../../domain/ports/event-publisher.port';
 import { TemplateNotFoundError } from '../../../domain/errors/template-not-found.error';
 

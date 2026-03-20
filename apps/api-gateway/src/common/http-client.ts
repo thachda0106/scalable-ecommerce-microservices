@@ -3,51 +3,16 @@ import { HttpService } from '@nestjs/axios';
 import { Request } from 'express';
 import { firstValueFrom } from 'rxjs';
 import { AxiosRequestConfig, AxiosError, AxiosResponse } from 'axios';
-import CircuitBreaker from 'opossum';
 import { randomUUID } from 'crypto';
-import { signInternalHeaders } from '@ecommerce/core';
+import {
+  signInternalHeaders,
+  safeExecute,
+  StrategyType,
+} from '@ecommerce/core';
 
 @Injectable()
 export class BaseHttpClient {
-  private breakers: Map<
-    string,
-    CircuitBreaker<[AxiosRequestConfig], AxiosResponse>
-  > = new Map();
-  private readonly breakerOptions = {
-    timeout: 4000, // Timeout slightly under the global 5000ms interceptor
-    errorThresholdPercentage: 50, // Open breaker if 50% operations fail
-    resetTimeout: 10000, // Retry after 10 seconds
-  };
-
   constructor(private readonly httpService: HttpService) {}
-
-  private getBreaker(
-    url: string | undefined,
-  ): CircuitBreaker<[AxiosRequestConfig], AxiosResponse> {
-    try {
-      const origin = url ? new URL(url).origin : 'default';
-      if (!this.breakers.has(origin)) {
-        const breaker = new CircuitBreaker(
-          (config: AxiosRequestConfig) => this.executeRequest(config),
-          this.breakerOptions,
-        );
-        breaker.fallback(() => Promise.reject(new Error('Breaker is open')));
-        this.breakers.set(origin, breaker);
-      }
-      return this.breakers.get(origin)!;
-    } catch {
-      const origin = 'default';
-      if (!this.breakers.has(origin)) {
-        const breaker = new CircuitBreaker(
-          (config: AxiosRequestConfig) => this.executeRequest(config),
-          this.breakerOptions,
-        );
-        breaker.fallback(() => Promise.reject(new Error('Breaker is open')));
-        this.breakers.set(origin, breaker);
-      }
-      return this.breakers.get(origin)!;
-    }
-  }
 
   /**
    * Simple GET for aggregation services — avoids the need to pass a full Request object.
@@ -132,15 +97,29 @@ export class BaseHttpClient {
   }
 
   /**
-   * Executes a request through the circuit breaker with common error handling.
+   * Executes a request through safeExecute for resilience.
    */
   private async execute(config: AxiosRequestConfig): Promise<unknown> {
     try {
-      const breaker = this.getBreaker(config.url);
-      const response = await breaker.fire(config);
+      const response = await safeExecute(
+        () => firstValueFrom(this.httpService.request(config)),
+        {
+          strategy: StrategyType.FAIL_CLOSE, // Return error if downstream fails
+          timeoutMs: 4000,
+          retry: { maxAttempts: 0 }, // Let downstream define retries if any or rely on 0 for proxy
+          circuitBreaker: {
+            failureThreshold: 5,
+            resetTimeoutMs: 10000,
+          },
+          context: `Gateway HTTP: ${config.method} ${config.url}`,
+        },
+      );
       return response.data;
     } catch (error: unknown) {
-      if (error instanceof Error && error.message === 'Breaker is open') {
+      if (
+        error instanceof Error &&
+        error.message.includes('Circuit breaker is OPEN')
+      ) {
         throw new HttpException(
           'Service Temporarily Unavailable (Fast Fallback)',
           503,
@@ -154,14 +133,5 @@ export class BaseHttpClient {
       }
       throw new HttpException('Internal Gateway Error', 500);
     }
-  }
-
-  /**
-   * Actual HTTP call wrapped by the circuit breaker.
-   */
-  private async executeRequest(
-    config: AxiosRequestConfig,
-  ): Promise<AxiosResponse> {
-    return firstValueFrom(this.httpService.request(config));
   }
 }

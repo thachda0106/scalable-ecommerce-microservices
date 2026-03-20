@@ -8,9 +8,22 @@ export enum ProductStatusEnum {
 }
 
 const VALID_TRANSITIONS: Map<ProductStatusEnum, ProductStatusEnum[]> = new Map([
-  [ProductStatusEnum.ACTIVE, [ProductStatusEnum.INACTIVE, ProductStatusEnum.OUT_OF_STOCK, ProductStatusEnum.ARCHIVED]],
-  [ProductStatusEnum.INACTIVE, [ProductStatusEnum.ACTIVE, ProductStatusEnum.ARCHIVED]],
-  [ProductStatusEnum.OUT_OF_STOCK, [ProductStatusEnum.ACTIVE, ProductStatusEnum.ARCHIVED]],
+  [
+    ProductStatusEnum.ACTIVE,
+    [
+      ProductStatusEnum.INACTIVE,
+      ProductStatusEnum.OUT_OF_STOCK,
+      ProductStatusEnum.ARCHIVED,
+    ],
+  ],
+  [
+    ProductStatusEnum.INACTIVE,
+    [ProductStatusEnum.ACTIVE, ProductStatusEnum.ARCHIVED],
+  ],
+  [
+    ProductStatusEnum.OUT_OF_STOCK,
+    [ProductStatusEnum.ACTIVE, ProductStatusEnum.ARCHIVED],
+  ],
   [ProductStatusEnum.ARCHIVED, []], // terminal state
 ]);
 

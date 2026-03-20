@@ -88,8 +88,7 @@ export class StockReservation {
 
   isExpired(): boolean {
     return (
-      this._status === ReservationStatus.ACTIVE &&
-      new Date() > this._expiresAt
+      this._status === ReservationStatus.ACTIVE && new Date() > this._expiresAt
     );
   }
 

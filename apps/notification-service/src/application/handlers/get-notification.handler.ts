@@ -8,9 +8,7 @@ import {
 import { NotificationNotFoundError } from '../../domain/errors/notification-not-found.error';
 
 @QueryHandler(GetNotificationQuery)
-export class GetNotificationHandler
-  implements IQueryHandler<GetNotificationQuery>
-{
+export class GetNotificationHandler implements IQueryHandler<GetNotificationQuery> {
   constructor(
     @Inject(NOTIFICATION_REPOSITORY)
     private readonly notificationRepo: INotificationRepository,

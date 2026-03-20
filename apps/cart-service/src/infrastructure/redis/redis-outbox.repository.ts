@@ -31,7 +31,14 @@ export class RedisOutboxRepository implements ICartOutbox {
         ...event,
       });
 
-      pipeline.xadd(OUTBOX_STREAM_KEY, '*', 'eventType', event.eventType, 'payload', payload);
+      pipeline.xadd(
+        OUTBOX_STREAM_KEY,
+        '*',
+        'eventType',
+        event.eventType,
+        'payload',
+        payload,
+      );
     }
 
     try {

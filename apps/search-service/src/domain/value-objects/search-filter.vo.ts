@@ -1,9 +1,6 @@
 export type FilterOperator = 'eq' | 'in' | 'range' | 'gte' | 'lte';
 
-export type FilterValue =
-  | string
-  | string[]
-  | { min?: number; max?: number };
+export type FilterValue = string | string[] | { min?: number; max?: number };
 
 export class SearchFilter {
   private constructor(
@@ -32,7 +29,11 @@ export class SearchFilter {
     return new SearchFilter(field, 'lte', value);
   }
 
-  static create(field: string, operator: FilterOperator, value: FilterValue): SearchFilter {
+  static create(
+    field: string,
+    operator: FilterOperator,
+    value: FilterValue,
+  ): SearchFilter {
     return new SearchFilter(field, operator, value);
   }
 }

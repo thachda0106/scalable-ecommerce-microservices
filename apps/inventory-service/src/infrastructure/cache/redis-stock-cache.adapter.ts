@@ -5,6 +5,7 @@ import { IStockCache } from '../../domain/ports/stock-cache.port';
 import { ProductInventory } from '../../domain/entities/product-inventory';
 import { RedisLockService } from './redis-lock.service';
 import { redisConfig } from '../../config/inventory.config';
+import { safeExecute, StrategyType } from '@ecommerce/core';
 
 @Injectable()
 export class RedisStockCacheAdapter implements IStockCache {
@@ -18,46 +19,58 @@ export class RedisStockCacheAdapter implements IStockCache {
   ) {}
 
   async get(productId: string): Promise<ProductInventory | null> {
-    try {
-      const raw = await this.redis.get(`inventory:stock:${productId}`);
-      if (!raw) return null;
+    return safeExecute(
+      async () => {
+        const raw = await this.redis.get(`inventory:stock:${productId}`);
+        if (!raw) return null;
 
-      const parsed = JSON.parse(raw);
-      return ProductInventory.reconstitute({
-        ...parsed,
-        createdAt: new Date(parsed.createdAt),
-        updatedAt: new Date(parsed.updatedAt),
-      });
-    } catch (error) {
-      this.logger.warn(
-        `Cache get failed for ${productId}: ${(error as Error).message}`,
-      );
-      return null;
-    }
+        const parsed = JSON.parse(raw);
+        return ProductInventory.reconstitute({
+          ...parsed,
+          createdAt: new Date(parsed.createdAt),
+          updatedAt: new Date(parsed.updatedAt),
+        });
+      },
+      {
+        strategy: StrategyType.FAIL_OPEN,
+        timeout: 1000,
+        circuitBreakerKey: 'redis',
+        fallback: () => null,
+        label: `cache:get-stock:${productId}`,
+      },
+    );
   }
 
   async set(productId: string, inventory: ProductInventory): Promise<void> {
-    try {
-      await this.redis.setex(
-        `inventory:stock:${productId}`,
-        this.config.cacheTtlSeconds,
-        JSON.stringify(inventory.toJSON()),
-      );
-    } catch (error) {
-      this.logger.warn(
-        `Cache set failed for ${productId}: ${(error as Error).message}`,
-      );
-    }
+    await safeExecute(
+      async () => {
+        await this.redis.setex(
+          `inventory:stock:${productId}`,
+          this.config.cacheTtlSeconds,
+          JSON.stringify(inventory.toJSON()),
+        );
+      },
+      {
+        strategy: StrategyType.NON_BLOCKING,
+        timeout: 1000,
+        circuitBreakerKey: 'redis',
+        label: `cache:set-stock:${productId}`,
+      },
+    );
   }
 
   async invalidate(productId: string): Promise<void> {
-    try {
-      await this.redis.del(`inventory:stock:${productId}`);
-    } catch (error) {
-      this.logger.warn(
-        `Cache invalidate failed for ${productId}: ${(error as Error).message}`,
-      );
-    }
+    await safeExecute(
+      async () => {
+        await this.redis.del(`inventory:stock:${productId}`);
+      },
+      {
+        strategy: StrategyType.NON_BLOCKING,
+        timeout: 1000,
+        circuitBreakerKey: 'redis',
+        label: `cache:invalidate-stock:${productId}`,
+      },
+    );
   }
 
   async acquireLock(

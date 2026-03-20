@@ -61,7 +61,7 @@ export class OAuthController {
     oauthUser: OAuthUser,
     res: Response,
   ): Promise<void> {
-    const tokens = (await this.commandBus.execute(
+    const tokens = await this.commandBus.execute(
       new OAuthLoginCommand({
         email: oauthUser.email,
         provider: oauthUser.provider,
@@ -70,7 +70,7 @@ export class OAuthController {
         lastName: oauthUser.lastName,
         picture: oauthUser.picture ?? undefined,
       }),
-    )) as AuthTokens;
+    );
 
     // SEC: Set refresh token in HttpOnly cookie — not accessible to JavaScript
     res.cookie('refresh_token', tokens.refreshToken, {

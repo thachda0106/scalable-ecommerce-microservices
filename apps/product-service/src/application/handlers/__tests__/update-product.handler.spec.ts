@@ -65,10 +65,7 @@ describe('UpdateProductHandler', () => {
     mockRepository.findById.mockResolvedValue(product);
 
     await handler.execute(
-      new UpdateProductCommand(
-        product.id.value,
-        'Updated',
-      ),
+      new UpdateProductCommand(product.id.value, 'Updated'),
     );
 
     expect(mockCache.invalidateById).toHaveBeenCalledWith(product.id.value);

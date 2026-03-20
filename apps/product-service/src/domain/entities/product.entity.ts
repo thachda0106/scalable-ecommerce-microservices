@@ -1,6 +1,9 @@
 import { ProductId } from '../value-objects/product-id.vo';
 import { Money } from '../value-objects/money.vo';
-import { ProductStatus, ProductStatusEnum } from '../value-objects/product-status.vo';
+import {
+  ProductStatus,
+  ProductStatusEnum,
+} from '../value-objects/product-status.vo';
 import { BaseDomainEvent } from '../events/base-domain.event';
 import { ProductCreatedEvent } from '../events/product-created.event';
 import { ProductUpdatedEvent } from '../events/product-updated.event';
@@ -44,10 +47,16 @@ export class Product {
 
   static create(props: CreateProductProps): Product {
     if (!props.name || props.name.trim().length === 0) {
-      throw new InvalidProductOperationError('createProduct', 'Product name cannot be empty');
+      throw new InvalidProductOperationError(
+        'createProduct',
+        'Product name cannot be empty',
+      );
     }
     if (props.price <= 0) {
-      throw new InvalidProductOperationError('createProduct', 'Product price must be positive');
+      throw new InvalidProductOperationError(
+        'createProduct',
+        'Product price must be positive',
+      );
     }
 
     const product = new Product();
@@ -107,7 +116,10 @@ export class Product {
 
     if (props.name !== undefined) {
       if (!props.name || props.name.trim().length === 0) {
-        throw new InvalidProductOperationError('updateDetails', 'Product name cannot be empty');
+        throw new InvalidProductOperationError(
+          'updateDetails',
+          'Product name cannot be empty',
+        );
       }
       this._name = props.name.trim();
     }
@@ -116,9 +128,15 @@ export class Product {
     }
     if (props.price !== undefined) {
       if (props.price <= 0) {
-        throw new InvalidProductOperationError('updateDetails', 'Product price must be positive');
+        throw new InvalidProductOperationError(
+          'updateDetails',
+          'Product price must be positive',
+        );
       }
-      this._price = Money.fromDecimal(props.price, props.currency ?? this._price.currency);
+      this._price = Money.fromDecimal(
+        props.price,
+        props.currency ?? this._price.currency,
+      );
     } else if (props.currency !== undefined) {
       this._price = Money.fromCents(this._price.amountInCents, props.currency);
     }

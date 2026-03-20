@@ -6,7 +6,12 @@ export class OrderCreatedEvent extends BaseDomainEvent {
   constructor(
     public readonly orderId: string,
     public readonly userId: string,
-    public readonly items: { productId: string; productName: string; quantity: number; unitPrice: number }[],
+    public readonly items: {
+      productId: string;
+      productName: string;
+      quantity: number;
+      unitPrice: number;
+    }[],
     public readonly totalPrice: number,
     public readonly currency: string,
   ) {

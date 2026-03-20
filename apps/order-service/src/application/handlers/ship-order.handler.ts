@@ -35,6 +35,8 @@ export class ShipOrderHandler {
 
     this.metrics.recordStatusChange(fromStatus, 'SHIPPED');
 
-    this.logger.log(`Order ${command.orderId} shipped with tracking ${command.trackingNumber}`);
+    this.logger.log(
+      `Order ${command.orderId} shipped with tracking ${command.trackingNumber}`,
+    );
   }
 }

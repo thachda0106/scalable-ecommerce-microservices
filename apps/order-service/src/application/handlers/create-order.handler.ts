@@ -33,7 +33,9 @@ export class CreateOrderHandler {
     this.metrics.incrementOrdersCreated();
     stopTimer();
 
-    this.logger.log(`Order ${order.id.value} created for user ${command.userId}`);
+    this.logger.log(
+      `Order ${order.id.value} created for user ${command.userId}`,
+    );
     return order.id.value;
   }
 }

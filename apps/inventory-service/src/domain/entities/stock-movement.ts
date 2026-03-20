@@ -36,7 +36,9 @@ export class StockMovement {
   readonly correlationId: string;
   readonly createdAt: Date;
 
-  private constructor(props: CreateMovementProps & { id: string; createdAt: Date }) {
+  private constructor(
+    props: CreateMovementProps & { id: string; createdAt: Date },
+  ) {
     this.id = props.id;
     this.productId = props.productId;
     this.movementType = props.movementType;

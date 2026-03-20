@@ -1,9 +1,7 @@
 import { registerAs } from '@nestjs/config';
 
 export const inventoryConfig = registerAs('inventory', () => ({
-  reservationTtlMinutes: parseInt(
-    process.env.RESERVATION_TTL_MINUTES || '15',
-  ),
+  reservationTtlMinutes: parseInt(process.env.RESERVATION_TTL_MINUTES || '15'),
   lowStockThreshold: parseInt(process.env.LOW_STOCK_THRESHOLD || '100'),
   maxReserveItems: parseInt(process.env.MAX_RESERVE_ITEMS || '50'),
   expiryWorkerIntervalSeconds: parseInt(

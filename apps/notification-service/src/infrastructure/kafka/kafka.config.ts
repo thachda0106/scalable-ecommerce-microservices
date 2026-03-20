@@ -3,14 +3,12 @@ export const kafkaConfig = {
   brokers: (process.env.KAFKA_BROKERS || 'localhost:29092').split(','),
   consumerGroups: {
     userEvents:
-      process.env.KAFKA_GROUP_USER_EVENTS ||
-      'notification-service-user-events',
+      process.env.KAFKA_GROUP_USER_EVENTS || 'notification-service-user-events',
     orderEvents:
       process.env.KAFKA_GROUP_ORDER_EVENTS ||
       'notification-service-order-events',
     cartEvents:
-      process.env.KAFKA_GROUP_CART_EVENTS ||
-      'notification-service-cart-events',
+      process.env.KAFKA_GROUP_CART_EVENTS || 'notification-service-cart-events',
   },
   topics: {
     userEvents: process.env.KAFKA_TOPIC_USER_EVENTS || 'user.events',

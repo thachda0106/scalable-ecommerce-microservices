@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  Logger,
-  OnModuleInit,
-} from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Consumer, EachMessagePayload } from 'kafkajs';
@@ -67,7 +63,9 @@ export class PaymentEventConsumer implements OnModuleInit {
       // Idempotency check
       const alreadyProcessed = await this.processedRepo.findOneBy({ eventId });
       if (alreadyProcessed) {
-        this.logger.debug(`Payment event ${eventId} already processed, skipping`);
+        this.logger.debug(
+          `Payment event ${eventId} already processed, skipping`,
+        );
         return;
       }
 
@@ -87,10 +85,7 @@ export class PaymentEventConsumer implements OnModuleInit {
         case 'PaymentFailed':
         case 'payment.failed':
           await this.cancelOrderHandler.execute(
-            new CancelOrderCommand(
-              event.payload.orderId,
-              'Payment failed',
-            ),
+            new CancelOrderCommand(event.payload.orderId, 'Payment failed'),
           );
           break;
 

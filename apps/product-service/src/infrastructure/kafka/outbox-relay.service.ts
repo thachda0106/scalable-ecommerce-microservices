@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { OutboxEventOrmEntity } from '../persistence/entities/outbox-event.orm-entity';
 import { KafkaClientFactory } from './kafka-client.factory';
+import { publishWithResilience, setCorrelationHeaders } from '@ecommerce/core';
 
 @Injectable()
 export class OutboxRelayService {
@@ -34,17 +35,20 @@ export class OutboxRelayService {
 
     for (const event of events) {
       try {
-        await producer.send({
+        const correlationId =
+          event.payload?.productId || event.payload?.id || event.id;
+        await publishWithResilience(producer, {
           topic: 'product.events',
           messages: [
             {
-              key: event.payload?.productId || event.payload?.id || event.id,
+              key: correlationId,
               value: JSON.stringify({
                 eventId: event.id,
                 type: event.type,
                 payload: event.payload,
                 timestamp: event.createdAt,
               }),
+              headers: setCorrelationHeaders(correlationId),
             },
           ],
         });

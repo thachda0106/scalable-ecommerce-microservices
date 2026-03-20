@@ -1,6 +1,9 @@
 import { Module, Global, OnModuleInit } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { openSearchClientProvider, OPENSEARCH_CLIENT } from './opensearch-client.provider';
+import {
+  openSearchClientProvider,
+  OPENSEARCH_CLIENT,
+} from './opensearch-client.provider';
 import { OpenSearchIndexAdapter } from './opensearch-index.adapter';
 import { OpenSearchQueryAdapter } from './opensearch-query.adapter';
 import { IndexManagementService } from './index-management.service';

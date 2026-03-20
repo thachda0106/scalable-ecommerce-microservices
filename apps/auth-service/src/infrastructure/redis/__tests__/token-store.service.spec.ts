@@ -53,7 +53,10 @@ describe('TokenStoreService', () => {
     it('should return userId for existing token', async () => {
       redis.get.mockResolvedValue('user-123');
 
-      const result = await service.getUserIdByRefreshToken('user-123', 'my-token');
+      const result = await service.getUserIdByRefreshToken(
+        'user-123',
+        'my-token',
+      );
 
       expect(result).toBe('user-123');
       expect(redis.get).toHaveBeenCalledWith('refresh:user-123:my-token');
@@ -62,7 +65,10 @@ describe('TokenStoreService', () => {
     it('should return null for missing token', async () => {
       redis.get.mockResolvedValue(null);
 
-      const result = await service.getUserIdByRefreshToken('user-123', 'gone-token');
+      const result = await service.getUserIdByRefreshToken(
+        'user-123',
+        'gone-token',
+      );
 
       expect(result).toBeNull();
     });

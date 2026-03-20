@@ -10,6 +10,7 @@ import { UserStatusEnum } from '../../../domain/value-objects/user-status.vo';
 import { DomainException } from '../../../domain/errors/domain-exception';
 import { UserOrmEntity } from '../entities/user.orm-entity';
 import { UserMapper } from '../mappers/user.mapper';
+import { safeExecute, StrategyType } from '@ecommerce/core';
 
 @Injectable()
 export class TypeOrmUserRepository implements IUserRepository {
@@ -22,9 +23,19 @@ export class TypeOrmUserRepository implements IUserRepository {
 
   async save(user: User): Promise<void> {
     try {
-      const orm = UserMapper.toPersistence(user);
-      await this.repo.save(orm);
-      this.logger.debug(`User ${user.id.value} saved`);
+      await safeExecute(
+        async () => {
+          const orm = UserMapper.toPersistence(user);
+          await this.repo.save(orm);
+          this.logger.debug(`User ${user.id.value} saved`);
+        },
+        {
+          strategy: StrategyType.FAIL_CLOSE,
+          retry: { attempts: 3, backoffMs: 200 },
+          circuitBreakerKey: 'user-db',
+          label: 'DB:SaveUser',
+        },
+      );
     } catch (error) {
       // H1: Catch DB unique constraint violations and rethrow as domain errors
       if (error instanceof QueryFailedError) {
@@ -98,7 +109,17 @@ export class TypeOrmUserRepository implements IUserRepository {
   }
 
   async delete(id: UserId): Promise<void> {
-    await this.repo.delete(id.value);
-    this.logger.debug(`User ${id.value} hard-deleted`);
+    await safeExecute(
+      async () => {
+        await this.repo.delete(id.value);
+        this.logger.debug(`User ${id.value} hard-deleted`);
+      },
+      {
+        strategy: StrategyType.FAIL_CLOSE,
+        retry: { attempts: 3, backoffMs: 200 },
+        circuitBreakerKey: 'user-db',
+        label: 'DB:DeleteUser',
+      },
+    );
   }
 }

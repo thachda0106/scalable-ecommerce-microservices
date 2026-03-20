@@ -82,7 +82,10 @@ export class ProductMetricsService {
   }
 
   recordStatusChange(fromStatus: string, toStatus: string): void {
-    this.statusChangesTotal.inc({ from_status: fromStatus, to_status: toStatus });
+    this.statusChangesTotal.inc({
+      from_status: fromStatus,
+      to_status: toStatus,
+    });
   }
 
   startTimer(operation: string): () => void {

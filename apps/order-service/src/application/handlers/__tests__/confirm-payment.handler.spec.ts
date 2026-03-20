@@ -35,7 +35,11 @@ describe('ConfirmPaymentHandler', () => {
       getMetrics: jest.fn(),
     } as any;
 
-    handler = new ConfirmPaymentHandler(orderRepository, eventPublisher, metrics);
+    handler = new ConfirmPaymentHandler(
+      orderRepository,
+      eventPublisher,
+      metrics,
+    );
   });
 
   it('should confirm payment for an existing order', async () => {
@@ -50,7 +54,7 @@ describe('ConfirmPaymentHandler', () => {
         },
       ],
     });
-    
+
     order.requestPayment(); // transitions to PENDING_PAYMENT
     orderRepository.findById.mockResolvedValue(order);
 
@@ -61,8 +65,11 @@ describe('ConfirmPaymentHandler', () => {
     expect(orderRepository.findById).toHaveBeenCalledWith(expect.any(OrderId));
     expect(orderRepository.save).toHaveBeenCalledTimes(1);
     expect(eventPublisher.publishAll).toHaveBeenCalledTimes(1);
-    expect(metrics.recordStatusChange).toHaveBeenCalledWith('PENDING_PAYMENT', 'PAID');
-    
+    expect(metrics.recordStatusChange).toHaveBeenCalledWith(
+      'PENDING_PAYMENT',
+      'PAID',
+    );
+
     const savedOrder = orderRepository.save.mock.calls[0][0] as Order;
     expect(savedOrder.status.value).toBe('PAID');
   });
@@ -70,7 +77,10 @@ describe('ConfirmPaymentHandler', () => {
   it('should throw if order is not found', async () => {
     orderRepository.findById.mockResolvedValue(null);
 
-    const command = new ConfirmPaymentCommand('123e4567-e89b-12d3-a456-426614174000', 'payment-123');
+    const command = new ConfirmPaymentCommand(
+      '123e4567-e89b-12d3-a456-426614174000',
+      'payment-123',
+    );
 
     await expect(handler.execute(command)).rejects.toThrow(/not found/);
   });

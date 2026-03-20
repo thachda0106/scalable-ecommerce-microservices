@@ -78,9 +78,7 @@ describe('GetProductsHandler', () => {
       totalPages: 0,
     });
 
-    await handler.execute(
-      new GetProductsQuery(1, 500),
-    );
+    await handler.execute(new GetProductsQuery(1, 500));
 
     expect(mockRepository.findAll).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -99,7 +97,17 @@ describe('GetProductsHandler', () => {
     });
 
     await handler.execute(
-      new GetProductsQuery(2, 10, 'name', 'ASC', 'ACTIVE', 'cat-1', 5, 50, 'phone'),
+      new GetProductsQuery(
+        2,
+        10,
+        'name',
+        'ASC',
+        'ACTIVE',
+        'cat-1',
+        5,
+        50,
+        'phone',
+      ),
     );
 
     expect(mockRepository.findAll).toHaveBeenCalledWith(

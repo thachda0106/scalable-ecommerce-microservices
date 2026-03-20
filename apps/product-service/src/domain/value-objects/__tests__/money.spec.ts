@@ -3,7 +3,7 @@ import { Money } from '../money.vo';
 describe('Money', () => {
   describe('fromDecimal', () => {
     it('should store decimal as cents', () => {
-      const money = Money.fromDecimal(10.50);
+      const money = Money.fromDecimal(10.5);
       expect(money.amountInCents).toBe(1050);
     });
 
@@ -31,9 +31,9 @@ describe('Money', () => {
   describe('add', () => {
     it('should add two Money values', () => {
       const a = Money.fromDecimal(10);
-      const b = Money.fromDecimal(5.50);
+      const b = Money.fromDecimal(5.5);
       const result = a.add(b);
-      expect(result.toDecimal()).toBe(15.50);
+      expect(result.toDecimal()).toBe(15.5);
     });
 
     it('should throw when adding different currencies', () => {

@@ -2,6 +2,7 @@ import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { Producer } from 'kafkajs';
 import { IInventoryService } from '../../application/ports/inventory-service.port';
 import { KafkaClientFactory } from '../kafka/kafka-client.factory';
+import { publishWithResilience, setCorrelationHeaders } from '@ecommerce/core';
 
 @Injectable()
 export class KafkaInventoryService
@@ -22,7 +23,7 @@ export class KafkaInventoryService
     orderId: string,
     items: { productId: string; quantity: number }[],
   ): Promise<void> {
-    await this.producer.send({
+    await publishWithResilience(this.producer, {
       topic: 'inventory.commands',
       messages: [
         {
@@ -31,6 +32,7 @@ export class KafkaInventoryService
             type: 'ReserveInventory',
             payload: { orderId, items },
           }),
+          headers: setCorrelationHeaders(orderId),
         },
       ],
     });
@@ -38,7 +40,7 @@ export class KafkaInventoryService
   }
 
   async releaseInventory(orderId: string): Promise<void> {
-    await this.producer.send({
+    await publishWithResilience(this.producer, {
       topic: 'inventory.commands',
       messages: [
         {
@@ -47,6 +49,7 @@ export class KafkaInventoryService
             type: 'ReleaseInventory',
             payload: { orderId },
           }),
+          headers: setCorrelationHeaders(orderId),
         },
       ],
     });

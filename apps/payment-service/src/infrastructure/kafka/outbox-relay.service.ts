@@ -10,6 +10,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { Producer } from 'kafkajs';
 import { KafkaClientFactory } from './kafka-client.factory';
 import { OutboxEventOrmEntity } from '../persistence/entities/outbox-event.orm-entity';
+import { publishWithResilience } from '@ecommerce/core';
 
 @Injectable()
 export class OutboxRelayService
@@ -63,7 +64,7 @@ export class OutboxRelayService
       }));
 
       // Send to Kafka — only mark processed after successful ack
-      await this.producer.send({
+      await publishWithResilience(this.producer, {
         topic: 'payment.events',
         messages,
       });

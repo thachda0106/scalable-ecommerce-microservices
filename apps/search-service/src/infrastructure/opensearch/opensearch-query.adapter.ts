@@ -27,7 +27,7 @@ export class OpenSearchQueryAdapter implements ISearchQueryPort {
 
     const hits = (response.body as any).hits;
     const total =
-      typeof hits.total === 'number' ? hits.total : hits.total?.value ?? 0;
+      typeof hits.total === 'number' ? hits.total : (hits.total?.value ?? 0);
 
     const documents = hits.hits.map((hit: any) =>
       SearchDocument.create({
@@ -44,9 +44,7 @@ export class OpenSearchQueryAdapter implements ISearchQueryPort {
 
     // Extract cursor from last hit's sort values for search_after
     const lastHit = hits.hits[hits.hits.length - 1];
-    const cursor = lastHit?.sort
-      ? JSON.stringify(lastHit.sort)
-      : null;
+    const cursor = lastHit?.sort ? JSON.stringify(lastHit.sort) : null;
 
     return SearchResult.create({
       documents,

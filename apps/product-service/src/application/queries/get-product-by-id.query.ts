@@ -1,5 +1,3 @@
 export class GetProductByIdQuery {
-  constructor(
-    public readonly productId: string,
-  ) {}
+  constructor(public readonly productId: string) {}
 }

@@ -156,11 +156,7 @@ export class ProductInventory {
    * Confirm reserved stock as sold.
    * Moves units from reserved to sold — permanent deduction.
    */
-  confirm(
-    quantity: number,
-    reservationId: string,
-    referenceId: string,
-  ): void {
+  confirm(quantity: number, reservationId: string, referenceId: string): void {
     if (this._reservedStock < quantity) {
       throw new Error(
         `Cannot confirm ${quantity} units: only ${this._reservedStock} reserved for product ${this._productId}`,
@@ -202,8 +198,7 @@ export class ProductInventory {
    *   availableStock + reservedStock + soldStock === totalStock
    */
   private validateInvariant(): void {
-    const sum =
-      this._availableStock + this._reservedStock + this._soldStock;
+    const sum = this._availableStock + this._reservedStock + this._soldStock;
     if (sum !== this._totalStock) {
       throw new StockInvariantViolationError(
         this._productId,
