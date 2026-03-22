@@ -20,7 +20,7 @@ import { ProductInventoryOrmEntity } from './infrastructure/persistence/entities
 import { StockReservationOrmEntity } from './infrastructure/persistence/entities/stock-reservation.orm-entity';
 import { StockMovementOrmEntity } from './infrastructure/persistence/entities/stock-movement.orm-entity';
 import { OutboxEventOrmEntity } from './infrastructure/persistence/entities/outbox-event.orm-entity';
-import { ProcessedEventOrmEntity } from './infrastructure/persistence/entities/processed-event.orm-entity';
+import { InboxEventEntity } from '@ecommerce/core';
 
 @Module({
   imports: [
@@ -48,7 +48,7 @@ import { ProcessedEventOrmEntity } from './infrastructure/persistence/entities/p
           StockReservationOrmEntity,
           StockMovementOrmEntity,
           OutboxEventOrmEntity,
-          ProcessedEventOrmEntity,
+          InboxEventEntity,
         ],
         synchronize: config.get('database.synchronize', false),
         extra: {

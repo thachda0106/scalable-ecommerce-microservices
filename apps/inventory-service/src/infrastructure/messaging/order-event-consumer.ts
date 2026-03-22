@@ -6,24 +6,39 @@ import {
   OnModuleDestroy,
 } from '@nestjs/common';
 import { CommandBus } from '@nestjs/cqrs';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { ConfigType } from '@nestjs/config';
 import { Kafka, Consumer, EachMessagePayload } from 'kafkajs';
-import { ProcessedEventOrmEntity } from '../persistence/entities/processed-event.orm-entity';
+import {
+  InboxService,
+  InboxEventMetadata,
+  KafkaDlqProducer,
+  getCorrelationId,
+} from '@ecommerce/core';
 import { ConfirmStockCommand } from '../../application/commands/confirm-stock.command';
 import { ReleaseStockCommand } from '../../application/commands/release-stock.command';
 import { kafkaConfig } from '../../config/inventory.config';
 
+/**
+ * Kafka consumer for order/cart events in the inventory service.
+ *
+ * Uses the Inbox Pattern from @ecommerce/core for:
+ * - Idempotent event processing (deduplication via UNIQUE constraint)
+ * - Transactional processing with CAS locking
+ * - Automatic retry with exponential backoff
+ * - Dead letter queue escalation
+ *
+ * Replaces the previous manual ProcessedEventOrmEntity-based idempotency.
+ */
 @Injectable()
 export class OrderEventConsumer implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(OrderEventConsumer.name);
+  private readonly inboxService: InboxService;
   private consumer: Consumer;
 
   constructor(
     private readonly commandBus: CommandBus,
-    @InjectRepository(ProcessedEventOrmEntity)
-    private readonly processedRepo: Repository<ProcessedEventOrmEntity>,
+    private readonly dataSource: DataSource,
     @Inject(kafkaConfig.KEY)
     private readonly config: ConfigType<typeof kafkaConfig>,
   ) {
@@ -34,6 +49,19 @@ export class OrderEventConsumer implements OnModuleInit, OnModuleDestroy {
     this.consumer = kafka.consumer({
       groupId: this.config.consumerGroupId,
     });
+
+    // Create DLQ producer for failed events
+    const dlqKafkaProducer = kafka.producer();
+    const dlqProducer = new KafkaDlqProducer(
+      { send: (record: any) => dlqKafkaProducer.send(record) },
+      'inventory-service',
+    );
+
+    this.inboxService = new InboxService(
+      this.dataSource,
+      dlqProducer,
+      'inventory-service',
+    );
   }
 
   async onModuleInit(): Promise<void> {
@@ -50,7 +78,7 @@ export class OrderEventConsumer implements OnModuleInit, OnModuleDestroy {
         },
       });
 
-      this.logger.log('Order event consumer started');
+      this.logger.log('Order event consumer started (with Inbox Pattern)');
     } catch (error) {
       this.logger.error(
         `Failed to start consumer: ${(error as Error).message}`,
@@ -70,89 +98,105 @@ export class OrderEventConsumer implements OnModuleInit, OnModuleDestroy {
   }
 
   private async handleMessage(payload: EachMessagePayload): Promise<void> {
-    const { message } = payload;
+    const { topic, message } = payload;
     if (!message.value) return;
 
     try {
       const event = JSON.parse(message.value.toString());
-      const eventId = event.id || event.payload?.idempotencyKey;
+      const eventId = this.extractEventId(event, message.headers);
+      const eventType = event.type || event.eventType;
 
       if (!eventId) {
         this.logger.warn('Received event without ID, skipping');
         return;
       }
 
-      // Idempotency check
-      const alreadyProcessed = await this.processedRepo.findOneBy({
+      const headers = message.headers as Record<string, Buffer | string | undefined>;
+
+      await this.inboxService.handleIncoming({
         eventId,
+        eventType,
+        aggregateId: event.payload?.orderId || event.payload?.cartId || event.payload?.referenceId,
+        payload: event,
+        topic,
+        headers,
+        source: 'order-service',
+        handler: async (data: Record<string, unknown>, meta: InboxEventMetadata) => {
+          await this.processEvent(data, meta);
+        },
       });
-      if (alreadyProcessed) {
-        this.logger.debug(`Event ${eventId} already processed, skipping`);
-        return;
-      }
-
-      const eventType = event.type || event.eventType;
-
-      switch (eventType) {
-        case 'OrderConfirmed':
-        case 'order.confirmed':
-          await this.commandBus.execute(
-            new ConfirmStockCommand(
-              event.payload.orderId || event.payload.referenceId,
-              'ORDER',
-              `confirm-${eventId}`,
-              event.payload.correlationId,
-            ),
-          );
-          break;
-
-        case 'OrderFailed':
-        case 'OrderCancelled':
-        case 'order.failed':
-        case 'order.cancelled':
-          await this.commandBus.execute(
-            new ReleaseStockCommand(
-              event.payload.orderId || event.payload.referenceId,
-              'ORDER',
-              undefined,
-              `release-order-${eventId}`,
-              'order_failed',
-              event.payload.correlationId,
-            ),
-          );
-          break;
-
-        case 'CartExpired':
-        case 'cart.expired':
-          await this.commandBus.execute(
-            new ReleaseStockCommand(
-              event.payload.cartId || event.payload.referenceId,
-              'CART',
-              undefined,
-              `release-cart-${eventId}`,
-              'cart_expired',
-              event.payload.correlationId,
-            ),
-          );
-          break;
-
-        default:
-          this.logger.debug(`Unhandled event type: ${eventType}`);
-          return;
-      }
-
-      // Mark as processed
-      const processed = new ProcessedEventOrmEntity();
-      processed.eventId = eventId;
-      await this.processedRepo.save(processed);
-
-      this.logger.log(`Processed ${eventType} event: ${eventId}`);
     } catch (error) {
       this.logger.error(
         `Error processing message: ${(error as Error).message}`,
         (error as Error).stack,
       );
-      // DO NOT re-throw — prevents consumer crash loop
     }
+  }
+
+  private async processEvent(
+    event: Record<string, unknown>,
+    meta: InboxEventMetadata,
+  ): Promise<void> {
+    const eventType = meta.eventType;
+    const eventPayload = (event as any).payload || event;
+
+    switch (eventType) {
+      case 'OrderConfirmed':
+      case 'order.confirmed':
+        await this.commandBus.execute(
+          new ConfirmStockCommand(
+            eventPayload.orderId || eventPayload.referenceId,
+            'ORDER',
+            `confirm-${meta.eventId}`,
+            meta.correlationId,
+          ),
+        );
+        break;
+
+      case 'OrderFailed':
+      case 'OrderCancelled':
+      case 'order.failed':
+      case 'order.cancelled':
+        await this.commandBus.execute(
+          new ReleaseStockCommand(
+            eventPayload.orderId || eventPayload.referenceId,
+            'ORDER',
+            undefined,
+            `release-order-${meta.eventId}`,
+            'order_failed',
+            meta.correlationId,
+          ),
+        );
+        break;
+
+      case 'CartExpired':
+      case 'cart.expired':
+        await this.commandBus.execute(
+          new ReleaseStockCommand(
+            eventPayload.cartId || eventPayload.referenceId,
+            'CART',
+            undefined,
+            `release-cart-${meta.eventId}`,
+            'cart_expired',
+            meta.correlationId,
+          ),
+        );
+        break;
+
+      default:
+        this.logger.debug(`Unhandled event type: ${eventType}`);
+    }
+  }
+
+  private extractEventId(
+    event: any,
+    headers?: Record<string, Buffer | string | undefined>,
+  ): string | undefined {
+    // Prefer x-event-id from Kafka headers (set by OutboxProcessor)
+    if (headers?.['x-event-id']) {
+      const raw = headers['x-event-id'];
+      return Buffer.isBuffer(raw) ? raw.toString('utf-8') : (raw as string);
+    }
+    return event.id || event.eventId || event.payload?.idempotencyKey;
   }
 }

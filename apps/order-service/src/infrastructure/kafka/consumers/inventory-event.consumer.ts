@@ -1,25 +1,40 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { Consumer, EachMessagePayload } from 'kafkajs';
-import { ProcessedEventOrmEntity } from '../../persistence/entities/processed-event.orm-entity';
+import {
+  InboxService,
+  InboxEventMetadata,
+  KafkaDlqProducer,
+} from '@ecommerce/core';
 import { CancelOrderHandler } from '../../../application/handlers/cancel-order.handler';
 import { CancelOrderCommand } from '../../../application/commands/cancel-order.command';
 import { CheckoutSagaOrchestrator } from '../saga/checkout-saga.orchestrator';
 import { KafkaClientFactory } from '../kafka-client.factory';
 
+/**
+ * Kafka consumer for inventory events in the order service.
+ *
+ * Uses the Inbox Pattern for idempotent event processing.
+ * Handles: InventoryReserved, InventoryReservationFailed.
+ */
 @Injectable()
 export class InventoryEventConsumer implements OnModuleInit {
   private readonly logger = new Logger(InventoryEventConsumer.name);
+  private readonly inboxService: InboxService;
   private consumer: Consumer;
 
   constructor(
     private readonly cancelOrderHandler: CancelOrderHandler,
     private readonly sagaOrchestrator: CheckoutSagaOrchestrator,
-    @InjectRepository(ProcessedEventOrmEntity)
-    private readonly processedRepo: Repository<ProcessedEventOrmEntity>,
     private readonly kafkaFactory: KafkaClientFactory,
-  ) {}
+    private readonly dataSource: DataSource,
+  ) {
+    const dlqProducer = new KafkaDlqProducer(
+      { send: (record: any) => this.kafkaFactory.createProducer().send(record) },
+      'order-service',
+    );
+    this.inboxService = new InboxService(this.dataSource, dlqProducer, 'order-service');
+  }
 
   async onModuleInit(): Promise<void> {
     try {
@@ -38,7 +53,7 @@ export class InventoryEventConsumer implements OnModuleInit {
         },
       });
 
-      this.logger.log('Inventory event consumer started');
+      this.logger.log('Inventory event consumer started (with Inbox Pattern)');
     } catch (error) {
       this.logger.error(
         `Failed to start inventory consumer: ${(error as Error).message}`,
@@ -47,66 +62,78 @@ export class InventoryEventConsumer implements OnModuleInit {
   }
 
   private async handleMessage(payload: EachMessagePayload): Promise<void> {
-    const { message } = payload;
+    const { topic, message } = payload;
     if (!message.value) return;
 
     try {
       const event = JSON.parse(message.value.toString());
-      const eventId = event.eventId || event.id;
+      const eventId = this.extractEventId(event, message.headers);
+      const eventType = event.type || event.eventType;
 
       if (!eventId) {
         this.logger.warn('Received inventory event without ID, skipping');
         return;
       }
 
-      // Idempotency check
-      const alreadyProcessed = await this.processedRepo.findOneBy({ eventId });
-      if (alreadyProcessed) {
-        this.logger.debug(
-          `Inventory event ${eventId} already processed, skipping`,
-        );
-        return;
-      }
+      const headers = message.headers as Record<string, Buffer | string | undefined>;
 
-      const eventType = event.type || event.eventType;
-
-      switch (eventType) {
-        case 'InventoryReserved':
-        case 'stock.reserved':
-          // Inventory reserved → proceed to payment via Saga
-          await this.sagaOrchestrator.onInventoryReserved(
-            event.payload.orderId || event.payload.referenceId,
-          );
-          break;
-
-        case 'InventoryReservationFailed':
-        case 'stock.reservation.failed':
-          await this.cancelOrderHandler.execute(
-            new CancelOrderCommand(
-              event.payload.orderId || event.payload.referenceId,
-              'Inventory reservation failed',
-            ),
-          );
-          break;
-
-        default:
-          this.logger.debug(`Unhandled inventory event type: ${eventType}`);
-          return;
-      }
-
-      // Mark as processed
-      const processed = new ProcessedEventOrmEntity();
-      processed.eventId = eventId;
-      processed.eventType = eventType;
-      await this.processedRepo.save(processed);
-
-      this.logger.log(`Processed inventory event: ${eventType} (${eventId})`);
+      await this.inboxService.handleIncoming({
+        eventId,
+        eventType,
+        aggregateId: event.payload?.orderId || event.payload?.referenceId,
+        payload: event,
+        topic,
+        headers,
+        source: 'inventory-service',
+        handler: async (data: Record<string, unknown>, meta: InboxEventMetadata) => {
+          await this.processEvent(data, meta);
+        },
+      });
     } catch (error) {
       this.logger.error(
         `Error processing inventory message: ${(error as Error).message}`,
         (error as Error).stack,
       );
-      // DO NOT re-throw — prevents consumer crash loop
     }
+  }
+
+  private async processEvent(
+    event: Record<string, unknown>,
+    meta: InboxEventMetadata,
+  ): Promise<void> {
+    const eventPayload = (event as any).payload || event;
+
+    switch (meta.eventType) {
+      case 'InventoryReserved':
+      case 'stock.reserved':
+        await this.sagaOrchestrator.onInventoryReserved(
+          eventPayload.orderId || eventPayload.referenceId,
+        );
+        break;
+
+      case 'InventoryReservationFailed':
+      case 'stock.reservation.failed':
+        await this.cancelOrderHandler.execute(
+          new CancelOrderCommand(
+            eventPayload.orderId || eventPayload.referenceId,
+            'Inventory reservation failed',
+          ),
+        );
+        break;
+
+      default:
+        this.logger.debug(`Unhandled inventory event type: ${meta.eventType}`);
+    }
+  }
+
+  private extractEventId(
+    event: any,
+    headers?: Record<string, Buffer | string | undefined>,
+  ): string | undefined {
+    if (headers?.['x-event-id']) {
+      const raw = headers['x-event-id'];
+      return Buffer.isBuffer(raw) ? raw.toString('utf-8') : (raw as string);
+    }
+    return event.eventId || event.id;
   }
 }

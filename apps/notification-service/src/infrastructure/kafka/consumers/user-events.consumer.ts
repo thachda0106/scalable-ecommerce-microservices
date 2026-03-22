@@ -6,22 +6,40 @@ import {
   OnModuleDestroy,
 } from '@nestjs/common';
 import { Kafka, Consumer } from 'kafkajs';
+import { DataSource } from 'typeorm';
+import {
+  InboxService,
+  InboxEventMetadata,
+  KafkaDlqProducer,
+} from '@ecommerce/core';
 import { KAFKA_CLIENT } from '../kafka.module';
 import { kafkaConfig } from '../kafka.config';
 import { NotificationOrchestrator } from '../../../application/services/notification-orchestrator.service';
 
+/**
+ * Kafka consumer for user events in notification-service.
+ * Uses Inbox Pattern for idempotent event processing.
+ */
 @Injectable()
 export class UserEventsConsumer implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(UserEventsConsumer.name);
+  private readonly inboxService: InboxService;
   private consumer: Consumer;
 
   constructor(
     @Inject(KAFKA_CLIENT) private readonly kafka: Kafka,
     private readonly orchestrator: NotificationOrchestrator,
+    private readonly dataSource: DataSource,
   ) {
     this.consumer = this.kafka.consumer({
       groupId: kafkaConfig.consumerGroups.userEvents,
     });
+
+    const dlqProducer = new KafkaDlqProducer(
+      { send: (record: any) => this.kafka.producer().send(record) },
+      'notification-service',
+    );
+    this.inboxService = new InboxService(this.dataSource, dlqProducer, 'notification-service');
   }
 
   async onModuleInit(): Promise<void> {
@@ -37,7 +55,26 @@ export class UserEventsConsumer implements OnModuleInit, OnModuleDestroy {
           if (!message.value) return;
           try {
             const event = JSON.parse(message.value.toString());
-            await this.handleEvent(event);
+            const eventId = this.extractEventId(event, message.headers);
+            const eventType = event.type || event.eventType;
+
+            if (!eventId) {
+              this.logger.warn('User event without ID, skipping');
+              return;
+            }
+
+            await this.inboxService.handleIncoming({
+              eventId,
+              eventType,
+              aggregateId: event.payload?.userId,
+              payload: event,
+              topic: kafkaConfig.topics.userEvents,
+              headers: message.headers as Record<string, Buffer | string | undefined>,
+              source: 'user-service',
+              handler: async (data: Record<string, unknown>, meta: InboxEventMetadata) => {
+                await this.processEvent(data, meta);
+              },
+            });
           } catch (error) {
             this.logger.error(
               `Error processing ${kafkaConfig.topics.userEvents} message: ${(error as Error).message}`,
@@ -48,7 +85,7 @@ export class UserEventsConsumer implements OnModuleInit, OnModuleDestroy {
       });
 
       this.logger.log(
-        `Consumer connected, listening to ${kafkaConfig.topics.userEvents}`,
+        `Consumer connected (with Inbox Pattern), listening to ${kafkaConfig.topics.userEvents}`,
       );
     } catch (error) {
       this.logger.error(
@@ -68,21 +105,28 @@ export class UserEventsConsumer implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  private async handleEvent(event: {
-    type?: string;
-    eventType?: string;
-    payload?: any;
-  }) {
-    const eventType = event.type || event.eventType;
+  private async processEvent(event: Record<string, unknown>, meta: InboxEventMetadata) {
+    const eventPayload = (event as any).payload || event;
 
-    switch (eventType) {
+    switch (meta.eventType) {
       case 'UserRegistered':
       case 'user.registered':
-        await this.orchestrator.handleUserRegistered(event.payload || event);
+        await this.orchestrator.handleUserRegistered(eventPayload);
         break;
 
       default:
-        this.logger.debug(`Unhandled user event type: ${eventType}`);
+        this.logger.debug(`Unhandled user event type: ${meta.eventType}`);
     }
+  }
+
+  private extractEventId(
+    event: any,
+    headers?: Record<string, Buffer | string | undefined>,
+  ): string | undefined {
+    if (headers?.['x-event-id']) {
+      const raw = headers['x-event-id'];
+      return Buffer.isBuffer(raw) ? raw.toString('utf-8') : (raw as string);
+    }
+    return event.id || event.eventId;
   }
 }

@@ -7,23 +7,35 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { CommandBus } from '@nestjs/cqrs';
 import { Kafka, Consumer } from 'kafkajs';
+import { DataSource } from 'typeorm';
+import {
+  InboxService,
+  InboxEventMetadata,
+  KafkaDlqProducer,
+} from '@ecommerce/core';
 import { createKafkaConfig } from '../kafka.config';
 import { IndexProductCommand } from '../../../application/commands/index-product.command';
 import { RemoveProductCommand } from '../../../application/commands/remove-product.command';
 
-const MAX_RETRY_MAP_SIZE = 10000;
-
+/**
+ * Kafka consumer for product events in search-service.
+ *
+ * Uses the Inbox Pattern for idempotent event processing.
+ * Handles: ProductCreated, ProductUpdated, ProductDeleted.
+ *
+ * Replaces the previous in-memory retry map with persistent inbox dedup.
+ */
 @Injectable()
 export class ProductEventConsumer implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(ProductEventConsumer.name);
+  private readonly inboxService: InboxService;
   private consumer: Consumer;
-  private readonly retryCountMap = new Map<string, number>();
-  private readonly MAX_RETRIES = 3;
   private readonly fromBeginning: boolean;
 
   constructor(
     private readonly configService: ConfigService,
     private readonly commandBus: CommandBus,
+    private readonly dataSource: DataSource,
   ) {
     const config = createKafkaConfig(this.configService);
     const kafka = new Kafka({
@@ -34,6 +46,12 @@ export class ProductEventConsumer implements OnModuleInit, OnModuleDestroy {
     this.fromBeginning =
       this.configService.get<string>('KAFKA_FROM_BEGINNING', 'false') ===
       'true';
+
+    const dlqProducer = new KafkaDlqProducer(
+      { send: (record: any) => kafka.producer().send(record) },
+      'search-service',
+    );
+    this.inboxService = new InboxService(this.dataSource, dlqProducer, 'search-service');
   }
 
   async onModuleInit(): Promise<void> {
@@ -48,38 +66,39 @@ export class ProductEventConsumer implements OnModuleInit, OnModuleDestroy {
         eachMessage: async ({ message }) => {
           if (!message.value) return;
 
-          const messageKey = `${message.offset}-${message.timestamp}`;
           try {
             const event = JSON.parse(message.value.toString());
-            await this.handleEvent(event);
-            this.retryCountMap.delete(messageKey);
+            const eventId = this.extractEventId(event, message.headers);
+            const eventType = event.type ?? event.eventType ?? '';
+
+            if (!eventId) {
+              this.logger.warn('Product event without ID, skipping');
+              return;
+            }
+
+            await this.inboxService.handleIncoming({
+              eventId,
+              eventType,
+              aggregateId: (event.payload ?? event.data ?? event)?.id,
+              payload: event,
+              topic: 'product.events',
+              headers: message.headers as Record<string, Buffer | string | undefined>,
+              source: 'product-service',
+              handler: async (data: Record<string, unknown>, meta: InboxEventMetadata) => {
+                await this.processEvent(data, meta);
+              },
+            });
           } catch (error: any) {
-            const retries = (this.retryCountMap.get(messageKey) ?? 0) + 1;
-            this.retryCountMap.set(messageKey, retries);
-
-            // Prevent unbounded memory growth
-            if (this.retryCountMap.size > MAX_RETRY_MAP_SIZE) {
-              const oldestKey = this.retryCountMap.keys().next().value;
-              if (oldestKey) this.retryCountMap.delete(oldestKey);
-            }
-
-            if (retries >= this.MAX_RETRIES) {
-              this.logger.error(
-                `Message failed after ${this.MAX_RETRIES} retries, sending to DLQ: ${error.message}`,
-              );
-              this.retryCountMap.delete(messageKey);
-              // In production: publish to product.events.dlq topic
-            } else {
-              this.logger.warn(
-                `Error processing message (attempt ${retries}/${this.MAX_RETRIES}): ${error.message}`,
-              );
-            }
+            this.logger.error(
+              `Error processing product event: ${error.message}`,
+              error.stack,
+            );
           }
         },
       });
 
       this.logger.log(
-        `Kafka consumer connected, listening to product.events (fromBeginning: ${this.fromBeginning})`,
+        `Kafka consumer connected (with Inbox Pattern), listening to product.events (fromBeginning: ${this.fromBeginning})`,
       );
     } catch (error: any) {
       this.logger.error(`Failed to connect Kafka consumer: ${error.message}`);
@@ -90,17 +109,13 @@ export class ProductEventConsumer implements OnModuleInit, OnModuleDestroy {
     await this.consumer.disconnect();
   }
 
-  private async handleEvent(event: {
-    type?: string;
-    eventType?: string;
-    payload?: any;
-    data?: any;
-  }): Promise<void> {
-    // Support both { type, payload } and { eventType, data } formats
-    const eventType = event.type ?? event.eventType ?? '';
-    const payload = event.payload ?? event.data ?? event;
+  private async processEvent(
+    event: Record<string, unknown>,
+    meta: InboxEventMetadata,
+  ): Promise<void> {
+    const payload = (event as any).payload ?? (event as any).data ?? event;
 
-    switch (eventType) {
+    switch (meta.eventType) {
       case 'ProductCreated':
       case 'product.created':
       case 'ProductUpdated':
@@ -117,7 +132,7 @@ export class ProductEventConsumer implements OnModuleInit, OnModuleDestroy {
           ),
         );
         this.logger.log(
-          `Dispatched IndexProductCommand for product ${payload.id} (${eventType})`,
+          `Dispatched IndexProductCommand for product ${payload.id} (${meta.eventType})`,
         );
         break;
 
@@ -130,7 +145,18 @@ export class ProductEventConsumer implements OnModuleInit, OnModuleDestroy {
         break;
 
       default:
-        this.logger.warn(`Unknown event type: ${eventType}`);
+        this.logger.warn(`Unknown event type: ${meta.eventType}`);
     }
+  }
+
+  private extractEventId(
+    event: any,
+    headers?: Record<string, Buffer | string | undefined>,
+  ): string | undefined {
+    if (headers?.['x-event-id']) {
+      const raw = headers['x-event-id'];
+      return Buffer.isBuffer(raw) ? raw.toString('utf-8') : (raw as string);
+    }
+    return event.id || event.eventId;
   }
 }

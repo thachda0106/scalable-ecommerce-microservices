@@ -6,22 +6,40 @@ import {
   OnModuleDestroy,
 } from '@nestjs/common';
 import { Kafka, Consumer } from 'kafkajs';
+import { DataSource } from 'typeorm';
+import {
+  InboxService,
+  InboxEventMetadata,
+  KafkaDlqProducer,
+} from '@ecommerce/core';
 import { KAFKA_CLIENT } from '../kafka.module';
 import { kafkaConfig } from '../kafka.config';
 import { NotificationOrchestrator } from '../../../application/services/notification-orchestrator.service';
 
+/**
+ * Kafka consumer for order events in notification-service.
+ * Uses Inbox Pattern for idempotent event processing.
+ */
 @Injectable()
 export class OrderEventsConsumer implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(OrderEventsConsumer.name);
+  private readonly inboxService: InboxService;
   private consumer: Consumer;
 
   constructor(
     @Inject(KAFKA_CLIENT) private readonly kafka: Kafka,
     private readonly orchestrator: NotificationOrchestrator,
+    private readonly dataSource: DataSource,
   ) {
     this.consumer = this.kafka.consumer({
       groupId: kafkaConfig.consumerGroups.orderEvents,
     });
+
+    const dlqProducer = new KafkaDlqProducer(
+      { send: (record: any) => this.kafka.producer().send(record) },
+      'notification-service',
+    );
+    this.inboxService = new InboxService(this.dataSource, dlqProducer, 'notification-service');
   }
 
   async onModuleInit(): Promise<void> {
@@ -37,7 +55,26 @@ export class OrderEventsConsumer implements OnModuleInit, OnModuleDestroy {
           if (!message.value) return;
           try {
             const event = JSON.parse(message.value.toString());
-            await this.handleEvent(event);
+            const eventId = this.extractEventId(event, message.headers);
+            const eventType = event.type || event.eventType;
+
+            if (!eventId) {
+              this.logger.warn('Order event without ID, skipping');
+              return;
+            }
+
+            await this.inboxService.handleIncoming({
+              eventId,
+              eventType,
+              aggregateId: event.payload?.orderId,
+              payload: event,
+              topic: kafkaConfig.topics.orderEvents,
+              headers: message.headers as Record<string, Buffer | string | undefined>,
+              source: 'order-service',
+              handler: async (data: Record<string, unknown>, meta: InboxEventMetadata) => {
+                await this.processEvent(data, meta);
+              },
+            });
           } catch (error) {
             this.logger.error(
               `Error processing ${kafkaConfig.topics.orderEvents} message: ${(error as Error).message}`,
@@ -48,7 +85,7 @@ export class OrderEventsConsumer implements OnModuleInit, OnModuleDestroy {
       });
 
       this.logger.log(
-        `Consumer connected, listening to ${kafkaConfig.topics.orderEvents}`,
+        `Consumer connected (with Inbox Pattern), listening to ${kafkaConfig.topics.orderEvents}`,
       );
     } catch (error) {
       this.logger.error(
@@ -68,39 +105,45 @@ export class OrderEventsConsumer implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  private async handleEvent(event: {
-    type?: string;
-    eventType?: string;
-    payload?: any;
-  }) {
-    const eventType = event.type || event.eventType;
+  private async processEvent(event: Record<string, unknown>, meta: InboxEventMetadata) {
+    const eventPayload = (event as any).payload || event;
 
-    switch (eventType) {
+    switch (meta.eventType) {
       case 'OrderCreated':
       case 'order.created':
-        await this.orchestrator.handleOrderCreated(event.payload || event);
+        await this.orchestrator.handleOrderCreated(eventPayload);
         break;
 
       case 'OrderConfirmed':
       case 'OrderPaid':
       case 'order.confirmed':
       case 'order.paid':
-        await this.orchestrator.handleOrderPaid(event.payload || event);
+        await this.orchestrator.handleOrderPaid(eventPayload);
         break;
 
       case 'OrderShipped':
       case 'order.shipped':
-        await this.orchestrator.handleOrderShipped(event.payload || event);
+        await this.orchestrator.handleOrderShipped(eventPayload);
         break;
 
       case 'OrderFailed':
       case 'order.failed':
-        // No notification for failed orders currently
         this.logger.debug(`Order failed event received, skipping notification`);
         break;
 
       default:
-        this.logger.debug(`Unhandled order event type: ${eventType}`);
+        this.logger.debug(`Unhandled order event type: ${meta.eventType}`);
     }
+  }
+
+  private extractEventId(
+    event: any,
+    headers?: Record<string, Buffer | string | undefined>,
+  ): string | undefined {
+    if (headers?.['x-event-id']) {
+      const raw = headers['x-event-id'];
+      return Buffer.isBuffer(raw) ? raw.toString('utf-8') : (raw as string);
+    }
+    return event.id || event.eventId;
   }
 }

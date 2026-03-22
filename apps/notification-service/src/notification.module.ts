@@ -7,6 +7,7 @@ import {
 
 // Kafka
 import { KafkaModule } from './infrastructure/kafka/kafka.module';
+import { InboxSchedulerService } from './infrastructure/kafka/inbox-scheduler.service';
 
 // Interface layer
 import { NotificationController } from './interfaces/controllers/notification.controller';
@@ -97,6 +98,7 @@ import { NotificationMetricsService } from './infrastructure/metrics/notificatio
     // ── Scheduled Services ───────────────────────────────────────
     RetrySchedulerService,
     DlqProcessorService,
+    InboxSchedulerService,
 
     // ── Metrics ──────────────────────────────────────────────────
     NotificationMetricsService,

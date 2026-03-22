@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { DataSource, EntityManager } from 'typeorm';
-import { OutboxEventEntity } from './outbox-event.entity';
+import { OutboxEventEntity } from './outbox/outbox-event.entity';
 
 /**
  * Base domain event interface — services must implement this.

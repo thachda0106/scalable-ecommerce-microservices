@@ -1,9 +1,11 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { CqrsModule } from '@nestjs/cqrs';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
-import { getLoggerModule } from '@ecommerce/core';
+import { getLoggerModule, InboxEventEntity } from '@ecommerce/core';
 
 // Infrastructure modules
 import { OpenSearchModule } from './infrastructure/opensearch/opensearch.module';
@@ -12,6 +14,9 @@ import { CacheModule } from './infrastructure/cache/cache.module';
 
 // Metrics
 import { SearchMetricsService } from './infrastructure/metrics/search-metrics.service';
+
+// Inbox
+import { InboxSchedulerService } from './infrastructure/kafka/inbox-scheduler.service';
 
 // Interface
 import { SearchController } from './interfaces/controllers/search.controller';
@@ -44,7 +49,23 @@ const QueryHandlers = [
     ConfigModule.forRoot({ isGlobal: true }),
     CqrsModule,
     getLoggerModule(),
+    ScheduleModule.forRoot(),
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 60 }]),
+
+    // TypeORM — required for Inbox Pattern persistence
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        type: 'postgres' as const,
+        url:
+          configService.get<string>('DATABASE_URL') ||
+          'postgres://postgres:postgres@localhost:5432/search_db',
+        entities: [InboxEventEntity],
+        synchronize: configService.get<string>('DB_SYNC') === 'true',
+      }),
+    }),
+
     OpenSearchModule,
     KafkaModule,
     CacheModule,
@@ -58,6 +79,7 @@ const QueryHandlers = [
     ...QueryHandlers,
     SearchMetricsService,
     ServiceAuthGuard,
+    InboxSchedulerService,
   ],
 })
 export class AppModule {}

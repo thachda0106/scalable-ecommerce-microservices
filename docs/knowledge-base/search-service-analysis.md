@@ -1,7 +1,7 @@
 # Search Service — Production-Level Deep Analysis
 
-> **Scope**: [search-service](file:///c:/sources/personal-source/scalable-ecommerce-microservices/apps/search-service/src) — NestJS CQRS service with DDD architecture  
-> **Stack**: TypeScript · NestJS 11 · OpenSearch · Redis (ioredis) · Kafka (KafkaJS) · prom-client (Prometheus)
+> **Scope**: [search-service](file:///c:/source/apps/search-service/src) — NestJS CQRS service with DDD architecture  
+> **Stack**: TypeScript · NestJS 11 · OpenSearch · Redis (ioredis) · Kafka (KafkaJS) · prom-client (Prometheus) · OpenTelemetry
 
 ---
 
@@ -20,7 +20,7 @@ The search-service is the **single source of truth for product discovery** in th
 | Search result caching | Redis-based query response caching (`search:*`, `suggest:*`) with `safeExecute` resilience |
 | Eventual consistency intake | Kafka consumer on `product.events` topic → `IndexProductCommand` / `RemoveProductCommand` |
 | Index lifecycle management | Versioned index creation, alias swapping, health checks via `IndexManagementService` |
-| Prometheus metrics | `search_queries_total`, `search_latency_seconds`, `index_operations_total`, `cache_operations_total` via `prom-client` |
+| Prometheus metrics | `search_queries_total`, `search_latency_seconds`, `index_operations_total`, `cache_operations_total` via `prom-client` + `http_request_total`, `http_request_duration_seconds`, `http_request_errors_total` via `MetricsInterceptor` |
 
 ### What it should NEVER own
 
@@ -40,7 +40,7 @@ Search-service is a **Library Catalog Index**. It shows you what book exists, wh
 
 ## 2. API SURFACE (SYNC LAYER)
 
-All endpoints live under the `search` controller prefix, behind global `ThrottlerGuard` (60 req/60s). A custom `DomainExceptionFilter` maps domain errors (`IndexNotFoundError` → `404`, `InvalidSearchQueryError` → `400`).
+All endpoints live under the `search` controller prefix, behind global `ThrottlerGuard` (60 req/60s via `ThrottlerModule.forRoot([{ ttl: 60000, limit: 60 }])`). A controller-scoped `DomainExceptionFilter` maps domain errors (`IndexNotFoundError` → `404`, `InvalidSearchQueryError` → `400`), and a global `GlobalExceptionFilter` from `@ecommerce/core` handles all remaining unhandled exceptions.
 
 ### `GET /search`
 
@@ -48,11 +48,11 @@ All endpoints live under the `search` controller prefix, behind global `Throttle
 |---|---|
 | **Purpose** | Primary product discovery endpoint |
 | **Request** | `query?` string, `filters[]?` (`{ field, operator, value }`), `sortField?`, `sortOrder?` (`asc`\|`desc`), `page?` (default `1`), `limit?` (default `20`), `cursor?` |
-| **Response** | `200 { data: SearchDocumentDto[], total, page, limit, totalPages, cursor, took }` |
+| **Response** | `200 { data: SearchDocumentDto[], total, page, limit, totalPages, cursor, took }` — **Note:** `SearchDocumentDto` only includes `id`, `name`, `description`, `price`, `status`, `categoryId` (no `attributes`) |
 | **Validation** | `@IsOptional @IsString` query, `@IsIn(['eq','in','range','gte','lte'])` filter operator, `@IsInt @Min(1) @Max(100)` limit, `@IsInt @Min(1)` page |
 | **Idempotency** | Naturally idempotent (Safe GET method) |
 | **Rate limiting** | Global ThrottlerGuard (60/60s) |
-| **Handler** | [SearchProductsHandler](file:///c:/sources/personal-source/scalable-ecommerce-microservices/apps/search-service/src/application/handlers/search-products.handler.ts) |
+| **Handler** | [SearchProductsHandler](file:///c:/source/apps/search-service/src/application/handlers/search-products.handler.ts) |
 
 ### `GET /search/suggest`
 
@@ -63,15 +63,16 @@ All endpoints live under the `search` controller prefix, behind global `Throttle
 | **Response** | `200 string[]` |
 | **Validation** | Prefix string length bounds strictly enforced |
 | **Idempotency** | Safe GET method |
-| **Handler** | [GetSuggestionsHandler](file:///c:/sources/personal-source/scalable-ecommerce-microservices/apps/search-service/src/application/handlers/get-suggestions.handler.ts) |
+| **Handler** | [GetSuggestionsHandler](file:///c:/source/apps/search-service/src/application/handlers/get-suggestions.handler.ts) |
 
 ### `GET /search/:id`
 
 | Aspect | Detail |
 |---|---|
 | **Purpose** | Fetch a single product from the search index by ID |
-| **Response** | `200 SearchDocument` or `404 NotFoundException` |
-| **Handler** | [GetProductByIdHandler](file:///c:/sources/personal-source/scalable-ecommerce-microservices/apps/search-service/src/application/handlers/get-product-by-id.handler.ts) |
+| **Response** | `200 SearchDocument` (includes `attributes`) or `404 NotFoundException` |
+| **Note** | Unlike `GET /search`, this endpoint returns the full `SearchDocument` entity including `attributes`. This can leak internal data — see Section 10.3 |
+| **Handler** | [GetProductByIdHandler](file:///c:/source/apps/search-service/src/application/handlers/get-product-by-id.handler.ts) |
 
 ### `GET /search/health`
 
@@ -79,7 +80,7 @@ All endpoints live under the `search` controller prefix, behind global `Throttle
 |---|---|
 | **Purpose** | Liveness/readiness check exposing OpenSearch index health |
 | **Response** | `200 { status: 'ok', index: { docCount, sizeInBytes, status } }` |
-| **Note** | Gracefully returns `{ status: 'unavailable' }` if OpenSearch is down |
+| **Note** | Gracefully returns `{ docCount: 0, sizeInBytes: 0, status: 'unavailable' }` inside `index` if OpenSearch is down (handled via try/catch in `IndexManagementService.getIndexHealth()`) |
 
 ### `GET /search/metrics`
 
@@ -97,7 +98,7 @@ All endpoints live under the `search` controller prefix, behind global `Throttle
 | **Request** | `{ batchSize?: number }` (default `1000`, `@Min(100) @Max(10000)`) |
 | **Response** | `200 { message: 'Reindex started' }` |
 | **Auth** | Protected by `ServiceAuthGuard` (`x-api-key` or `x-service-token` or `Authorization: Bearer`) |
-| **Handler** | [RebuildIndexHandler](file:///c:/sources/personal-source/scalable-ecommerce-microservices/apps/search-service/src/application/handlers/rebuild-index.handler.ts) |
+| **Handler** | [RebuildIndexHandler](file:///c:/source/apps/search-service/src/application/handlers/rebuild-index.handler.ts) |
 
 ---
 
@@ -200,8 +201,8 @@ Suggestion cache keys use a simple template: `suggest:${prefix}:${limit}`.
 
 `invalidateAll()` is called on **every single index and remove operation**:
 
-- [IndexProductHandler L38](file:///c:/sources/personal-source/scalable-ecommerce-microservices/apps/search-service/src/application/handlers/index-product.handler.ts#L38): `await this.searchCachePort.invalidateAll()`
-- [RemoveProductHandler L27](file:///c:/sources/personal-source/scalable-ecommerce-microservices/apps/search-service/src/application/handlers/remove-product.handler.ts#L27): `await this.searchCachePort.invalidateAll()`
+- [IndexProductHandler L38](file:///c:/source/apps/search-service/src/application/handlers/index-product.handler.ts#L38): `await this.searchCachePort.invalidateAll()`
+- [RemoveProductHandler L27](file:///c:/source/apps/search-service/src/application/handlers/remove-product.handler.ts#L27): `await this.searchCachePort.invalidateAll()`
 
 The implementation uses Redis `SCAN ... MATCH search:* COUNT 100` + bulk `DEL`, then repeats for `suggest:*`:
 
@@ -225,9 +226,9 @@ The implementation uses Redis `SCAN ... MATCH search:* COUNT 100` + bulk `DEL`, 
 
 | Topic | Event Types | Command Dispatched | Handler |
 |---|---|---|---|
-| `product.events` | `ProductCreated` / `product.created` | `IndexProductCommand` | [IndexProductHandler](file:///c:/sources/personal-source/scalable-ecommerce-microservices/apps/search-service/src/application/handlers/index-product.handler.ts) |
+| `product.events` | `ProductCreated` / `product.created` | `IndexProductCommand` | [IndexProductHandler](file:///c:/source/apps/search-service/src/application/handlers/index-product.handler.ts) |
 | `product.events` | `ProductUpdated` / `product.updated` | `IndexProductCommand` | Same (upsert) |
-| `product.events` | `ProductDeleted` / `product.deleted` | `RemoveProductCommand` | [RemoveProductHandler](file:///c:/sources/personal-source/scalable-ecommerce-microservices/apps/search-service/src/application/handlers/remove-product.handler.ts) |
+| `product.events` | `ProductDeleted` / `product.deleted` | `RemoveProductCommand` | [RemoveProductHandler](file:///c:/source/apps/search-service/src/application/handlers/remove-product.handler.ts) |
 
 The consumer supports dual event formats: `{ type, payload }` and `{ eventType, data }`.
 
@@ -248,7 +249,7 @@ The `IndexProductCommand` performs an **UPSERT** — `client.index({ id: doc.id 
 
 ### Retry & error handling
 
-The [ProductEventConsumer](file:///c:/sources/personal-source/scalable-ecommerce-microservices/apps/search-service/src/infrastructure/kafka/consumers/product-event.consumer.ts) tracks retries **in-memory** via a `Map<string, number>`:
+The [ProductEventConsumer](file:///c:/source/apps/search-service/src/infrastructure/kafka/consumers/product-event.consumer.ts) tracks retries **in-memory** via a `Map<string, number>`:
 
 - Key: `${message.offset}-${message.timestamp}`
 - Max retries: `3`
@@ -316,7 +317,7 @@ User ◀─ 200 ──────────────│                   
 ### Where failures can happen
 
 1. **Redis down at `GET`** → `FAIL_OPEN` returns `null` → falls through to OpenSearch. No user impact.
-2. **OpenSearch down at `_search`** → Unhandled exception → `500`. No Stale-While-Revalidate fallback.
+2. **OpenSearch down at `_search`** → Exception caught by `GlobalExceptionFilter` → `500` with structured error response. No Stale-While-Revalidate fallback.
 3. **OpenSearch down at `PUT /_doc`** → Consumer retry (3 attempts in-memory) → message silently lost after max retries.
 4. **Kafka down** → Consumer logs error but doesn't crash. Search index becomes stale until Kafka recovers.
 5. **`invalidateAll` SCAN blocks Redis** → Other Redis operations (cache reads from concurrent requests) experience elevated latency.
@@ -368,7 +369,7 @@ The `RebuildIndexHandler` provides bulk recovery:
 | What happens now | Impact | How to improve |
 |---|---|---|
 | Index writes fail → consumer retries 3x → silently drops | Documents lost from search index | Implement persistent DLQ topic. Resume failed messages after OpenSearch recovers. |
-| Search reads fail → unhandled exception → `500` | **Total search outage** | Serve stale data from Redis cache if OpenSearch circuit breaker trips (Stale-While-Revalidate). |
+| Search reads fail → `GlobalExceptionFilter` returns structured `500` | **Total search outage** | Serve stale data from Redis cache if OpenSearch circuit breaker trips (Stale-While-Revalidate). |
 | Health endpoint returns `{ status: 'unavailable' }` | Orchestrator can detect | Already handled gracefully |
 
 ### 8.2 Redis Down
@@ -456,7 +457,7 @@ await this.client.index({
 
 ### 10.2 `ServiceAuthGuard` analysis
 
-The [ServiceAuthGuard](file:///c:/sources/personal-source/scalable-ecommerce-microservices/apps/search-service/src/interfaces/guards/service-auth.guard.ts) has **critical security TODOs**:
+The [ServiceAuthGuard](file:///c:/source/apps/search-service/src/interfaces/guards/service-auth.guard.ts) has **critical security TODOs**:
 
 ```typescript
 // Internal service API key
@@ -480,7 +481,10 @@ The `SearchDocument.fromProductEvent()` mapper blindly copies `event.attributes`
 attributes: event.attributes ?? {}
 ```
 
-If `product-service` emits `{ attributes: { supplier_cost: 4.00, margin_pct: 60 } }`, these are indexed into OpenSearch and returned in API responses. **No field filtering or sanitization exists.**
+If `product-service` emits `{ attributes: { supplier_cost: 4.00, margin_pct: 60 } }`, these are indexed into OpenSearch.
+
+> [!NOTE]
+> The main search endpoint (`GET /search`) does **NOT** return `attributes` — the controller maps results to `SearchDocumentDto` which only includes `id`, `name`, `description`, `price`, `status`, `categoryId`. However, the `GET /search/:id` endpoint returns the full `SearchDocument` entity which **does** include `attributes`. **No field filtering or sanitization exists** at the ingestion layer.
 
 ### 10.4 Abuse scenarios
 
@@ -528,9 +532,9 @@ If `product-service` emits `{ attributes: { supplier_cost: 4.00, margin_pct: 60 
 
 ## 12. OBSERVABILITY
 
-### Metrics (Prometheus — implemented via `prom-client`)
+### Metrics (Prometheus)
 
-The [SearchMetricsService](file:///c:/sources/personal-source/scalable-ecommerce-microservices/apps/search-service/src/infrastructure/metrics/search-metrics.service.ts) exposes:
+#### Service-specific metrics (via `prom-client` in [SearchMetricsService](file:///c:/source/apps/search-service/src/infrastructure/metrics/search-metrics.service.ts))
 
 | Metric | Type | Labels | Purpose |
 |---|---|---|---|
@@ -540,15 +544,36 @@ The [SearchMetricsService](file:///c:/sources/personal-source/scalable-ecommerce
 | `cache_operations_total` | Counter | `operation: get\|set`, `result: hit\|miss\|error` | Cache operation tracking |
 | Node.js default metrics | Various | — | Heap, event loop lag, GC stats |
 
+#### HTTP-level metrics (via `MetricsInterceptor` from `@ecommerce/core`)
+
+| Metric | Type | Labels | Purpose |
+|---|---|---|---|
+| `http_request_total` | Counter | `service`, `method`, `path`, `status` | Total HTTP requests with status codes |
+| `http_request_duration_seconds` | Histogram | `service`, `method`, `path` | HTTP request duration (buckets: 10ms–10s) |
+| `http_request_errors_total` | Counter | `service`, `method`, `path`, `error_type` | Failed HTTP request tracking |
+
+> [!NOTE]
+> Path labels are normalized (`:id` → `{id}`) to avoid cardinality explosion.
+
 ### Logging strategy
 
 - NestJS `Logger` used throughout all handlers and infrastructure adapters
 - Structured log messages: `Indexed product ${id}`, `Cache hit for query: ${key}`, `Bulk indexed: N success, M failed`
-- **Missing**: No request-level logging middleware (request ID, path, duration). No correlation ID propagation from API Gateway.
+- **`HttpLoggingInterceptor`** (from `@ecommerce/core`) is registered globally in `main.ts` and provides request-level logging with:
+  - Correlation ID propagation (`x-correlation-id` or `x-request-id` headers)
+  - Request method, URL, status code, user agent, and latency
+  - Log format: `[correlationId] METHOD /url statusCode - userAgent [latencyMs]`
+- **`GlobalExceptionFilter`** (from `@ecommerce/core`) handles unhandled exceptions globally with structured error responses and stack trace logging
 
-### Tracing
+### Tracing (OpenTelemetry)
 
-- No explicit OpenTelemetry integration found in search-service. The `@ecommerce/core` package provides `getLoggerModule()` but no distributed tracing spans are created around OpenSearch or Redis calls.
+`main.ts` calls `initTracing('search-service')` which initializes the **OpenTelemetry NodeSDK** with:
+- OTLP HTTP trace exporter (configurable via `OTEL_EXPORTER_OTLP_ENDPOINT`, defaults to `http://localhost:4318/v1/traces`)
+- Auto-instrumentations for Node.js (`@opentelemetry/auto-instrumentations-node`) — automatically instruments HTTP, gRPC, and other common libraries
+- Graceful shutdown on `SIGTERM`
+
+> [!NOTE]
+> While auto-instrumentations cover HTTP and common libraries, there are no **custom spans** explicitly created around OpenSearch queries or Redis calls within the search-service code itself. The auto-instrumentation may capture HTTP-level calls to OpenSearch, but fine-grained spans (e.g., query building, cache logic) require manual instrumentation.
 
 ### What to monitor in production
 
@@ -560,6 +585,7 @@ The [SearchMetricsService](file:///c:/sources/personal-source/scalable-ecommerce
 | Kafka consumer lag > 1000 messages | Measured externally (not in service) | P1 — search results increasingly stale |
 | `/search/health` returns `status: unavailable` | OpenSearch unreachable | P0 — search outage |
 | Memory RSS > 400 MB | Node.js process | P2 — potential `retryCountMap` memory leak |
+| `http_request_errors_total` increasing | HTTP-level failures | P1 — service degradation |
 
 ---
 
@@ -582,14 +608,13 @@ The [SearchMetricsService](file:///c:/sources/personal-source/scalable-ecommerce
 | **OpenSearch external versioning** | Pass event `timestamp` as `version` with `version_type: external` to reject out-of-order stale overwrites. | Producers must include monotonic timestamps. Slightly more complex indexing. |
 | **Protect `/search/metrics` endpoint** | Hide behind `ServiceAuthGuard` or bind to internal-only port. Currently exposes Node.js internals publicly. | Minor config change. No trade-off. |
 | **Standardize cache key generation** | Sort JSON keys alphabetically in `RedisCacheAdapter.generateKey()` before hashing. Currently `{"a":1,"b":2}` and `{"b":2,"a":1}` produce different cache keys. | Negligible CPU cost. Saves potentially significant Redis memory. |
-| **Sanitize `attributes` in `SearchDocument.fromProductEvent()`** | Whitelist allowed attribute keys before indexing. Prevent leaking internal data (supplier costs, margins). | Requires defining an allowed-fields contract with product-service. |
+| **Sanitize `attributes` in `SearchDocument.fromProductEvent()`** | Whitelist allowed attribute keys before indexing. Prevent leaking internal data (supplier costs, margins) — especially via `GET /search/:id` which returns the full entity. | Requires defining an allowed-fields contract with product-service. |
 
 ### P2 — Nice to have
 
 | Improvement | What | Trade-off |
 |---|---|---|
-| **Distributed tracing** | Add OpenTelemetry spans around OpenSearch queries, Redis operations, and Kafka consumers. | Minor performance overhead. Major observability improvement. |
-| **Request correlation ID** | Propagate `X-Request-Id` from API Gateway through logs and metrics. | Essential for production debugging. Trivial to implement. |
+| **Custom OpenTelemetry spans** | Add manual spans around OpenSearch queries, Redis operations, and Kafka consumer processing (auto-instrumentation covers HTTP-level only). | Minor performance overhead. Fine-grained observability improvement. |
 | **Stale-While-Revalidate on OpenSearch down** | If circuit breaker trips, serve stale Redis cache regardless of TTL. | Users see stale data vs. seeing a 500 error. Requires cache-aside logic changes. |
 | **Kafka message key by `productId`** | Ensure product-service sets `key: productId` on events for partition-level ordering. | Requires producer change. Ensures event ordering per product. |
 
@@ -601,8 +626,9 @@ The [SearchMetricsService](file:///c:/sources/personal-source/scalable-ecommerce
 
 1. **Architecture is sound**: Clean CQRS Materialized View with proper DDD boundaries (domain entities, value objects, ports/adapters). OpenSearch handles full-text search, Redis handles caching, Kafka handles event intake.
 2. **Resilience is well-implemented**: Redis operations wrapped in `safeExecute` with `FAIL_OPEN` / `NON_BLOCKING` strategies. Cache failures gracefully degrade to OpenSearch.
-3. **Prometheus metrics are production-ready**: `search_queries_total`, `search_latency_seconds`, `index_operations_total`, `cache_operations_total` with proper labels and histogram buckets.
+3. **Prometheus metrics are production-ready**: Service-specific metrics (`search_queries_total`, `search_latency_seconds`, `index_operations_total`, `cache_operations_total`) plus HTTP-level metrics (`http_request_total`, `http_request_duration_seconds`, `http_request_errors_total`) via `MetricsInterceptor`.
 4. **Cursor pagination exists**: `search_after` already implemented in `QueryBuilder` with `_id` tiebreaker.
+5. **Observability stack is integrated**: OpenTelemetry tracing (`initTracing`), HTTP request logging with correlation ID propagation (`HttpLoggingInterceptor`), and global exception handling (`GlobalExceptionFilter`) are all wired up in `main.ts`.
 
 ### What is risky
 
@@ -618,3 +644,4 @@ The [SearchMetricsService](file:///c:/sources/personal-source/scalable-ecommerce
 - **`search_latency_seconds` p99** — spikes indicate deep pagination or complex queries hitting OpenSearch
 - **Memory RSS** — `retryCountMap` can grow unbounded under sustained poison message scenarios
 - **`/search/metrics` endpoint security** — publicly exposing Prometheus data
+- **`http_request_errors_total`** — HTTP-level error rate tracking via `MetricsInterceptor`

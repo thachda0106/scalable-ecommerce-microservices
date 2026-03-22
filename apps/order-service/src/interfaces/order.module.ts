@@ -4,7 +4,6 @@ import { ScheduleModule } from '@nestjs/schedule';
 
 // Domain Ports
 import { ORDER_REPOSITORY } from '../domain/ports/order-repository.port';
-import { PROCESSED_EVENT_REPOSITORY } from '../domain/ports/processed-event-repository.port';
 
 // Application Ports
 import { EVENT_PUBLISHER } from '../application/ports/event-publisher.port';
@@ -27,15 +26,16 @@ import { OrderItemOrmEntity } from '../infrastructure/persistence/entities/order
 import { ProcessedEventOrmEntity } from '../infrastructure/persistence/entities/processed-event.orm-entity';
 import { OutboxEventOrmEntity } from '../infrastructure/persistence/entities/outbox-event.orm-entity';
 import { TypeOrmOrderRepository } from '../infrastructure/persistence/repositories/typeorm-order.repository';
-import { TypeOrmProcessedEventRepository } from '../infrastructure/persistence/repositories/typeorm-processed-event.repository';
+import { InboxEventEntity } from '@ecommerce/core';
 
-// Infrastructure — Kafka
+// Kafka Infrastructure
 import { KafkaClientFactory } from '../infrastructure/kafka/kafka-client.factory';
 import { KafkaEventPublisher } from '../infrastructure/kafka/kafka-event-publisher';
 import { OutboxRelayService } from '../infrastructure/kafka/outbox-relay.service';
 import { PaymentEventConsumer } from '../infrastructure/kafka/consumers/payment-event.consumer';
 import { InventoryEventConsumer } from '../infrastructure/kafka/consumers/inventory-event.consumer';
 import { CheckoutSagaOrchestrator } from '../infrastructure/kafka/saga/checkout-saga.orchestrator';
+import { InboxSchedulerService } from '../infrastructure/kafka/inbox-scheduler.service';
 
 // Infrastructure — External Services
 import { KafkaInventoryService } from '../infrastructure/external-services/kafka-inventory.service';
@@ -58,6 +58,7 @@ import { HealthController } from '../interfaces/controllers/health.controller';
       OrderItemOrmEntity,
       ProcessedEventOrmEntity,
       OutboxEventOrmEntity,
+      InboxEventEntity,
     ]),
     ScheduleModule.forRoot(),
   ],
@@ -70,10 +71,6 @@ import { HealthController } from '../interfaces/controllers/health.controller';
     {
       provide: ORDER_REPOSITORY,
       useClass: TypeOrmOrderRepository,
-    },
-    {
-      provide: PROCESSED_EVENT_REPOSITORY,
-      useClass: TypeOrmProcessedEventRepository,
     },
     {
       provide: EVENT_PUBLISHER,
@@ -105,6 +102,7 @@ import { HealthController } from '../interfaces/controllers/health.controller';
     PaymentEventConsumer,
     InventoryEventConsumer,
     CheckoutSagaOrchestrator,
+    InboxSchedulerService,
 
     // External Services
     KafkaInventoryService,

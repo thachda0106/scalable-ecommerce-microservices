@@ -4,39 +4,50 @@ import {
   OnModuleInit,
   OnModuleDestroy,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Consumer, EachMessagePayload, Producer } from 'kafkajs';
+import { DataSource } from 'typeorm';
+import { Consumer, EachMessagePayload } from 'kafkajs';
+import {
+  InboxService,
+  InboxEventMetadata,
+  KafkaDlqProducer,
+} from '@ecommerce/core';
 import { KafkaClientFactory } from '../kafka-client.factory';
-import { ProcessedEventOrmEntity } from '../../persistence/entities/processed-event.orm-entity';
 import { ProcessPaymentHandler } from '../../../application/handlers/process-payment.handler';
 import { ProcessPaymentCommand } from '../../../application/commands/process-payment.command';
 
-const MAX_RETRIES = 3;
-
+/**
+ * Kafka consumer for payment commands.
+ *
+ * Uses the Inbox Pattern for idempotent command processing.
+ * Handles: ProcessPayment.
+ *
+ * Replaces the previous manual ProcessedEventOrmEntity + in-memory retry map.
+ */
 @Injectable()
 export class PaymentCommandConsumer implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(PaymentCommandConsumer.name);
+  private readonly inboxService: InboxService;
   private consumer: Consumer;
-  private dlqProducer: Producer;
-  private readonly retryCounts = new Map<string, number>();
 
   constructor(
     private readonly kafkaFactory: KafkaClientFactory,
     private readonly processPaymentHandler: ProcessPaymentHandler,
-    @InjectRepository(ProcessedEventOrmEntity)
-    private readonly processedRepo: Repository<ProcessedEventOrmEntity>,
-  ) {}
+    private readonly dataSource: DataSource,
+  ) {
+    const dlqProducer = new KafkaDlqProducer(
+      { send: (record: any) => this.kafkaFactory.createProducer().send(record) },
+      'payment-service',
+    );
+    this.inboxService = new InboxService(this.dataSource, dlqProducer, 'payment-service');
+  }
 
   async onModuleInit(): Promise<void> {
     try {
       this.consumer = this.kafkaFactory.createConsumer({
         groupId: 'payment-service-commands',
       });
-      this.dlqProducer = this.kafkaFactory.createProducer();
 
       await this.consumer.connect();
-      await this.dlqProducer.connect();
       await this.consumer.subscribe({
         topics: ['payment.commands'],
         fromBeginning: false,
@@ -49,7 +60,7 @@ export class PaymentCommandConsumer implements OnModuleInit, OnModuleDestroy {
       });
 
       this.logger.log(
-        'Payment command consumer started — listening on payment.commands',
+        'Payment command consumer started (with Inbox Pattern) — listening on payment.commands',
       );
     } catch (error) {
       this.logger.error(
@@ -62,108 +73,79 @@ export class PaymentCommandConsumer implements OnModuleInit, OnModuleDestroy {
     if (this.consumer) {
       await this.consumer.disconnect();
     }
-    if (this.dlqProducer) {
-      await this.dlqProducer.disconnect();
-    }
   }
 
   private async handleMessage(payload: EachMessagePayload): Promise<void> {
-    const { message } = payload;
+    const { topic, message } = payload;
     if (!message.value) return;
 
     try {
       const event = JSON.parse(message.value.toString());
-      const eventId =
-        event.eventId || event.id || `${event.type}_${event.payload?.orderId}`;
-      const correlationId =
-        message.headers?.['x-correlation-id']?.toString() || eventId;
+      const eventId = this.extractEventId(event, message.headers);
+      const eventType = event.type;
 
       if (!eventId) {
         this.logger.warn('Received payment command without ID, skipping');
         return;
       }
 
-      // Idempotency check
-      const alreadyProcessed = await this.processedRepo.findOneBy({ eventId });
-      if (alreadyProcessed) {
-        this.logger.debug(`Command ${eventId} already processed, skipping`);
-        return;
-      }
+      const headers = message.headers as Record<string, Buffer | string | undefined>;
 
-      const eventType = event.type;
-
-      switch (eventType) {
-        case 'ProcessPayment': {
-          const { orderId, amountInCents, currency, userId } = event.payload;
-          await this.processPaymentHandler.execute(
-            new ProcessPaymentCommand(
-              orderId,
-              userId,
-              amountInCents,
-              currency,
-              undefined, // provider — use default
-              orderId, // idempotencyKey — use orderId for dedup
-            ),
-          );
-          break;
-        }
-
-        default:
-          this.logger.debug(`Unhandled command type: ${eventType}`);
-          return;
-      }
-
-      // Mark as processed
-      const processed = new ProcessedEventOrmEntity();
-      processed.eventId = eventId;
-      processed.eventType = eventType;
-      await this.processedRepo.save(processed);
-
-      this.retryCounts.delete(eventId);
-      this.logger.log(
-        `Processed command: ${eventType} (${eventId}, correlationId: ${correlationId})`,
-      );
+      await this.inboxService.handleIncoming({
+        eventId,
+        eventType,
+        aggregateId: event.payload?.orderId,
+        payload: event,
+        topic,
+        headers,
+        source: 'order-service',
+        handler: async (data: Record<string, unknown>, meta: InboxEventMetadata) => {
+          await this.processCommand(data, meta);
+        },
+      });
     } catch (error) {
-      const event = JSON.parse(message.value!.toString());
-      const eventId = event.eventId || event.id || `unknown_${Date.now()}`;
-      const retryCount = (this.retryCounts.get(eventId) || 0) + 1;
-      this.retryCounts.set(eventId, retryCount);
-
       this.logger.error(
-        `Error processing payment command (retry ${retryCount}/${MAX_RETRIES}): ${(error as Error).message}`,
+        `Error processing payment command: ${(error as Error).message}`,
         (error as Error).stack,
       );
-
-      if (retryCount >= MAX_RETRIES) {
-        await this.sendToDlq(message, error as Error);
-        this.retryCounts.delete(eventId);
-      }
-      // DO NOT re-throw — prevents consumer crash loop
     }
   }
 
-  private async sendToDlq(message: any, error: Error): Promise<void> {
-    try {
-      await this.dlqProducer.send({
-        topic: 'payment.commands.dlq',
-        messages: [
-          {
-            key: message.key,
-            value: message.value,
-            headers: {
-              ...message.headers,
-              'x-dlq-reason': error.message,
-              'x-dlq-timestamp': new Date().toISOString(),
-              'x-original-topic': 'payment.commands',
-            },
-          },
-        ],
-      });
-      this.logger.warn(`Message sent to DLQ: payment.commands.dlq`);
-    } catch (dlqError) {
-      this.logger.error(
-        `Failed to send message to DLQ: ${(dlqError as Error).message}`,
-      );
+  private async processCommand(
+    event: Record<string, unknown>,
+    meta: InboxEventMetadata,
+  ): Promise<void> {
+    const eventPayload = (event as any).payload || event;
+
+    switch (meta.eventType) {
+      case 'ProcessPayment': {
+        const { orderId, amountInCents, currency, userId } = eventPayload;
+        await this.processPaymentHandler.execute(
+          new ProcessPaymentCommand(
+            orderId,
+            userId,
+            amountInCents,
+            currency,
+            undefined, // provider — use default
+            orderId,   // idempotencyKey — use orderId for dedup
+          ),
+        );
+        break;
+      }
+
+      default:
+        this.logger.debug(`Unhandled command type: ${meta.eventType}`);
     }
+  }
+
+  private extractEventId(
+    event: any,
+    headers?: Record<string, Buffer | string | undefined>,
+  ): string | undefined {
+    if (headers?.['x-event-id']) {
+      const raw = headers['x-event-id'];
+      return Buffer.isBuffer(raw) ? raw.toString('utf-8') : (raw as string);
+    }
+    return event.eventId || event.id || `${event.type}_${event.payload?.orderId}`;
   }
 }

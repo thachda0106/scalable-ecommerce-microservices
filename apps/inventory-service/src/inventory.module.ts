@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ScheduleModule } from '@nestjs/schedule';
 import { CqrsModule } from '@nestjs/cqrs';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
@@ -30,7 +31,10 @@ import { ProductInventoryOrmEntity } from './infrastructure/persistence/entities
 import { StockReservationOrmEntity } from './infrastructure/persistence/entities/stock-reservation.orm-entity';
 import { StockMovementOrmEntity } from './infrastructure/persistence/entities/stock-movement.orm-entity';
 import { OutboxEventOrmEntity } from './infrastructure/persistence/entities/outbox-event.orm-entity';
-import { ProcessedEventOrmEntity } from './infrastructure/persistence/entities/processed-event.orm-entity';
+import { InboxEventEntity } from '@ecommerce/core';
+
+// Inbox infrastructure
+import { InboxSchedulerService } from './infrastructure/messaging/inbox-scheduler.service';
 
 // Controller
 import { InventoryController } from './interfaces/controllers/inventory.controller';
@@ -38,12 +42,13 @@ import { InventoryController } from './interfaces/controllers/inventory.controll
 @Module({
   imports: [
     CqrsModule,
+    ScheduleModule.forRoot(),
     TypeOrmModule.forFeature([
       ProductInventoryOrmEntity,
       StockReservationOrmEntity,
       StockMovementOrmEntity,
       OutboxEventOrmEntity,
-      ProcessedEventOrmEntity,
+      InboxEventEntity,
     ]),
   ],
   controllers: [InventoryController],
@@ -65,6 +70,7 @@ import { InventoryController } from './interfaces/controllers/inventory.controll
     OutboxRelayService,
     OrderEventConsumer,
     ReservationExpiryWorker,
+    InboxSchedulerService,
 
     // Resilience
     RetryPolicy,

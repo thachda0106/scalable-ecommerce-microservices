@@ -23,11 +23,13 @@ import { PAYMENT_PROVIDER_FACTORY } from './application/ports/payment-provider-f
 import { PaymentOrmEntity } from './infrastructure/persistence/entities/payment.orm-entity';
 import { OutboxEventOrmEntity } from './infrastructure/persistence/entities/outbox-event.orm-entity';
 import { ProcessedEventOrmEntity } from './infrastructure/persistence/entities/processed-event.orm-entity';
+import { InboxEventEntity } from '@ecommerce/core';
 import { TypeOrmPaymentRepository } from './infrastructure/persistence/repositories/typeorm-payment.repository';
 import { KafkaEventPublisher } from './infrastructure/kafka/kafka-event-publisher';
 import { PaymentCommandConsumer } from './infrastructure/kafka/consumers/payment-command.consumer';
 import { OutboxRelayService } from './infrastructure/kafka/outbox-relay.service';
 import { KafkaClientFactory } from './infrastructure/kafka/kafka-client.factory';
+import { InboxSchedulerService } from './infrastructure/kafka/inbox-scheduler.service';
 import { PaymentProviderFactory } from './infrastructure/providers/payment-provider.factory';
 import { MockProvider } from './infrastructure/providers/mock.provider';
 import { StripeProvider } from './infrastructure/providers/stripe.provider';
@@ -53,6 +55,7 @@ const QueryHandlers = [GetPaymentByIdHandler, GetPaymentsByOrderHandler];
       PaymentOrmEntity,
       OutboxEventOrmEntity,
       ProcessedEventOrmEntity,
+      InboxEventEntity,
     ]),
   ],
   controllers: [PaymentController, HealthController],
@@ -79,6 +82,7 @@ const QueryHandlers = [GetPaymentByIdHandler, GetPaymentsByOrderHandler];
     OutboxRelayService,
     MetricsService,
     ServiceAuthGuard,
+    InboxSchedulerService,
 
     // ── Prometheus Metric Providers ──────────────────────────────
     makeCounterProvider({

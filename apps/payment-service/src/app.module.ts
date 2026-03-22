@@ -5,6 +5,7 @@ import { PaymentModule } from './payment.module';
 import { PaymentOrmEntity } from './infrastructure/persistence/entities/payment.orm-entity';
 import { OutboxEventOrmEntity } from './infrastructure/persistence/entities/outbox-event.orm-entity';
 import { ProcessedEventOrmEntity } from './infrastructure/persistence/entities/processed-event.orm-entity';
+import { InboxEventEntity } from '@ecommerce/core';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { ProcessedEventOrmEntity } from './infrastructure/persistence/entities/p
         PaymentOrmEntity,
         OutboxEventOrmEntity,
         ProcessedEventOrmEntity,
+        InboxEventEntity,
       ],
       synchronize: process.env.DB_SYNC === 'true', // Default false — use migrations in production
     }),

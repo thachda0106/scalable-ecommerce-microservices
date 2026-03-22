@@ -1,8 +1,8 @@
 import { Logger } from '@nestjs/common';
 import { DataSource, Repository, LessThan } from 'typeorm';
 import { OutboxEventEntity } from './outbox-event.entity';
-import { publishWithResilience } from '../kafka/kafka-resilient';
-import { KafkaProducer } from '../kafka/dlq-producer';
+import { publishWithResilience } from '../../kafka/kafka-resilient';
+import { KafkaProducer } from '../../kafka/dlq-producer';
 
 /**
  * Background outbox processor — polls unprocessed events and publishes them to Kafka.
