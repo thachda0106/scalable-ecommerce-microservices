@@ -22,6 +22,13 @@ x-common-logging: &common-logging
       max-size: "10m"
       max-file: "3"
 
+x-common-resources: &common-resources
+  deploy:
+    resources:
+      limits:
+        cpus: "1"
+        memory: 512M
+
 services:
 
   # ===========================================================================
@@ -51,6 +58,7 @@ services:
       - ecom_net
     restart: unless-stopped
     <<: *common-logging
+    <<: *common-resources
 
   # ---------------------------------------------------------------------------
 
@@ -74,6 +82,7 @@ services:
       - ecom_net
     restart: unless-stopped
     <<: *common-logging
+    <<: *common-resources
 
   # ===========================================================================
   # SECTION 2: MESSAGE BROKER (KAFKA - KRaft mode, no ZooKeeper)
@@ -137,6 +146,7 @@ services:
       - ecom_net
     restart: unless-stopped
     <<: *common-logging
+    <<: *common-resources
 
   # ---------------------------------------------------------------------------
   # Kafka Topic Initializer
@@ -202,6 +212,7 @@ services:
       - ecom_net
     restart: unless-stopped
     <<: *common-logging
+    <<: *common-resources
 
   # ===========================================================================
   # SECTION 4: DEVELOPER TOOLS & UIs
@@ -211,7 +222,7 @@ services:
 
   # --- pgAdmin: PostgreSQL GUI ---
   pgadmin:
-    image: dpage/pgadmin4:latest
+    image: dpage/pgadmin4:8.14
     container_name: ecom_pgadmin
     depends_on:
       postgres:
@@ -232,7 +243,7 @@ services:
 
   # --- RedisInsight: Redis GUI by Redis Labs ---
   redisinsight:
-    image: redis/redisinsight:latest
+    image: redis/redisinsight:2.66
     container_name: ecom_redisinsight
     depends_on:
       redis:
@@ -247,7 +258,7 @@ services:
 
   # --- Kafka UI by Provectus: Best-in-class Kafka management console ---
   kafka-ui:
-    image: provectuslabs/kafka-ui:latest
+    image: provectuslabs/kafka-ui:v1.0.1
     container_name: ecom_kafka_ui
     depends_on:
       kafka:

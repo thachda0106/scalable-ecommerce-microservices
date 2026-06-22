@@ -9,9 +9,7 @@ export const getLoggerModule = () => {
           ? { target: "pino-pretty", options: { colorize: true } }
           : undefined,
       formatters: {
-        level: (label) => {
-          return { level: label };
-        },
+        level: (label) => ({ level: label.toUpperCase() }),
       },
       messageKey: "message", // Datadog/CloudWatch standard
     },

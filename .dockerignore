@@ -11,3 +11,12 @@ test
 *.md
 .vscode
 .idea
+terraform
+.github
+docker
+.gsd
+.gemini
+.agent
+.adapters
+docs
+scripts
