@@ -80,10 +80,10 @@ export class InboxProcessor {
       try {
         await this.inboxService.retryEvent(event, handler);
         retried++;
-      } catch (error: any) {
-        // retryEvent handles its own errors internally, but just in case
+      } catch (error: unknown) {
+        const err = error instanceof Error ? error : new Error(String(error));
         this.logger.error(
-          `Inbox: unexpected error retrying eventId=${event.eventId}: ${error.message}`,
+          `Inbox: unexpected error retrying eventId=${event.eventId}: ${err.message}`,
         );
       }
     }

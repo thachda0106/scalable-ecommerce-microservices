@@ -38,15 +38,11 @@ export class InternalAuthGuard implements CanActivate {
     const secret = process.env.INTERNAL_AUTH_SECRET;
 
     if (!secret) {
-      this.logger.warn('INTERNAL_AUTH_SECRET not set — skipping verification in non-production');
-      if (process.env.NODE_ENV === 'production') {
-        throw new UnauthorizedException({
-          statusCode: 401,
-          error: 'Unauthorized',
-          message: 'Internal auth not configured',
-        });
-      }
-      return true; // Allow in dev without secret
+      throw new UnauthorizedException({
+        statusCode: 401,
+        error: 'Unauthorized',
+        message: 'Internal auth not configured',
+      });
     }
 
     const headers: Record<string, string | undefined> = {

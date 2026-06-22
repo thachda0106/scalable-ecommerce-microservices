@@ -36,6 +36,8 @@ export class InboxRepository {
         eventType: event.eventType,
         aggregateId: event.aggregateId,
         source: event.source,
+        topic: event.topic,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         payload: event.payload as any,
         status: event.status,
         retryCount: event.retryCount,

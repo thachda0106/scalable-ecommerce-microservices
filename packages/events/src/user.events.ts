@@ -18,7 +18,13 @@ export const UserCreatedSchema = z.object({
 
 export const UserUpdatedSchema = z.object({
   userId: z.string().uuid(),
-  changes: z.record(z.unknown()),
+  changes: z.record(z.unknown()).refine(
+    (obj) => Object.keys(obj).length > 0,
+    'changes must not be empty',
+  ).refine(
+    (obj) => Object.keys(obj).length <= 50,
+    'changes must not exceed 50 keys',
+  ),
   schemaVersion: z.literal(1),
 });
 

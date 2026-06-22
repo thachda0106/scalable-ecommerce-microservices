@@ -22,7 +22,7 @@ export function applyStrategy<T>(
   switch (strategy) {
     case StrategyType.FAIL_OPEN:
       if (fallback) return fallback();
-      throw error; // No fallback provided — cannot fail open
+      return undefined;
     case StrategyType.FAIL_CLOSE:
       throw error;
     case StrategyType.NON_BLOCKING:

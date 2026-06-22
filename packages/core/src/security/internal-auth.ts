@@ -17,12 +17,13 @@ export function signInternalHeaders(
   secret: string,
 ): Record<string, string> {
   const timestamp = Date.now().toString();
-  const data = `${userId}:${timestamp}`;
+  const rolesStr = roles.join(',');
+  const data = `${userId}:${rolesStr}:${timestamp}`;
   const signature = createHmac('sha256', secret).update(data).digest('hex');
 
   return {
     'x-user-id': userId,
-    'x-user-roles': roles.join(','),
+    'x-user-roles': rolesStr,
     'x-internal-timestamp': timestamp,
     'x-internal-signature': signature,
   };
@@ -41,6 +42,7 @@ export function verifyInternalHeaders(
   secret: string,
 ): boolean {
   const userId = headers['x-user-id'];
+  const userRoles = headers['x-user-roles'] || '';
   const timestamp = headers['x-internal-timestamp'];
   const signature = headers['x-internal-signature'];
 
@@ -54,8 +56,8 @@ export function verifyInternalHeaders(
     return false;
   }
 
-  // Verify HMAC signature
-  const expectedData = `${userId}:${timestamp}`;
+  // Verify HMAC signature (userId:roles:timestamp)
+  const expectedData = `${userId}:${userRoles}:${timestamp}`;
   const expectedSignature = createHmac('sha256', secret).update(expectedData).digest('hex');
 
   try {

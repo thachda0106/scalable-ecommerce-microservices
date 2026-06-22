@@ -40,40 +40,8 @@ export const InventoryReleasedEventSchema = z.object({
   header: EventHeaderSchema,
 });
 
-// ─── TypeScript Interfaces ─────────────────────────
-export interface InventoryItem {
-  productId: string;
-  quantity: number;
-}
-
-export interface InventoryReservedEvent {
-  orderId: string;
-  items: InventoryItem[];
-  schemaVersion: number;
-  header: {
-    timestamp: string;
-    correlationId: string;
-  };
-}
-
-export interface InventoryReservationFailedEvent {
-  orderId: string;
-  items: InventoryItem[];
-  reason: string;
-  schemaVersion: number;
-  header: {
-    timestamp: string;
-    correlationId: string;
-  };
-}
-
-export interface InventoryReleasedEvent {
-  orderId: string;
-  items: InventoryItem[];
-  reason: string;
-  schemaVersion: number;
-  header: {
-    timestamp: string;
-    correlationId: string;
-  };
-}
+// ─── TypeScript Types (derived from Zod schemas) ────
+export type InventoryItem = z.infer<typeof InventoryItemSchema>;
+export type InventoryReservedEvent = z.infer<typeof InventoryReservedEventSchema>;
+export type InventoryReservationFailedEvent = z.infer<typeof InventoryReservationFailedEventSchema>;
+export type InventoryReleasedEvent = z.infer<typeof InventoryReleasedEventSchema>;

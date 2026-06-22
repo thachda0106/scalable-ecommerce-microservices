@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { DataSource, EntityManager } from 'typeorm';
+import { randomUUID } from 'crypto';
 import { OutboxEventEntity } from './outbox/outbox-event.entity';
 
 /**
@@ -51,7 +52,7 @@ export class UnitOfWork {
       if (events.length > 0) {
         const outboxEntries = events.map((event) => {
           const entry = new OutboxEventEntity();
-          entry.id = crypto.randomUUID();
+          entry.id = randomUUID();
           entry.type = event.eventType;
           entry.payload = this.serializeEvent(event);
           entry.processed = false;

@@ -2,6 +2,9 @@
 export * from './observability';
 export { Logger } from 'nestjs-pino';
 
+// Config
+export * from './config';
+
 // Persistence
 export * from './persistence';
 

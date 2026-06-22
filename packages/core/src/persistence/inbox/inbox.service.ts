@@ -1,4 +1,5 @@
 import { Logger } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import { DataSource, EntityManager } from 'typeorm';
 import { InboxEventEntity } from './inbox-event.entity';
 import { InboxRepository } from './inbox.repository';
@@ -91,9 +92,10 @@ export class InboxService {
 
     // 1. Build inbox event entity
     const inboxEvent = new InboxEventEntity();
-    inboxEvent.id = crypto.randomUUID();
+    inboxEvent.id = randomUUID();
     inboxEvent.eventId = eventId;
     inboxEvent.eventType = eventType;
+    inboxEvent.topic = topic;
     inboxEvent.aggregateId = aggregateId;
     inboxEvent.source = source;
     inboxEvent.payload = payload;
@@ -135,19 +137,24 @@ export class InboxService {
     }
 
     // 3. CAS: RECEIVED → PROCESSING (prevents concurrent processing)
-    const acquired = await this.inboxRepo.markProcessing(
-      isNew ? inboxEvent.id : (await this.inboxRepo.findByEventId(eventId))!.id,
-    );
+    let entityId: string;
+    if (isNew) {
+      entityId = inboxEvent.id;
+    } else {
+      const existing = await this.inboxRepo.findByEventId(eventId);
+      if (!existing) {
+        this.logger.error(`Inbox: eventId=${eventId} vanished between insert check and CAS`);
+        return;
+      }
+      entityId = existing.id;
+    }
+    const acquired = await this.inboxRepo.markProcessing(entityId);
     if (!acquired) {
       this.logger.debug(
         `Inbox: failed to acquire lock for eventId=${eventId}, another worker processing`,
       );
       return;
     }
-
-    const entityId = isNew
-      ? inboxEvent.id
-      : (await this.inboxRepo.findByEventId(eventId))!.id;
 
     // 4. Execute handler within DB transaction
     const metadata: InboxEventMetadata = {
@@ -170,8 +177,9 @@ export class InboxService {
       this.logger.debug(
         `Inbox: processed event eventId=${eventId} type=${eventType}`,
       );
-    } catch (error: any) {
-      await this.handleFailure(entityId, eventId, eventType, topic, payload, headers, error);
+    } catch (error: unknown) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      await this.handleFailure(entityId, eventId, eventType, topic, payload, headers, err);
     }
   }
 
@@ -208,17 +216,18 @@ export class InboxService {
       this.logger.log(
         `Inbox: retry succeeded for eventId=${event.eventId} (attempt ${event.retryCount + 1})`,
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error instanceof Error ? error : new Error(String(error));
       await this.handleFailure(
         event.id,
         event.eventId,
         event.eventType,
-        `${event.eventType}.events`, // Derive topic from event type
+        event.topic ?? `${event.eventType}.events`,
         event.payload,
         event.correlationId
           ? { 'x-correlation-id': event.correlationId }
           : undefined,
-        error,
+        err,
       );
     }
   }

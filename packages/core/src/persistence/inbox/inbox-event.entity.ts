@@ -39,6 +39,10 @@ export class InboxEventEntity {
   @Column({ type: 'varchar', length: 100 })
   eventType!: string;
 
+  /** Original Kafka topic (for DLQ routing on retry) */
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  topic?: string;
+
   /** Aggregate ID for ordering and querying (e.g. orderId, userId) */
   @Column({ type: 'varchar', length: 255, nullable: true })
   aggregateId?: string;

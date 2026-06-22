@@ -36,32 +36,7 @@ export const OrderStateChangedEventSchema = z.object({
   header: EventHeaderSchema,
 });
 
-// ─── TypeScript Interfaces ─────────────────────────
-export interface OrderItem {
-  productId: string;
-  quantity: number;
-  price: number;
-}
-
-export interface OrderCreatedEvent {
-  orderId: string;
-  userId: string;
-  items: OrderItem[];
-  totalAmount: number;
-  schemaVersion: number;
-  header: {
-    timestamp: string;
-    correlationId: string;
-  };
-}
-
-export interface OrderStateChangedEvent {
-  orderId: string;
-  newState: 'PENDING' | 'PAYMENT_PROCESSED' | 'INVENTORY_RESERVED' | 'COMPLETED' | 'CANCELLED';
-  reason?: string;
-  schemaVersion: number;
-  header: {
-    timestamp: string;
-    correlationId: string;
-  };
-}
+// ─── TypeScript Types (derived from Zod schemas) ────
+export type OrderItem = z.infer<typeof OrderItemSchema>;
+export type OrderCreatedEvent = z.infer<typeof OrderCreatedEventSchema>;
+export type OrderStateChangedEvent = z.infer<typeof OrderStateChangedEventSchema>;

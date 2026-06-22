@@ -47,11 +47,29 @@ export class ProcessPaymentHandler {
     if (idempotencyKey) {
       const existing =
         await this.paymentRepository.findByIdempotencyKey(idempotencyKey);
-      if (existing && existing.status.value === PaymentStatusEnum.SUCCESS) {
-        this.logger.log(
-          `Idempotent hit: payment for key ${idempotencyKey} already SUCCESS — returning existing`,
-        );
-        return existing.toJSON();
+
+      if (existing) {
+        const status = existing.status.value;
+
+        if (status === PaymentStatusEnum.SUCCESS) {
+          this.logger.log(
+            `Idempotent hit: payment for key ${idempotencyKey} already SUCCESS — returning existing`,
+          );
+          return existing.toJSON();
+        }
+
+        if (status === PaymentStatusEnum.PROCESSING || status === PaymentStatusEnum.PENDING) {
+          this.logger.log(
+            `Idempotent hit: payment for key ${idempotencyKey} is ${status} — returning existing to prevent duplicate`,
+          );
+          return existing.toJSON();
+        }
+
+        if (status === PaymentStatusEnum.FAILED) {
+          this.logger.log(
+            `Idempotent retry: payment for key ${idempotencyKey} was FAILED — allowing retry`,
+          );
+        }
       }
     }
 

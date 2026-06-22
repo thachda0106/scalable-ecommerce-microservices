@@ -4,7 +4,7 @@ import { CqrsModule } from '@nestjs/cqrs';
 import { TerminusModule } from '@nestjs/terminus';
 import { AuthController } from './interfaces/controllers/auth.controller';
 import { HealthController } from './interfaces/controllers/health.controller';
-import { getLoggerModule } from '@ecommerce/core';
+import { getLoggerModule, UnitOfWork } from '@ecommerce/core';
 import { DatabaseModule } from './infrastructure/database/database.module';
 import { RedisModule } from './infrastructure/redis/redis.module';
 import { KafkaProducerModule } from './infrastructure/kafka/kafka-producer.module';
@@ -53,6 +53,6 @@ const QueryHandlers = [LoginHandler];
     }),
   ],
   controllers: [AuthController, OAuthController, HealthController],
-  providers: [...CommandHandlers, ...QueryHandlers, LoginAttemptService],
+  providers: [...CommandHandlers, ...QueryHandlers, LoginAttemptService, UnitOfWork],
 })
 export class AppModule {}

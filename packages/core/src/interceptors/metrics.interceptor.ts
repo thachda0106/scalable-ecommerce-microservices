@@ -7,7 +7,7 @@ import {
 import { Observable, throwError } from 'rxjs';
 import { catchError, tap } from 'rxjs/operators';
 import { Request, Response } from 'express';
-import { Counter, Histogram } from 'prom-client';
+import { Counter, Histogram, register } from 'prom-client';
 
 @Injectable()
 export class MetricsInterceptor implements NestInterceptor {
@@ -16,14 +16,8 @@ export class MetricsInterceptor implements NestInterceptor {
   private readonly errorCounter: Counter;
 
   constructor(private readonly serviceName: string) {
-    // We register these in a singleton way to avoid duplicate metric registration errors
-    // if the interceptor is instantiated multiple times.
-
-    const promClient = require('prom-client');
-    const register = promClient.register;
-
     this.requestCounter =
-      register.getSingleMetric('http_request_total') ||
+      (register.getSingleMetric('http_request_total') as Counter) ||
       new Counter({
         name: 'http_request_total',
         help: 'Total number of HTTP requests',
@@ -31,7 +25,7 @@ export class MetricsInterceptor implements NestInterceptor {
       });
 
     this.durationHistogram =
-      register.getSingleMetric('http_request_duration_seconds') ||
+      (register.getSingleMetric('http_request_duration_seconds') as Histogram) ||
       new Histogram({
         name: 'http_request_duration_seconds',
         help: 'Duration of HTTP requests in seconds',
@@ -40,7 +34,7 @@ export class MetricsInterceptor implements NestInterceptor {
       });
 
     this.errorCounter =
-      register.getSingleMetric('http_request_errors_total') ||
+      (register.getSingleMetric('http_request_errors_total') as Counter) ||
       new Counter({
         name: 'http_request_errors_total',
         help: 'Total number of failed HTTP requests',
@@ -67,18 +61,19 @@ export class MetricsInterceptor implements NestInterceptor {
           status: res.statusCode.toString(),
         });
       }),
-      catchError((error: any) => {
+      catchError((error: unknown) => {
         endTimer();
+        const err = error as { status?: number; getStatus?: () => number; name?: string };
         let status = '500';
-        if (error.status) status = error.status.toString();
-        else if (error.getStatus && typeof error.getStatus === 'function') {
-          status = error.getStatus().toString();
+        if (err.status) status = err.status.toString();
+        else if (err.getStatus && typeof err.getStatus === 'function') {
+          status = err.getStatus().toString();
         }
 
         this.requestCounter.inc({ ...labels, status });
         this.errorCounter.inc({
           ...labels,
-          error_type: error.name || 'UnknownError',
+          error_type: (err as Error).name || 'UnknownError',
         });
 
         return throwError(() => error);
@@ -87,10 +82,19 @@ export class MetricsInterceptor implements NestInterceptor {
   }
 
   /**
-   * Replace express path params like :id with generalized {id} pattern
-   * to avoid cardinality explosion in Prometheus.
+   * Normalize paths to prevent Prometheus cardinality explosion.
+   * Handles Express :param patterns and UUID/hex-based path segments.
    */
   private normalizePath(path: string): string {
-    return path.replace(/:([a-zA-Z0-9_]+)/g, '{$1}');
+    let normalized = path.replace(/:([a-zA-Z0-9_]+)/g, '{$1}');
+    normalized = normalized.replace(
+      /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi,
+      '{uuid}',
+    );
+    normalized = normalized.replace(
+      /\b[0-9a-f]{24}\b/gi,
+      '{objectId}',
+    );
+    return normalized;
   }
 }

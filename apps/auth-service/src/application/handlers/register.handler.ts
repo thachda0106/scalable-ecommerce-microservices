@@ -1,7 +1,7 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { RegisterCommand } from '../commands/register.command';
 import * as argon2 from 'argon2';
-import { ConflictException, Inject } from '@nestjs/common';
+import { ConflictException, Inject, Logger } from '@nestjs/common';
 import {
   USER_REPOSITORY,
   type UserRepositoryPort,
@@ -10,18 +10,18 @@ import { User } from '../../domain/entities/user.entity';
 import { Email } from '../../domain/value-objects/email.value-object';
 import { Password } from '../../domain/value-objects/password.value-object';
 import { Role } from '../../domain/value-objects/role.enum';
-import { KAFKA_SERVICE } from '../../infrastructure/kafka/kafka-producer.module';
-import { ClientKafka } from '@nestjs/microservices';
-import { Logger } from '@ecommerce/core';
+import { UnitOfWork } from '@ecommerce/core';
+import { randomUUID } from 'crypto';
+import { AuthEvent } from '../../domain/events/auth-event';
 
 @CommandHandler(RegisterCommand)
 export class RegisterHandler implements ICommandHandler<RegisterCommand> {
+  private readonly logger = new Logger(RegisterHandler.name);
+
   constructor(
     @Inject(USER_REPOSITORY)
     private readonly userRepository: UserRepositoryPort,
-    @Inject(KAFKA_SERVICE)
-    private readonly kafkaClient: ClientKafka,
-    private readonly logger: Logger,
+    private readonly unitOfWork: UnitOfWork,
   ) {}
 
   async execute(
@@ -29,10 +29,8 @@ export class RegisterHandler implements ICommandHandler<RegisterCommand> {
   ): Promise<{ id: string; email: string }> {
     const { email, password } = command.dto;
 
-    // Domain validation via value objects
     const emailVO = Email.create(email);
 
-    // Check if user exists
     const existingUser = await this.userRepository.findByEmail(
       emailVO.getValue(),
     );
@@ -40,14 +38,12 @@ export class RegisterHandler implements ICommandHandler<RegisterCommand> {
       throw new ConflictException('Email already exists');
     }
 
-    // Hash password with Argon2
     const passwordHash = await argon2.hash(password);
     const passwordVO = Password.create(passwordHash);
 
-    // Create domain entity
     const now = new Date();
     const user = User.create({
-      id: crypto.randomUUID(),
+      id: randomUUID(),
       email: emailVO,
       password: passwordVO,
       role: Role.CUSTOMER,
@@ -57,22 +53,16 @@ export class RegisterHandler implements ICommandHandler<RegisterCommand> {
       updatedAt: now,
     });
 
-    // Persist via repository (domain → ORM mapping is inside UserRepository)
-    const savedUser = await this.userRepository.save(user);
+    const event = new AuthEvent('user.registered', {
+      userId: user.id,
+      email: user.email.getValue(),
+      timestamp: new Date().toISOString(),
+    });
 
-    // Emit user.registered event to dedicated topic
-    try {
-      this.kafkaClient.emit('user.registered', {
-        userId: savedUser.id,
-        email: savedUser.email.getValue(),
-        timestamp: new Date().toISOString(),
-      });
-    } catch (err: unknown) {
-      this.logger.error(
-        'Failed to emit user.registered event',
-        err instanceof Error ? err.message : String(err),
-      );
-    }
+    const savedUser = await this.unitOfWork.execute(
+      () => this.userRepository.save(user),
+      [event],
+    );
 
     return {
       id: savedUser.id,

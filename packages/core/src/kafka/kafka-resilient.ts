@@ -27,7 +27,7 @@ export async function publishWithResilience(
   overrides?: Partial<SafeExecuteOptions<void>>,
 ): Promise<void> {
   await safeExecute<void>(
-    () => producer.send(record),
+    () => producer.send(record).then(() => undefined),
     {
       strategy: StrategyType.NON_BLOCKING,
       retry: { attempts: 2, backoffMs: 300 },

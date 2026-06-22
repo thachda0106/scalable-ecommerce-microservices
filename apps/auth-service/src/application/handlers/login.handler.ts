@@ -6,6 +6,7 @@ import {
   HttpException,
   HttpStatus,
   Inject,
+  Logger,
 } from '@nestjs/common';
 import {
   USER_REPOSITORY,
@@ -19,10 +20,13 @@ import { TokenStoreService } from '../../infrastructure/redis/token-store.servic
 import { LoginAttemptService } from '../services/auth.service';
 import { KAFKA_SERVICE } from '../../infrastructure/kafka/kafka-producer.module';
 import { ClientKafka } from '@nestjs/microservices';
-import { Logger } from '@ecommerce/core';
+import { safeExecute, StrategyType } from '@ecommerce/core';
+import { firstValueFrom } from 'rxjs';
 
 @QueryHandler(LoginQuery)
 export class LoginHandler implements IQueryHandler<LoginQuery> {
+  private readonly logger = new Logger(LoginHandler.name);
+
   constructor(
     @Inject(USER_REPOSITORY)
     private readonly userRepository: UserRepositoryPort,
@@ -31,13 +35,11 @@ export class LoginHandler implements IQueryHandler<LoginQuery> {
     private readonly loginAttemptService: LoginAttemptService,
     @Inject(KAFKA_SERVICE)
     private readonly kafkaClient: ClientKafka,
-    private readonly logger: Logger,
   ) {}
 
   async execute(query: LoginQuery): Promise<AuthTokens> {
     const { email, password } = query.dto;
 
-    // 1. Account lockout check — before hitting the DB
     const locked = await this.loginAttemptService.isLocked(email);
     if (locked) {
       throw new HttpException(
@@ -46,7 +48,6 @@ export class LoginHandler implements IQueryHandler<LoginQuery> {
       );
     }
 
-    // 2. Find user via domain port (no ORM leakage)
     const user = await this.userRepository.findByEmail(email);
     if (!user || !user.isActive) {
       await this.loginAttemptService.recordFailedAttempt(email);
@@ -54,9 +55,7 @@ export class LoginHandler implements IQueryHandler<LoginQuery> {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    // 3. Password verification (Argon2 — timing-safe)
     if (!user.password) {
-      // OAuth-only account — cannot login with password
       this.emitLoginFailed(email, 'OAuth-only account');
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -71,10 +70,8 @@ export class LoginHandler implements IQueryHandler<LoginQuery> {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    // 4. Clear failed attempts on successful login
     await this.loginAttemptService.clearAttempts(email);
 
-    // 5. Generate tokens
     const tokens = this.jwtAdapterService.generateTokens({
       id: user.id,
       email: user.email.getValue(),
@@ -83,38 +80,46 @@ export class LoginHandler implements IQueryHandler<LoginQuery> {
       orgId: user.orgId,
     });
 
-    // 6. Store refresh token using namespaced key
     await this.tokenStoreService.storeRefreshToken(
       user.id,
       tokens.refreshToken,
     );
 
-    // 7. Emit user.logged_in event
-    try {
-      this.kafkaClient.emit('user.logged_in', {
-        userId: user.id,
-        email: user.email.getValue(),
-        timestamp: new Date().toISOString(),
-      });
-    } catch (err: unknown) {
-      this.logger.error(
-        'Failed to emit user.logged_in event',
-        err instanceof Error ? err.message : String(err),
-      );
-    }
+    this.emitLoginSuccess(user.id, user.email.getValue());
 
     return tokens;
   }
 
+  private emitLoginSuccess(userId: string, email: string): void {
+    safeExecute(
+      () => firstValueFrom(this.kafkaClient.emit('user.logged_in', {
+        userId,
+        email,
+        timestamp: new Date().toISOString(),
+      })),
+      {
+        strategy: StrategyType.NON_BLOCKING,
+        label: 'auth:user.logged_in',
+      },
+    ).catch((err: unknown) => {
+      this.logger.warn(
+        `Failed to emit user.logged_in: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    });
+  }
+
   private emitLoginFailed(email: string, reason: string): void {
-    try {
-      this.kafkaClient.emit('user.login_failed', {
+    safeExecute(
+      () => firstValueFrom(this.kafkaClient.emit('user.login_failed', {
         email,
         reason,
         timestamp: new Date().toISOString(),
-      });
-    } catch {
-      // Best-effort; login failure event is non-critical
-    }
+      })),
+      {
+        strategy: StrategyType.NON_BLOCKING,
+        retry: { attempts: 1, backoffMs: 500 },
+        label: 'auth:user.login_failed',
+      },
+    ).catch(() => {}); // Best-effort; login failure event is non-critical
   }
 }

@@ -23,7 +23,7 @@ interface StandardErrorResponse {
 export class GlobalExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(GlobalExceptionFilter.name);
 
-  catch(exception: any, host: ArgumentsHost) {
+  catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
@@ -37,7 +37,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let code = 'INTERNAL_ERROR';
     let message = 'An unexpected error occurred';
-    let details: any = undefined;
+    let details: unknown = undefined;
 
     // Handle HttpException (NestJS standard)
     if (exception instanceof HttpException) {
@@ -48,9 +48,10 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         message = responsePayload;
         code = `HTTP_${status}`;
       } else if (typeof responsePayload === 'object' && responsePayload !== null) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const payloadFields = responsePayload as any;
         message = payloadFields.message || exception.message;
-        code = payloadFields.error ? payloadFields.error.toUpperCase().replace(/\s+/g, '_') : `HTTP_${status}`;
+        code = payloadFields.error ? (payloadFields.error as string).toUpperCase().replace(/\s+/g, '_') : `HTTP_${status}`;
         if (payloadFields.message && Array.isArray(payloadFields.message)) {
           code = 'VALIDATION_ERROR';
           details = payloadFields.message;
@@ -59,9 +60,10 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       }
     } 
     // Handle Domain Exceptions (checking for a 'code' property and custom name)
-    else if (exception?.code && typeof exception.code === 'string') {
-      code = exception.code;
-      message = exception.message || message;
+    else if ((exception as Record<string, unknown>)?.code && typeof (exception as Record<string, unknown>).code === 'string') {
+      const ex = exception as Record<string, unknown> & { message?: string };
+      code = ex.code as string;
+      message = (ex.message as string) || message;
       
       // Default mapping for common domain error keywords
       if (code.includes('NOT_FOUND')) {
@@ -91,11 +93,14 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       timestamp, // included at the end to match standard log shapes
     };
 
-    // Logging
+    // Logging — suppress stack traces in production to prevent information leakage
     if (status >= 500) {
+      const logMeta = process.env.NODE_ENV === 'production'
+        ? undefined
+        : (exception instanceof Error ? exception.stack : undefined);
       this.logger.error(
         `[${correlationId}] ${request.method} ${request.url} - ${status} ${code}: ${message}`,
-        exception instanceof Error ? exception.stack : undefined,
+        logMeta,
       );
     } else {
       this.logger.warn(

@@ -22,34 +22,13 @@ export const PaymentProcessedEventSchema = z.object({
 
 export const PaymentFailedEventSchema = z.object({
   orderId: z.string(),
-  amount: z.number(),
+  amount: z.number().positive(),
   reason: z.string(),
   status: z.literal('FAILED'),
   schemaVersion: z.literal(1),
   header: EventHeaderSchema,
 });
 
-// ─── TypeScript Interfaces ─────────────────────────
-export interface PaymentProcessedEvent {
-  orderId: string;
-  paymentId: string;
-  amount: number;
-  status: 'SUCCESS';
-  schemaVersion: number;
-  header: {
-    timestamp: string;
-    correlationId: string;
-  };
-}
-
-export interface PaymentFailedEvent {
-  orderId: string;
-  amount: number;
-  reason: string;
-  status: 'FAILED';
-  schemaVersion: number;
-  header: {
-    timestamp: string;
-    correlationId: string;
-  };
-}
+// ─── TypeScript Types (derived from Zod schemas) ────
+export type PaymentProcessedEvent = z.infer<typeof PaymentProcessedEventSchema>;
+export type PaymentFailedEvent = z.infer<typeof PaymentFailedEventSchema>;

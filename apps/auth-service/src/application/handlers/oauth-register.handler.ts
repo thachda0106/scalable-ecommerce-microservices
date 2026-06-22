@@ -4,22 +4,22 @@ import {
   USER_REPOSITORY,
   type UserRepositoryPort,
 } from '../../domain/ports/user-repository.port';
-import { Inject } from '@nestjs/common';
+import { Inject, Logger } from '@nestjs/common';
 import { User } from '../../domain/entities/user.entity';
 import { Email } from '../../domain/value-objects/email.value-object';
 import { Role } from '../../domain/value-objects/role.enum';
-import { KAFKA_SERVICE } from '../../infrastructure/kafka/kafka-producer.module';
-import { ClientKafka } from '@nestjs/microservices';
-import { Logger } from '@ecommerce/core';
+import { UnitOfWork } from '@ecommerce/core';
+import { randomUUID } from 'crypto';
+import { AuthEvent } from '../../domain/events/auth-event';
 
 @CommandHandler(OAuthRegisterCommand)
 export class OAuthRegisterHandler implements ICommandHandler<OAuthRegisterCommand> {
+  private readonly logger = new Logger(OAuthRegisterHandler.name);
+
   constructor(
     @Inject(USER_REPOSITORY)
     private readonly userRepository: UserRepositoryPort,
-    @Inject(KAFKA_SERVICE)
-    private readonly kafkaClient: ClientKafka,
-    private readonly logger: Logger,
+    private readonly unitOfWork: UnitOfWork,
   ) {}
 
   async execute(
@@ -28,14 +28,13 @@ export class OAuthRegisterHandler implements ICommandHandler<OAuthRegisterComman
     const { email, provider, providerId, firstName, lastName, picture } =
       command.dto;
 
-    // Build domain entity with OAuth identity — no dummy password
     const now = new Date();
     const user = User.create({
-      id: crypto.randomUUID(),
+      id: randomUUID(),
       email: Email.create(email),
-      password: null, // OAuth-only users have no local password
+      password: null,
       role: Role.CUSTOMER,
-      isEmailVerified: true, // OAuth provider has verified the email
+      isEmailVerified: true,
       isActive: true,
       provider,
       providerId,
@@ -46,24 +45,18 @@ export class OAuthRegisterHandler implements ICommandHandler<OAuthRegisterComman
       updatedAt: now,
     });
 
-    // Persist via domain port (ORM mapping in UserRepository)
-    const savedUser = await this.userRepository.save(user);
+    const event = new AuthEvent('user.registered', {
+      userId: user.id,
+      email: user.email.getValue(),
+      provider,
+      providerId,
+      timestamp: new Date().toISOString(),
+    });
 
-    // Emit user.registered event to dedicated topic
-    try {
-      this.kafkaClient.emit('user.registered', {
-        userId: savedUser.id,
-        email: savedUser.email.getValue(),
-        provider,
-        providerId,
-        timestamp: new Date().toISOString(),
-      });
-    } catch (err: unknown) {
-      this.logger.error(
-        'Failed to emit user.registered event (OAuth)',
-        err instanceof Error ? err.message : String(err),
-      );
-    }
+    const savedUser = await this.unitOfWork.execute(
+      () => this.userRepository.save(user),
+      [event],
+    );
 
     return { id: savedUser.id, email: savedUser.email.getValue() };
   }

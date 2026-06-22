@@ -13,7 +13,7 @@ import { Request, Response } from 'express';
 export class HttpLoggingInterceptor implements NestInterceptor {
   private readonly logger = new Logger('HTTP');
 
-  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+  intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const ctx = context.switchToHttp();
     const req = ctx.getRequest<Request>();
     const res = ctx.getResponse<Response>();
@@ -36,13 +36,11 @@ export class HttpLoggingInterceptor implements NestInterceptor {
             `[${correlationId}] ${method} ${originalUrl} ${statusCode} - ${userAgent} [${latencyMs}ms]`,
           );
         },
-        error: (error: any) => {
+        error: (error: unknown) => {
           const latencyMs = Date.now() - now;
-          // The GlobalExceptionFilter will log the detailed error with stack,
-          // so we don't need to log identical error payload here, just that
-          // the sequence resulted in an error from the interceptor perspective.
+          const errMsg = error instanceof Error ? error.message : String(error);
           this.logger.warn(
-            `[${correlationId}] ${method} ${originalUrl} FAILED - ${userAgent} [${latencyMs}ms] ${error?.message || 'Unknown Error'}`,
+            `[${correlationId}] ${method} ${originalUrl} FAILED - ${userAgent} [${latencyMs}ms] ${errMsg}`,
           );
         },
       }),

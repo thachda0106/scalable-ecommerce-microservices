@@ -19,7 +19,13 @@ export const ProductCreatedSchema = z.object({
 
 export const ProductUpdatedSchema = z.object({
   productId: z.string().uuid(),
-  changes: z.record(z.unknown()),
+  changes: z.record(z.unknown()).refine(
+    (obj) => Object.keys(obj).length > 0,
+    'changes must not be empty',
+  ).refine(
+    (obj) => Object.keys(obj).length <= 50,
+    'changes must not exceed 50 keys',
+  ),
   schemaVersion: z.literal(1),
 });
 

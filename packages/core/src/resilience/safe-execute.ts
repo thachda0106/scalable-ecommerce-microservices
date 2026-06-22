@@ -164,7 +164,8 @@ export async function safeExecute<T>(
       span.setStatus({ code: SpanStatusCode.OK });
 
       return result;
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error instanceof Error ? error : new Error(String(error));
       // ── Failure path ──
       const durationMs = Date.now() - startTime;
       const durationSec = durationMs / 1000;
@@ -172,16 +173,20 @@ export async function safeExecute<T>(
       metrics.execCounter?.inc({ strategy, status: 'failure', label });
       metrics.execDuration?.observe({ strategy, label }, durationSec);
 
-      span.setStatus({ code: SpanStatusCode.ERROR, message: error.message });
-      span.recordException(error);
+      span.setStatus({ code: SpanStatusCode.ERROR, message: err.message });
+      span.recordException(err);
 
       if (strategy === StrategyType.NON_BLOCKING) {
-        logger.error(`[${label}] Non-blocking error (${durationMs}ms): ${error.message}`);
+        logger.error(`[${label}] Non-blocking error (${durationMs}ms): ${err.message}`);
       } else {
-        logger.error(`[${label}] Failed after ${durationMs}ms (retries: ${retryCount}): ${error.message}`);
+        logger.error(`[${label}] Failed after ${durationMs}ms (retries: ${retryCount}): ${err.message}`);
       }
 
-      return applyStrategy<T>(strategy, error, fallback) as T | undefined;
+      const applied = applyStrategy<T>(strategy, err, fallback);
+      if (applied instanceof Promise) {
+        return await applied as T | undefined;
+      }
+      return applied as T | undefined;
     } finally {
       span.end();
     }

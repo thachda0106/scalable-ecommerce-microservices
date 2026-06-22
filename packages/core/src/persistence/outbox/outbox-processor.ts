@@ -64,10 +64,9 @@ export class OutboxProcessor {
         event.processed = true;
         await this.repo.save(event);
         published++;
-      } catch (error: any) {
-        // publishWithResilience is NON_BLOCKING, so this shouldn't throw.
-        // But if somehow it does, we log and continue with next event.
-        this.logger.error(`Failed to publish outbox event ${event.id}: ${error.message}`);
+      } catch (error: unknown) {
+        const err = error instanceof Error ? error : new Error(String(error));
+        this.logger.error(`Failed to publish outbox event ${event.id}: ${err.message}`);
       }
     }
 

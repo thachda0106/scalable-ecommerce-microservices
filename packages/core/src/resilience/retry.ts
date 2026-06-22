@@ -3,6 +3,8 @@ export interface RetryOptions {
   attempts: number;
   /** Base delay in ms before first retry. Doubles each attempt. Default: 100 */
   backoffMs?: number;
+  /** Maximum backoff delay in ms (caps exponential growth). Default: 30000 */
+  maxBackoffMs?: number;
 }
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -24,7 +26,7 @@ export async function withRetry<T>(
   options: RetryOptions,
   onRetry?: (attempt: number, delay: number, error: Error) => void,
 ): Promise<T> {
-  const { attempts, backoffMs = 100 } = options;
+  const { attempts, backoffMs = 100, maxBackoffMs = 30000 } = options;
 
   if (!options || attempts <= 1) {
     return fn();
@@ -34,12 +36,13 @@ export async function withRetry<T>(
   for (let attempt = 1; attempt <= attempts; attempt++) {
     try {
       return await fn();
-    } catch (error: any) {
-      lastError = error;
+    } catch (error: unknown) {
+      lastError = error instanceof Error ? error : new Error(String(error));
       if (attempt >= attempts) break;
 
-      const delay = jitter(backoffMs * Math.pow(2, attempt - 1));
-      onRetry?.(attempt, delay, error);
+      const rawDelay = backoffMs * Math.pow(2, attempt - 1);
+      const delay = jitter(Math.min(rawDelay, maxBackoffMs));
+      onRetry?.(attempt, delay, lastError);
       await sleep(delay);
     }
   }

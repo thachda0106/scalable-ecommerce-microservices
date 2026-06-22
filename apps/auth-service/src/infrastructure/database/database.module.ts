@@ -3,20 +3,21 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserOrmEntity } from './user.orm-entity';
 import { UserRepository } from './user.repository';
 import { USER_REPOSITORY } from '../../domain/ports/user-repository.port';
+import { OutboxEventEntity } from '@ecommerce/core';
 
 @Module({
   imports: [
     TypeOrmModule.forRootAsync({
       useFactory: () => ({
-        type: 'postgres',
+        type: 'postgres' as const,
         host: process.env.DB_HOST || 'localhost',
         port: parseInt(process.env.DB_PORT || '5432', 10),
         username: process.env.DB_USER || 'postgres',
         password: process.env.DB_PASSWORD || 'postgres',
         database: process.env.DB_NAME || 'eccommerce_auth',
-        entities: [UserOrmEntity],
+        entities: [UserOrmEntity, OutboxEventEntity],
         autoLoadEntities: true,
-        synchronize: false, // Never use synchronize — use TypeORM migrations instead
+        synchronize: false,
       }),
     }),
     TypeOrmModule.forFeature([UserOrmEntity]),

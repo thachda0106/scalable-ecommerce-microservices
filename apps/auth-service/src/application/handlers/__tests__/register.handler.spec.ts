@@ -3,8 +3,7 @@ import { ConflictException } from '@nestjs/common';
 import { RegisterHandler } from '../register.handler';
 import { RegisterCommand } from '../../commands/register.command';
 import { USER_REPOSITORY } from '../../../domain/ports/user-repository.port';
-import { KAFKA_SERVICE } from '../../../infrastructure/kafka/kafka-producer.module';
-import { Logger } from '@ecommerce/core';
+import { UnitOfWork } from '@ecommerce/core';
 import { User } from '../../../domain/entities/user.entity';
 import { Email } from '../../../domain/value-objects/email.value-object';
 import { Password } from '../../../domain/value-objects/password.value-object';
@@ -13,8 +12,7 @@ import { Role } from '../../../domain/value-objects/role.enum';
 describe('RegisterHandler', () => {
   let handler: RegisterHandler;
   let userRepository: { findByEmail: jest.Mock; save: jest.Mock };
-  let kafkaClient: { emit: jest.Mock };
-  let logger: { error: jest.Mock };
+  let unitOfWork: { execute: jest.Mock };
 
   const makeUser = () =>
     User.create({
@@ -30,16 +28,13 @@ describe('RegisterHandler', () => {
 
   beforeEach(async () => {
     userRepository = { findByEmail: jest.fn(), save: jest.fn() };
-    kafkaClient = { emit: jest.fn() };
-    logger = { error: jest.fn() };
+    unitOfWork = { execute: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         RegisterHandler,
         { provide: USER_REPOSITORY, useValue: userRepository },
-        { provide: KAFKA_SERVICE, useValue: kafkaClient },
-
-        { provide: Logger, useValue: logger },
+        { provide: UnitOfWork, useValue: unitOfWork },
       ],
     }).compile();
 
@@ -48,7 +43,11 @@ describe('RegisterHandler', () => {
 
   it('should register a new user and return id and email', async () => {
     userRepository.findByEmail.mockResolvedValue(null);
-    userRepository.save.mockResolvedValue(makeUser());
+    const savedUser = makeUser();
+    unitOfWork.execute.mockImplementation(
+      async (work: () => Promise<User>) => work(),
+    );
+    userRepository.save.mockResolvedValue(savedUser);
 
     const result = await handler.execute(
       new RegisterCommand({
@@ -60,7 +59,7 @@ describe('RegisterHandler', () => {
     expect(result.email).toBe('test@example.com');
     expect(result.id).toBeDefined();
     expect(userRepository.findByEmail).toHaveBeenCalledWith('test@example.com');
-    expect(userRepository.save).toHaveBeenCalled();
+    expect(unitOfWork.execute).toHaveBeenCalled();
   });
 
   it('should throw ConflictException if email already exists', async () => {
@@ -74,12 +73,20 @@ describe('RegisterHandler', () => {
         }),
       ),
     ).rejects.toThrow(ConflictException);
-    expect(userRepository.save).not.toHaveBeenCalled();
+    expect(unitOfWork.execute).not.toHaveBeenCalled();
   });
 
-  it('should emit user.registered event to dedicated topic', async () => {
+  it('should persist user and outbox event atomically via UnitOfWork', async () => {
     userRepository.findByEmail.mockResolvedValue(null);
-    userRepository.save.mockResolvedValue(makeUser());
+    const savedUser = makeUser();
+    unitOfWork.execute.mockImplementation(
+      async (work: () => Promise<User>, events: unknown[]) => {
+        expect(events).toHaveLength(1);
+        expect((events[0] as { eventType: string }).eventType).toBe('user.registered');
+        return work();
+      },
+    );
+    userRepository.save.mockResolvedValue(savedUser);
 
     await handler.execute(
       new RegisterCommand({
@@ -88,29 +95,7 @@ describe('RegisterHandler', () => {
       }),
     );
 
-    // Topic must be 'user.registered', not the old 'identity' topic
-    expect(kafkaClient.emit).toHaveBeenCalledWith(
-      'user.registered',
-      expect.objectContaining({ email: 'test@example.com' }),
-    );
-  });
-
-  it('should log error (not throw) if Kafka emit fails', async () => {
-    userRepository.findByEmail.mockResolvedValue(null);
-    userRepository.save.mockResolvedValue(makeUser());
-    kafkaClient.emit.mockImplementation(() => {
-      throw new Error('Kafka down');
-    });
-
-    await expect(
-      handler.execute(
-        new RegisterCommand({
-          email: 'test@example.com',
-          password: 'Password123!',
-        }),
-      ),
-    ).resolves.toBeDefined();
-    expect(logger.error).toHaveBeenCalled();
+    expect(unitOfWork.execute).toHaveBeenCalled();
   });
 
   it('should hash password via argon2 (not store plaintext)', async () => {
@@ -120,6 +105,9 @@ describe('RegisterHandler', () => {
       savedArgs = user;
       return Promise.resolve(user);
     });
+    unitOfWork.execute.mockImplementation(
+      async (work: () => Promise<User>) => work(),
+    );
 
     await handler.execute(
       new RegisterCommand({

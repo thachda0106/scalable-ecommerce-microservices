@@ -96,9 +96,11 @@ export abstract class BaseEventConsumer {
     if (!eventId) {
       this.logger.error(
         `Inbox: missing event ID in headers/payload for type=${this.eventType}, ` +
-          `dropping message`,
+          `rejecting message to trigger Kafka retry`,
       );
-      return;
+      throw new Error(
+        `Missing event ID for event type ${this.eventType} — cannot deduplicate without event ID`,
+      );
     }
 
     this.logger.debug(
