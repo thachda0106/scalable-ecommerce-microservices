@@ -2,9 +2,10 @@ import {
   CanActivate,
   ExecutionContext,
   Injectable,
-  Logger,
+  Inject,
   UnauthorizedException,
 } from '@nestjs/common';
+import { Logger } from 'nestjs-pino';
 import { Reflector } from '@nestjs/core';
 import { verifyInternalHeaders } from './internal-auth';
 
@@ -20,9 +21,11 @@ const IS_PUBLIC_KEY = 'isPublic';
  */
 @Injectable()
 export class InternalAuthGuard implements CanActivate {
-  private readonly logger = new Logger(InternalAuthGuard.name);
 
-  constructor(private readonly reflector: Reflector) {}
+  constructor(
+    @Inject(Logger) private readonly logger: Logger,
+    private readonly reflector: Reflector,
+  ) {}
 
   canActivate(context: ExecutionContext): boolean {
     // Skip for @Public() routes

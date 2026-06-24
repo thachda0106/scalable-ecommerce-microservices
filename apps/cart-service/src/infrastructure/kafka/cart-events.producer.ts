@@ -1,9 +1,10 @@
 import {
   Injectable,
-  Logger,
+  Inject,
   OnModuleDestroy,
   OnModuleInit,
 } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import { Kafka, Producer } from 'kafkajs';
 import { ICartEventsProducer } from '../../application/ports/cart-events.port';
 import { BaseDomainEvent } from '../../domain/events/base-domain.event';
@@ -12,11 +13,10 @@ import { BaseDomainEvent } from '../../domain/events/base-domain.event';
 export class CartEventsProducer
   implements ICartEventsProducer, OnModuleInit, OnModuleDestroy
 {
-  private readonly logger = new Logger(CartEventsProducer.name);
   private readonly kafka: Kafka;
   private producer: Producer;
 
-  constructor() {
+  constructor(@Inject(Logger) private readonly logger: Logger) {
     this.kafka = new Kafka({
       clientId: 'cart-service',
       brokers: [process.env.KAFKA_BROKER ?? 'localhost:9092'],

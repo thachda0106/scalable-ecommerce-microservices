@@ -4,8 +4,9 @@ import {
   ArgumentsHost,
   HttpException,
   HttpStatus,
+  Inject,
 } from '@nestjs/common';
-import { Logger } from '@nestjs/common';
+import { Logger } from 'nestjs-pino';
 import { trace } from '@opentelemetry/api';
 import { Request, Response } from 'express';
 import { randomUUID } from 'crypto';
@@ -21,7 +22,7 @@ interface StandardErrorResponse {
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
-  private readonly logger = new Logger(GlobalExceptionFilter.name);
+  constructor(@Inject(Logger) private readonly logger: Logger) {}
 
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();

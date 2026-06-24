@@ -10,18 +10,18 @@ import {
   USER_REPOSITORY,
   type UserRepositoryPort,
 } from '../../domain/ports/user-repository.port';
-import { Inject, Logger } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { UnauthorizedException } from '@nestjs/common';
 import { KAFKA_SERVICE } from '../../infrastructure/kafka/kafka-producer.module';
 import { ClientKafka } from '@nestjs/microservices';
-import { safeExecute, StrategyType } from '@ecommerce/core';
+import { safeExecute, StrategyType, Logger } from '@ecommerce/core';
 import { firstValueFrom } from 'rxjs';
 
 @CommandHandler(OAuthLoginCommand)
 export class OAuthLoginHandler implements ICommandHandler<OAuthLoginCommand> {
-  private readonly logger = new Logger(OAuthLoginHandler.name);
 
   constructor(
+    @Inject(Logger) private readonly logger: Logger,
     @Inject(USER_REPOSITORY)
     private readonly userRepository: UserRepositoryPort,
     private readonly jwtAdapterService: JwtAdapterService,

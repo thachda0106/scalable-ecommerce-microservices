@@ -3,8 +3,9 @@ import {
   Catch,
   ArgumentsHost,
   HttpStatus,
-  Logger,
+  Inject,
 } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import { Response } from 'express';
 import {
   DomainException,
@@ -14,7 +15,7 @@ import {
 
 @Catch(DomainException)
 export class DomainExceptionFilter implements ExceptionFilter {
-  private readonly logger = new Logger(DomainExceptionFilter.name);
+  constructor(@Inject(Logger) private readonly logger: Logger) {}
 
   catch(exception: DomainException, host: ArgumentsHost) {
     const ctx = host.switchToHttp();

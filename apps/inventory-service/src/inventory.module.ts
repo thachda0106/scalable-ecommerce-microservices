@@ -31,7 +31,7 @@ import { ProductInventoryOrmEntity } from './infrastructure/persistence/entities
 import { StockReservationOrmEntity } from './infrastructure/persistence/entities/stock-reservation.orm-entity';
 import { StockMovementOrmEntity } from './infrastructure/persistence/entities/stock-movement.orm-entity';
 import { OutboxEventOrmEntity } from './infrastructure/persistence/entities/outbox-event.orm-entity';
-import { InboxEventEntity } from '@ecommerce/core';
+import { InboxEventEntity, Logger } from '@ecommerce/core';
 
 // Inbox infrastructure
 import { InboxSchedulerService } from './infrastructure/messaging/inbox-scheduler.service';
@@ -74,7 +74,7 @@ import { InventoryController } from './interfaces/controllers/inventory.controll
 
     // Resilience
     RetryPolicy,
-    { provide: CircuitBreaker, useFactory: () => new CircuitBreaker(5, 30000) },
+    { provide: CircuitBreaker, useFactory: (logger: Logger) => new CircuitBreaker(logger, 5, 30000), inject: [Logger] },
   ],
   exports: [INVENTORY_REPOSITORY],
 })

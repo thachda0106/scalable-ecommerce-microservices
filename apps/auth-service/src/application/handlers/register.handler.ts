@@ -1,7 +1,7 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { RegisterCommand } from '../commands/register.command';
 import * as argon2 from 'argon2';
-import { ConflictException, Inject, Logger } from '@nestjs/common';
+import { ConflictException, Inject } from '@nestjs/common';
 import {
   USER_REPOSITORY,
   type UserRepositoryPort,
@@ -10,15 +10,15 @@ import { User } from '../../domain/entities/user.entity';
 import { Email } from '../../domain/value-objects/email.value-object';
 import { Password } from '../../domain/value-objects/password.value-object';
 import { Role } from '../../domain/value-objects/role.enum';
-import { UnitOfWork } from '@ecommerce/core';
+import { UnitOfWork, Logger } from '@ecommerce/core';
 import { randomUUID } from 'crypto';
 import { AuthEvent } from '../../domain/events/auth-event';
 
 @CommandHandler(RegisterCommand)
 export class RegisterHandler implements ICommandHandler<RegisterCommand> {
-  private readonly logger = new Logger(RegisterHandler.name);
 
   constructor(
+    @Inject(Logger) private readonly logger: Logger,
     @Inject(USER_REPOSITORY)
     private readonly userRepository: UserRepositoryPort,
     private readonly unitOfWork: UnitOfWork,

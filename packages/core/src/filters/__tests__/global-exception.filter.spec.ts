@@ -13,7 +13,8 @@ describe('GlobalExceptionFilter', () => {
   let mockRecordException: jest.Mock;
 
   beforeEach(() => {
-    filter = new GlobalExceptionFilter();
+    const mockLogger = { log: jest.fn(), warn: jest.fn(), error: jest.fn(), debug: jest.fn() } as any;
+    filter = new GlobalExceptionFilter(mockLogger);
     mockRecordException = jest.fn();
     (trace.getActiveSpan as jest.Mock).mockReturnValue({
       recordException: mockRecordException,

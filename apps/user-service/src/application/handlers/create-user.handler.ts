@@ -1,4 +1,5 @@
-import { Injectable, Inject, Logger, ConflictException } from '@nestjs/common';
+import { Injectable, Inject, ConflictException } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import { CreateUserCommand } from '../commands/create-user.command';
 import { User } from '../../domain/entities/user.entity';
 import { Email } from '../../domain/value-objects/email.vo';
@@ -11,9 +12,8 @@ import { AuditLogService } from '../../infrastructure/observability/audit-log.se
 
 @Injectable()
 export class CreateUserHandler {
-  private readonly logger = new Logger(CreateUserHandler.name);
-
   constructor(
+    @Inject(Logger) private readonly logger: Logger,
     @Inject(USER_REPOSITORY)
     private readonly userRepository: IUserRepository,
     private readonly unitOfWork: UnitOfWork,

@@ -1,6 +1,5 @@
 import {
   Injectable,
-  Logger,
   Inject,
   OnApplicationBootstrap,
   OnApplicationShutdown,
@@ -12,17 +11,17 @@ import { ConfigType } from '@nestjs/config';
 import { Kafka, Producer } from 'kafkajs';
 import { OutboxEventOrmEntity } from '../persistence/entities/outbox-event.orm-entity';
 import { kafkaConfig } from '../../config/inventory.config';
-import { publishWithResilience, setCorrelationHeaders } from '@ecommerce/core';
+import { Logger, publishWithResilience, setCorrelationHeaders } from '@ecommerce/core';
 
 @Injectable()
 export class OutboxRelayService
   implements OnApplicationBootstrap, OnApplicationShutdown
 {
-  private readonly logger = new Logger(OutboxRelayService.name);
   private producer: Producer;
   private isReady = false;
 
   constructor(
+    @Inject(Logger) private readonly logger: Logger,
     @InjectRepository(OutboxEventOrmEntity)
     private readonly outboxRepo: Repository<OutboxEventOrmEntity>,
     @Inject(kafkaConfig.KEY)

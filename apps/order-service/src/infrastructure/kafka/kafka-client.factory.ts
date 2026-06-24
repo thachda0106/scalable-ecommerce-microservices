@@ -1,9 +1,10 @@
 import {
   Injectable,
-  Logger,
+  Inject,
   OnApplicationBootstrap,
   OnApplicationShutdown,
 } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import { Kafka, Producer, Consumer, ConsumerConfig } from 'kafkajs';
 
 /**
@@ -14,12 +15,11 @@ import { Kafka, Producer, Consumer, ConsumerConfig } from 'kafkajs';
 export class KafkaClientFactory
   implements OnApplicationBootstrap, OnApplicationShutdown
 {
-  private readonly logger = new Logger(KafkaClientFactory.name);
   private readonly kafka: Kafka;
   private readonly producers: Producer[] = [];
   private readonly consumers: Consumer[] = [];
 
-  constructor() {
+  constructor(@Inject(Logger) private readonly logger: Logger) {
     const KAFKA_BROKERS = process.env.KAFKA_BROKERS || 'localhost:29092';
     this.kafka = new Kafka({
       clientId: 'order-service',

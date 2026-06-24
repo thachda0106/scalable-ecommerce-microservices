@@ -1,9 +1,10 @@
 import {
   Injectable,
-  Logger,
   OnModuleInit,
   OnModuleDestroy,
 } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import { Kafka, Producer } from 'kafkajs';
 import { BaseDomainEvent } from '../../domain/events/base-domain.event';
 import { IEventPublisher } from '../../domain/ports/event-publisher.port';
@@ -18,11 +19,10 @@ import { kafkaConfig } from '../kafka/kafka.config';
 export class KafkaEventPublisher
   implements IEventPublisher, OnModuleInit, OnModuleDestroy
 {
-  private readonly logger = new Logger(KafkaEventPublisher.name);
   private readonly kafka: Kafka;
   private producer: Producer;
 
-  constructor() {
+  constructor(@Inject(Logger) private readonly logger: Logger) {
     this.kafka = new Kafka({
       clientId: kafkaConfig.clientId,
       brokers: kafkaConfig.brokers,

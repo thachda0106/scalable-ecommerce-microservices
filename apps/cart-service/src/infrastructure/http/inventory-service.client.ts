@@ -1,15 +1,17 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
-import { safeExecute, StrategyType } from '@ecommerce/core';
+import { safeExecute, StrategyType, Logger } from '@ecommerce/core';
 
 @Injectable()
 export class InventoryServiceClient {
-  private readonly logger = new Logger(InventoryServiceClient.name);
   private readonly baseUrl =
     process.env.INVENTORY_SERVICE_URL ?? 'http://inventory-service:3006';
 
-  constructor(private readonly httpService: HttpService) {}
+  constructor(
+    @Inject(Logger) private readonly logger: Logger,
+    private readonly httpService: HttpService,
+  ) {}
 
   /**
    * Checks whether sufficient stock is available for a product.

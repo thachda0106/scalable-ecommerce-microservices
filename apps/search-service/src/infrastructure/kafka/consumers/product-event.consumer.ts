@@ -1,6 +1,6 @@
 import {
   Injectable,
-  Logger,
+  Inject,
   OnModuleInit,
   OnModuleDestroy,
 } from '@nestjs/common';
@@ -12,6 +12,7 @@ import {
   InboxService,
   InboxEventMetadata,
   KafkaDlqProducer,
+  Logger,
 } from '@ecommerce/core';
 import { createKafkaConfig } from '../kafka.config';
 import { IndexProductCommand } from '../../../application/commands/index-product.command';
@@ -27,12 +28,12 @@ import { RemoveProductCommand } from '../../../application/commands/remove-produ
  */
 @Injectable()
 export class ProductEventConsumer implements OnModuleInit, OnModuleDestroy {
-  private readonly logger = new Logger(ProductEventConsumer.name);
   private readonly inboxService: InboxService;
   private consumer: Consumer;
   private readonly fromBeginning: boolean;
 
   constructor(
+    @Inject(Logger) private readonly logger: Logger,
     private readonly configService: ConfigService,
     private readonly commandBus: CommandBus,
     private readonly dataSource: DataSource,

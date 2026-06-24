@@ -1,12 +1,15 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import { Notification } from '../../domain/entities/notification';
 import { NotificationStatus } from '../../domain/enums/notification-status.enum';
 import { INotificationRepository } from '../../domain/ports/notification-repository.port';
 
 @Injectable()
 export class InMemoryNotificationRepository implements INotificationRepository {
-  private readonly logger = new Logger(InMemoryNotificationRepository.name);
   private readonly notifications: Map<string, Notification> = new Map();
+
+  constructor(@Inject(Logger) private readonly logger: Logger) {}
 
   async save(notification: Notification): Promise<void> {
     this.notifications.set(notification.id, notification);

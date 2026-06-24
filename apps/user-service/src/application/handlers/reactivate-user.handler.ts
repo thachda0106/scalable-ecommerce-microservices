@@ -1,4 +1,5 @@
-import { Injectable, Inject, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Inject, NotFoundException } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import { ReactivateUserCommand } from '../commands/reactivate-user.command';
 import { UserId } from '../../domain/value-objects/user-id.vo';
 import { USER_REPOSITORY } from '../../domain/ports/user-repository.port';
@@ -9,9 +10,8 @@ import { AuditLogService } from '../../infrastructure/observability/audit-log.se
 
 @Injectable()
 export class ReactivateUserHandler {
-  private readonly logger = new Logger(ReactivateUserHandler.name);
-
   constructor(
+    @Inject(Logger) private readonly logger: Logger,
     @Inject(USER_REPOSITORY)
     private readonly userRepository: IUserRepository,
     private readonly unitOfWork: UnitOfWork,

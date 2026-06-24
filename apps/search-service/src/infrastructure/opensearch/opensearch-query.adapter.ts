@@ -1,4 +1,5 @@
-import { Injectable, Inject, Logger } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import { Client } from '@opensearch-project/opensearch';
 import { OPENSEARCH_CLIENT } from './opensearch-client.provider';
 import { PRODUCT_INDEX_ALIAS } from './index-mappings';
@@ -10,9 +11,8 @@ import { SearchQuery } from '../../domain/value-objects/search-query.vo';
 
 @Injectable()
 export class OpenSearchQueryAdapter implements ISearchQueryPort {
-  private readonly logger = new Logger(OpenSearchQueryAdapter.name);
-
   constructor(
+    @Inject(Logger) private readonly logger: Logger,
     @Inject(OPENSEARCH_CLIENT)
     private readonly client: Client,
   ) {}

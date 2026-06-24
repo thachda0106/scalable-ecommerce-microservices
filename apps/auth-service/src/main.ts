@@ -17,9 +17,10 @@ async function bootstrap() {
 
   app.useLogger(app.get<LoggerService>(Logger));
 
-  app.useGlobalFilters(new GlobalExceptionFilter());
+  const logger = app.get(Logger);
+  app.useGlobalFilters(new GlobalExceptionFilter(logger));
   app.useGlobalInterceptors(
-    new HttpLoggingInterceptor(),
+    new HttpLoggingInterceptor(logger),
     new MetricsInterceptor('auth-service'),
   );
 

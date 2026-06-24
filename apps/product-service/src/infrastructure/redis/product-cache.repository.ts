@@ -1,10 +1,10 @@
 import {
   Injectable,
   Inject,
-  Logger,
   OnModuleInit,
   OnModuleDestroy,
 } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import Redis from 'ioredis';
 import { IProductCache } from '../../application/ports/product-cache.port';
 import { Product } from '../../domain/entities/product.entity';
@@ -17,9 +17,9 @@ const PRODUCT_CACHE_TTL = 3600; // 1 hour
 export class ProductCacheRepository
   implements IProductCache, OnModuleInit, OnModuleDestroy
 {
-  private readonly logger = new Logger(ProductCacheRepository.name);
-
-  constructor(@Inject('REDIS_CLIENT') private readonly redis: Redis) {}
+  constructor(
+    @Inject(Logger) private readonly logger: Logger,
+    @Inject('REDIS_CLIENT') private readonly redis: Redis) {}
 
   async onModuleInit(): Promise<void> {
     try {

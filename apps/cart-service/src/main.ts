@@ -32,12 +32,13 @@ async function bootstrap() {
     }),
   );
 
-  app.useGlobalFilters(new GlobalExceptionFilter());
+  const logger = app.get(Logger);
+  app.useGlobalFilters(new GlobalExceptionFilter(logger));
 
   // Global response interceptor — wraps all responses in { success, data, timestamp }
   app.useGlobalInterceptors(
     new MetricsInterceptor('cart-service'),
-    new HttpLoggingInterceptor(),
+    new HttpLoggingInterceptor(logger),
     new ResponseInterceptor(),
   );
 

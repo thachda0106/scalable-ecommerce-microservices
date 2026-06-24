@@ -1,4 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { IEventPublisher } from '../../application/ports/event-publisher.port';
@@ -13,9 +14,8 @@ import { OutboxEventOrmEntity } from '../persistence/entities/outbox-event.orm-e
  */
 @Injectable()
 export class KafkaEventPublisher implements IEventPublisher {
-  private readonly logger = new Logger(KafkaEventPublisher.name);
-
   constructor(
+    @Inject(Logger) private readonly logger: Logger,
     @InjectRepository(OutboxEventOrmEntity)
     private readonly outboxRepo: Repository<OutboxEventOrmEntity>,
     private readonly dataSource: DataSource,

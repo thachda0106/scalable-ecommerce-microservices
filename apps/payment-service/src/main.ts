@@ -27,10 +27,12 @@ async function bootstrap() {
     }),
   );
 
+  const logger = app.get(Logger);
+
   // Global exception filter and interceptors
-  app.useGlobalFilters(new GlobalExceptionFilter());
+  app.useGlobalFilters(new GlobalExceptionFilter(logger));
   app.useGlobalInterceptors(
-    new HttpLoggingInterceptor(),
+    new HttpLoggingInterceptor(logger),
     new MetricsInterceptor('payment-service'),
   );
 

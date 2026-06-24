@@ -1,4 +1,5 @@
-import { Injectable, Inject, Logger } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import { OrderId } from '../../../domain/value-objects';
 import { IOrderRepository, ORDER_REPOSITORY } from '../../../domain/ports';
 import {
@@ -28,9 +29,8 @@ import { CancelOrderHandler } from '../../../application/handlers/cancel-order.h
  */
 @Injectable()
 export class CheckoutSagaOrchestrator {
-  private readonly logger = new Logger(CheckoutSagaOrchestrator.name);
-
   constructor(
+    @Inject(Logger) private readonly logger: Logger,
     @Inject(ORDER_REPOSITORY)
     private readonly orderRepository: IOrderRepository,
     @Inject(EVENT_PUBLISHER)

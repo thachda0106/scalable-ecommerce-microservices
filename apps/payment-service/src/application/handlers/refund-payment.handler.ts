@@ -1,4 +1,5 @@
-import { Inject, Logger } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import { RefundPaymentCommand } from '../commands/refund-payment.command';
 import { PaymentId } from '../../domain/value-objects/payment-id.vo';
 import {
@@ -15,8 +16,6 @@ import {
 } from '../ports/payment-provider-factory.port';
 
 export class RefundPaymentHandler {
-  private readonly logger = new Logger(RefundPaymentHandler.name);
-
   constructor(
     @Inject(PAYMENT_REPOSITORY)
     private readonly paymentRepository: IPaymentRepository,
@@ -24,6 +23,8 @@ export class RefundPaymentHandler {
     private readonly providerFactory: IPaymentProviderFactory,
     @Inject(EVENT_PUBLISHER)
     private readonly eventPublisher: IEventPublisher,
+    @Inject(Logger)
+    private readonly logger: Logger,
   ) {}
 
   async execute(

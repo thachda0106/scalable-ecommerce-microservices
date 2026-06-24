@@ -1,4 +1,5 @@
-import { Injectable, Inject, Logger } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import { GetUsersQuery } from '../queries/get-users.query';
 import { USER_REPOSITORY } from '../../domain/ports/user-repository.port';
 import type { IUserRepository } from '../../domain/ports/user-repository.port';
@@ -6,9 +7,8 @@ import { UserStatusEnum } from '../../domain/value-objects/user-status.vo';
 
 @Injectable()
 export class GetUsersHandler {
-  private readonly logger = new Logger(GetUsersHandler.name);
-
   constructor(
+    @Inject(Logger) private readonly logger: Logger,
     @Inject(USER_REPOSITORY)
     private readonly userRepository: IUserRepository,
   ) {}

@@ -3,8 +3,9 @@ import {
   CanActivate,
   ExecutionContext,
   UnauthorizedException,
-  Logger,
+  Inject,
 } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import { Request } from 'express';
 import { verifyInternalHeaders } from '@ecommerce/core';
 
@@ -15,7 +16,7 @@ import { verifyInternalHeaders } from '@ecommerce/core';
  */
 @Injectable()
 export class ServiceAuthGuard implements CanActivate {
-  private readonly logger = new Logger(ServiceAuthGuard.name);
+  constructor(@Inject(Logger) private readonly logger: Logger) {}
 
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest<Request>();

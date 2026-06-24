@@ -1,4 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import { DataSource, EntityManager } from 'typeorm';
 import { User } from '../../domain/entities/user.entity';
 import { BaseDomainEvent } from '../../domain/events/base-domain.event';
@@ -12,9 +13,10 @@ import { UserOrmEntity } from './entities/user.orm-entity';
  */
 @Injectable()
 export class UnitOfWork {
-  private readonly logger = new Logger(UnitOfWork.name);
-
-  constructor(private readonly dataSource: DataSource) {}
+  constructor(
+    @Inject(Logger) private readonly logger: Logger,
+    private readonly dataSource: DataSource,
+  ) {}
 
   /**
    * Saves user aggregate and domain events atomically within a single transaction.

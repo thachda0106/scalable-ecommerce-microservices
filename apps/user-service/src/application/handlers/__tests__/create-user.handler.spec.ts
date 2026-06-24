@@ -7,15 +7,19 @@ import type { UserMetricsService } from '../../../infrastructure/observability/u
 import type { AuditLogService } from '../../../infrastructure/observability/audit-log.service';
 import { ConflictException } from '@nestjs/common';
 import { User } from '../../../domain/entities/user.entity';
+import type { Logger } from '@ecommerce/core';
 
 describe('CreateUserHandler', () => {
   let handler: CreateUserHandler;
+  let logger: jest.Mocked<Logger>;
   let userRepository: jest.Mocked<IUserRepository>;
   let unitOfWork: jest.Mocked<UnitOfWork>;
   let metrics: jest.Mocked<UserMetricsService>;
   let auditLog: jest.Mocked<AuditLogService>;
 
   beforeEach(() => {
+    logger = { log: jest.fn() } as unknown as jest.Mocked<Logger>;
+
     userRepository = {
       save: jest.fn(),
       findById: jest.fn(),
@@ -46,6 +50,7 @@ describe('CreateUserHandler', () => {
     } as unknown as jest.Mocked<AuditLogService>;
 
     handler = new CreateUserHandler(
+      logger,
       userRepository,
       unitOfWork,
       metrics,

@@ -3,8 +3,9 @@ import {
   Catch,
   ArgumentsHost,
   HttpStatus,
-  Logger,
+  Inject,
 } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import { Response } from 'express';
 import { DomainException } from '../../domain/errors/domain-exception';
 import { InvalidOrderStatusTransitionError } from '../../domain/errors/invalid-order-status-transition.error';
@@ -12,7 +13,7 @@ import { InvalidOrderOperationError } from '../../domain/errors/invalid-order-op
 
 @Catch(DomainException)
 export class DomainExceptionFilter implements ExceptionFilter {
-  private readonly logger = new Logger(DomainExceptionFilter.name);
+  constructor(@Inject(Logger) private readonly logger: Logger) {}
 
   catch(exception: DomainException, host: ArgumentsHost) {
     const ctx = host.switchToHttp();

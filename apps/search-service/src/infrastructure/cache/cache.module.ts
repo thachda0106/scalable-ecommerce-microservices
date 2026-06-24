@@ -1,4 +1,5 @@
-import { Module, Global, Logger } from '@nestjs/common';
+import { Module, Global } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import { ConfigService, ConfigModule } from '@nestjs/config';
 import Redis from 'ioredis';
 import { RedisCacheAdapter, REDIS_CLIENT } from './redis-cache.adapter';
@@ -10,8 +11,7 @@ import { SEARCH_CACHE_PORT } from '../../domain/ports/search-cache.port';
   providers: [
     {
       provide: REDIS_CLIENT,
-      useFactory: (configService: ConfigService) => {
-        const logger = new Logger('RedisClient');
+      useFactory: (configService: ConfigService, logger: Logger) => {
         const host = configService.get<string>('REDIS_HOST', 'localhost');
         const port = configService.get<number>('REDIS_PORT', 6379);
         const password = configService.get<string>('REDIS_PASSWORD', '');
@@ -43,7 +43,7 @@ import { SEARCH_CACHE_PORT } from '../../domain/ports/search-cache.port';
 
         return redis;
       },
-      inject: [ConfigService],
+      inject: [ConfigService, Logger],
     },
     {
       provide: SEARCH_CACHE_PORT,

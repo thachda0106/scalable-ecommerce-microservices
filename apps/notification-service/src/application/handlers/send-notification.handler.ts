@@ -1,5 +1,6 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Inject, Logger } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import { SendNotificationCommand } from '../commands/send-notification.command';
 import { Notification } from '../../domain/entities/notification';
 import {
@@ -22,9 +23,8 @@ import { TemplateNotFoundError } from '../../domain/errors/template-not-found.er
 
 @CommandHandler(SendNotificationCommand)
 export class SendNotificationHandler implements ICommandHandler<SendNotificationCommand> {
-  private readonly logger = new Logger(SendNotificationHandler.name);
-
   constructor(
+    @Inject(Logger) private readonly logger: Logger,
     @Inject(TEMPLATE_REPOSITORY)
     private readonly templateRepo: ITemplateRepository,
     @Inject(CHANNEL_PROVIDER_FACTORY)

@@ -1,4 +1,5 @@
-import { Injectable, Inject, Logger } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import { UpdateProductStatusCommand } from '../commands/update-product-status.command';
 import { IProductRepository, PRODUCT_REPOSITORY } from '../../domain/ports';
 import { IEventPublisher, EVENT_PUBLISHER } from '../ports';
@@ -9,9 +10,8 @@ import { ProductMetricsService } from '../../infrastructure/observability/produc
 
 @Injectable()
 export class UpdateProductStatusHandler {
-  private readonly logger = new Logger(UpdateProductStatusHandler.name);
-
   constructor(
+    @Inject(Logger) private readonly logger: Logger,
     @Inject(PRODUCT_REPOSITORY)
     private readonly productRepository: IProductRepository,
     @Inject(EVENT_PUBLISHER)

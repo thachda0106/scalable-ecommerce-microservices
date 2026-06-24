@@ -3,16 +3,17 @@ import {
   Catch,
   ArgumentsHost,
   HttpStatus,
-  Logger,
+  Inject,
 } from '@nestjs/common';
 import { Response } from 'express';
+import { Logger } from '@ecommerce/core';
 import { SearchException } from '../../domain/errors/search-exception';
 import { IndexNotFoundError } from '../../domain/errors/index-not-found.error';
 import { InvalidSearchQueryError } from '../../domain/errors/invalid-search-query.error';
 
 @Catch(SearchException)
 export class DomainExceptionFilter implements ExceptionFilter {
-  private readonly logger = new Logger(DomainExceptionFilter.name);
+  constructor(@Inject(Logger) private readonly logger: Logger) {}
 
   catch(exception: SearchException, host: ArgumentsHost) {
     const ctx = host.switchToHttp();

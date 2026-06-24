@@ -6,7 +6,6 @@ import {
   HttpException,
   HttpStatus,
   Inject,
-  Logger,
 } from '@nestjs/common';
 import {
   USER_REPOSITORY,
@@ -20,14 +19,14 @@ import { TokenStoreService } from '../../infrastructure/redis/token-store.servic
 import { LoginAttemptService } from '../services/auth.service';
 import { KAFKA_SERVICE } from '../../infrastructure/kafka/kafka-producer.module';
 import { ClientKafka } from '@nestjs/microservices';
-import { safeExecute, StrategyType } from '@ecommerce/core';
+import { safeExecute, StrategyType, Logger } from '@ecommerce/core';
 import { firstValueFrom } from 'rxjs';
 
 @QueryHandler(LoginQuery)
 export class LoginHandler implements IQueryHandler<LoginQuery> {
-  private readonly logger = new Logger(LoginHandler.name);
 
   constructor(
+    @Inject(Logger) private readonly logger: Logger,
     @Inject(USER_REPOSITORY)
     private readonly userRepository: UserRepositoryPort,
     private readonly jwtAdapterService: JwtAdapterService,

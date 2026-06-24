@@ -1,4 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
@@ -8,10 +9,10 @@ import { publishWithResilience, setCorrelationHeaders } from '@ecommerce/core';
 
 @Injectable()
 export class OutboxRelayService {
-  private readonly logger = new Logger(OutboxRelayService.name);
   private readonly batchSize: number;
 
   constructor(
+    @Inject(Logger) private readonly logger: Logger,
     @InjectRepository(OutboxEventOrmEntity)
     private readonly outboxRepository: Repository<OutboxEventOrmEntity>,
     private readonly kafkaClientFactory: KafkaClientFactory,

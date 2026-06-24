@@ -1,4 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AuditLogOrmEntity } from '../persistence/entities/audit-log.orm-entity';
@@ -14,9 +15,8 @@ export interface AuditEntry {
 
 @Injectable()
 export class AuditLogService {
-  private readonly logger = new Logger('AuditLog');
-
   constructor(
+    @Inject(Logger) private readonly logger: Logger,
     @InjectRepository(AuditLogOrmEntity)
     private readonly auditRepo: Repository<AuditLogOrmEntity>,
   ) {}

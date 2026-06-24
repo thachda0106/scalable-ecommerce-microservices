@@ -1,4 +1,4 @@
-import { Logger } from '@nestjs/common';
+import { getLogger } from '../../observability';
 import { DataSource } from 'typeorm';
 import { InboxRepository } from './inbox.repository';
 import { DEFAULT_INBOX_CONFIG } from './inbox.types';
@@ -18,7 +18,7 @@ import { DEFAULT_INBOX_CONFIG } from './inbox.types';
  * ```
  */
 export class InboxCleanupService {
-  private readonly logger = new Logger(InboxCleanupService.name);
+  private readonly logger = getLogger('InboxCleanupService');
   private readonly inboxRepo: InboxRepository;
   private readonly retentionDays: number;
 

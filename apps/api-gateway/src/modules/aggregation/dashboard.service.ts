@@ -1,12 +1,12 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import { BaseHttpClient } from '../../common/http-client';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class DashboardService {
-  private readonly logger = new Logger(DashboardService.name);
-
   constructor(
+    @Inject(Logger) private readonly logger: Logger,
     private readonly httpClient: BaseHttpClient,
     private readonly configService: ConfigService,
   ) {}

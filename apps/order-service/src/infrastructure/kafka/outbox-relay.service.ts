@@ -1,4 +1,5 @@
-import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
+import { Injectable, Inject, OnApplicationBootstrap } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import { Producer } from 'kafkajs';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -8,10 +9,10 @@ import { KafkaClientFactory } from './kafka-client.factory';
 
 @Injectable()
 export class OutboxRelayService implements OnApplicationBootstrap {
-  private readonly logger = new Logger(OutboxRelayService.name);
   private producer: Producer;
 
   constructor(
+    @Inject(Logger) private readonly logger: Logger,
     @InjectRepository(OutboxEventOrmEntity)
     private readonly outboxRepo: Repository<OutboxEventOrmEntity>,
     private readonly kafkaFactory: KafkaClientFactory,

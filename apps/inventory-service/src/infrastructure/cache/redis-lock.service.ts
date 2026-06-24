@@ -1,10 +1,9 @@
-import { Injectable, Inject, Logger } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import Redis from 'ioredis';
 
 @Injectable()
 export class RedisLockService {
-  private readonly logger = new Logger(RedisLockService.name);
-
   /**
    * Lua script for safe lock release.
    * Only releases the lock if the stored value matches the requestId,
@@ -18,7 +17,10 @@ export class RedisLockService {
     end
   `;
 
-  constructor(@Inject('REDIS_CLIENT') private readonly redis: Redis) {}
+  constructor(
+    @Inject(Logger) private readonly logger: Logger,
+    @Inject('REDIS_CLIENT') private readonly redis: Redis,
+  ) {}
 
   async acquireLock(
     key: string,

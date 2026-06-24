@@ -1,17 +1,17 @@
-import { Injectable, Inject, Logger } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';
 import Redis from 'ioredis';
 import { IStockCache } from '../../domain/ports/stock-cache.port';
 import { ProductInventory } from '../../domain/entities/product-inventory';
 import { RedisLockService } from './redis-lock.service';
 import { redisConfig } from '../../config/inventory.config';
-import { safeExecute, StrategyType } from '@ecommerce/core';
+import { Logger, safeExecute, StrategyType } from '@ecommerce/core';
 
 @Injectable()
 export class RedisStockCacheAdapter implements IStockCache {
-  private readonly logger = new Logger(RedisStockCacheAdapter.name);
 
   constructor(
+    @Inject(Logger) private readonly logger: Logger,
     @Inject('REDIS_CLIENT') private readonly redis: Redis,
     private readonly lockService: RedisLockService,
     @Inject(redisConfig.KEY)

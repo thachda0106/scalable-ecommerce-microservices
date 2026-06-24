@@ -1,5 +1,6 @@
 import { CommandHandler, ICommandHandler, EventBus } from '@nestjs/cqrs';
-import { Inject, Logger } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import { RebuildIndexCommand } from '../commands/rebuild-index.command';
 import { SEARCH_INDEX_PORT, ISearchIndexPort } from '../../domain/ports';
 import { IndexManagementService } from '../../infrastructure/opensearch/index-management.service';
@@ -8,9 +9,8 @@ import { SearchMetricsService } from '../../infrastructure/metrics/search-metric
 
 @CommandHandler(RebuildIndexCommand)
 export class RebuildIndexHandler implements ICommandHandler<RebuildIndexCommand> {
-  private readonly logger = new Logger(RebuildIndexHandler.name);
-
   constructor(
+    @Inject(Logger) private readonly logger: Logger,
     @Inject(SEARCH_INDEX_PORT)
     private readonly searchIndexPort: ISearchIndexPort,
     private readonly indexManagement: IndexManagementService,

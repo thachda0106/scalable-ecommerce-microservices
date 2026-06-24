@@ -3,16 +3,19 @@ import {
   ExceptionFilter,
   ArgumentsHost,
   HttpException,
-  Logger,
+  Inject,
 } from '@nestjs/common';
 import { Response } from 'express';
+import { Logger } from '@ecommerce/core';
 import { InsufficientStockError } from '../../domain/errors/insufficient-stock.error';
 import { ReservationNotFoundError } from '../../domain/errors/reservation-not-found.error';
 import { StockInvariantViolationError } from '../../domain/errors/stock-invariant-violation.error';
 
 @Catch()
 export class DomainExceptionFilter implements ExceptionFilter {
-  private readonly logger = new Logger(DomainExceptionFilter.name);
+  constructor(
+    @Inject(Logger) private readonly logger: Logger,
+  ) {}
 
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();

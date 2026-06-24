@@ -1,5 +1,6 @@
 import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
-import { Inject, Logger } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import { SearchProductsQuery } from '../queries/search-products.query';
 import { SEARCH_QUERY_PORT, ISearchQueryPort } from '../../domain/ports';
 import { SEARCH_CACHE_PORT, ISearchCachePort } from '../../domain/ports';
@@ -21,9 +22,8 @@ const SEARCH_CACHE_TTL = 60; // seconds
 
 @QueryHandler(SearchProductsQuery)
 export class SearchProductsHandler implements IQueryHandler<SearchProductsQuery> {
-  private readonly logger = new Logger(SearchProductsHandler.name);
-
   constructor(
+    @Inject(Logger) private readonly logger: Logger,
     @Inject(SEARCH_QUERY_PORT)
     private readonly searchQueryPort: ISearchQueryPort,
     @Inject(SEARCH_CACHE_PORT)

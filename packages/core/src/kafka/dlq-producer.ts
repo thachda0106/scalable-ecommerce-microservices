@@ -1,4 +1,4 @@
-import { Logger } from '@nestjs/common';
+import { getLogger } from '../observability';
 import { safeExecute } from '../resilience';
 import { StrategyType } from '../resilience/strategies';
 import { getCorrelationId } from './correlation';
@@ -32,7 +32,7 @@ export interface KafkaProducer {
 }
 
 export class KafkaDlqProducer {
-  private readonly logger = new Logger(KafkaDlqProducer.name);
+  private readonly logger = getLogger('KafkaDlqProducer');
 
   constructor(
     private readonly producer: KafkaProducer,

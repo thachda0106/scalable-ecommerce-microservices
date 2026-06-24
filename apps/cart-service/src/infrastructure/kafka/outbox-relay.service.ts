@@ -1,12 +1,12 @@
 import {
   Injectable,
-  Logger,
   OnModuleInit,
   OnModuleDestroy,
 } from '@nestjs/common';
 import { Kafka, Producer } from 'kafkajs';
 import Redis from 'ioredis';
 import { Inject } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 
 const OUTBOX_STREAM_KEY = 'cart:outbox:stream';
 const CONSUMER_GROUP = 'cart-relay';
@@ -23,13 +23,15 @@ const CONSUMER_NAME = 'relay-worker-1';
  */
 @Injectable()
 export class OutboxRelayService implements OnModuleInit, OnModuleDestroy {
-  private readonly logger = new Logger(OutboxRelayService.name);
   private readonly kafka: Kafka;
   private producer: Producer;
   private running = false;
   private pollTimer: ReturnType<typeof setTimeout> | null = null;
 
-  constructor(@Inject('REDIS_CLIENT') private readonly redis: Redis) {
+  constructor(
+    @Inject(Logger) private readonly logger: Logger,
+    @Inject('REDIS_CLIENT') private readonly redis: Redis,
+  ) {
     this.kafka = new Kafka({
       clientId: 'cart-service-relay',
       brokers: [process.env.KAFKA_BROKER ?? 'localhost:9092'],

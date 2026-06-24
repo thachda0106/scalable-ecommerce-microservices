@@ -1,4 +1,5 @@
-import { Injectable, Inject, Logger } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import { CreateOrderCommand } from '../commands/create-order.command';
 import { Order } from '../../domain/entities/order.entity';
 import { IOrderRepository, ORDER_REPOSITORY } from '../../domain/ports';
@@ -7,9 +8,8 @@ import { OrderMetricsService } from '../../infrastructure/observability/order-me
 
 @Injectable()
 export class CreateOrderHandler {
-  private readonly logger = new Logger(CreateOrderHandler.name);
-
   constructor(
+    @Inject(Logger) private readonly logger: Logger,
     @Inject(ORDER_REPOSITORY)
     private readonly orderRepository: IOrderRepository,
     @Inject(EVENT_PUBLISHER)

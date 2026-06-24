@@ -1,4 +1,5 @@
-import { Injectable, Inject, Logger } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import Redis from 'ioredis';
 import { ICartOutbox } from '../../application/ports/cart-outbox.port';
 import { BaseDomainEvent } from '../../domain/events/base-domain.event';
@@ -14,9 +15,10 @@ const OUTBOX_STREAM_KEY = 'cart:outbox:stream';
  */
 @Injectable()
 export class RedisOutboxRepository implements ICartOutbox {
-  private readonly logger = new Logger(RedisOutboxRepository.name);
-
-  constructor(@Inject('REDIS_CLIENT') private readonly redis: Redis) {}
+  constructor(
+    @Inject(Logger) private readonly logger: Logger,
+    @Inject('REDIS_CLIENT') private readonly redis: Redis,
+  ) {}
 
   async append(events: BaseDomainEvent[]): Promise<void> {
     if (events.length === 0) return;

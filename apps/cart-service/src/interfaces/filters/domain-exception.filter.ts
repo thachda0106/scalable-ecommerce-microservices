@@ -3,8 +3,9 @@ import {
   ExceptionFilter,
   ArgumentsHost,
   HttpStatus,
-  Logger,
+  Inject,
 } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import { Response } from 'express';
 import { DomainException } from '../../domain/exceptions';
 
@@ -14,7 +15,7 @@ import { DomainException } from '../../domain/exceptions';
  */
 @Catch(DomainException)
 export class DomainExceptionFilter implements ExceptionFilter {
-  private readonly logger = new Logger(DomainExceptionFilter.name);
+  constructor(@Inject(Logger) private readonly logger: Logger) {}
 
   private static readonly STATUS_MAP: Record<string, HttpStatus> = {
     CART_NOT_FOUND: HttpStatus.NOT_FOUND,

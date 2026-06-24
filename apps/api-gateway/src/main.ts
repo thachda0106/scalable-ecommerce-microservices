@@ -44,10 +44,11 @@ async function bootstrap() {
     credentials: true,
   });
 
-  app.useGlobalFilters(new GlobalExceptionFilter());
+  const logger = app.get(Logger);
+  app.useGlobalFilters(new GlobalExceptionFilter(logger));
 
   app.useGlobalInterceptors(
-    new HttpLoggingInterceptor(),
+    new HttpLoggingInterceptor(logger),
     new MetricsInterceptor('api-gateway'),
   );
 

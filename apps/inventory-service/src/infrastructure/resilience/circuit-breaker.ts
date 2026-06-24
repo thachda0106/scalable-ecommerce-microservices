@@ -1,13 +1,14 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 
 @Injectable()
 export class CircuitBreaker {
-  private readonly logger = new Logger(CircuitBreaker.name);
   private failures = 0;
   private state: 'CLOSED' | 'OPEN' | 'HALF_OPEN' = 'CLOSED';
   private nextRetryAt = 0;
 
   constructor(
+    @Inject(Logger) private readonly logger: Logger,
     private readonly threshold: number = 5,
     private readonly resetTimeMs: number = 30000,
   ) {}

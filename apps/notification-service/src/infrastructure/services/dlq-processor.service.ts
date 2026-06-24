@@ -1,10 +1,10 @@
 import {
   Injectable,
   Inject,
-  Logger,
   OnModuleInit,
   OnModuleDestroy,
 } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import { CommandBus } from '@nestjs/cqrs';
 import {
   NOTIFICATION_REPOSITORY,
@@ -18,10 +18,10 @@ import { MoveToDlqCommand } from '../../application/commands/move-to-dlq.command
  */
 @Injectable()
 export class DlqProcessorService implements OnModuleInit, OnModuleDestroy {
-  private readonly logger = new Logger(DlqProcessorService.name);
   private intervalId: ReturnType<typeof setInterval>;
 
   constructor(
+    @Inject(Logger) private readonly logger: Logger,
     @Inject(NOTIFICATION_REPOSITORY)
     private readonly repo: INotificationRepository,
     private readonly commandBus: CommandBus,

@@ -1,13 +1,13 @@
-import { Injectable, OnModuleDestroy, Logger } from '@nestjs/common';
+import { Injectable, OnModuleDestroy, Inject } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import { Kafka, Producer, logLevel } from 'kafkajs';
 
 @Injectable()
 export class KafkaClientFactory implements OnModuleDestroy {
-  private readonly logger = new Logger(KafkaClientFactory.name);
   private producer: Producer | null = null;
   private readonly kafka: Kafka;
 
-  constructor() {
+  constructor(@Inject(Logger) private readonly logger: Logger) {
     this.kafka = new Kafka({
       clientId: process.env.KAFKA_CLIENT_ID || 'user-service',
       brokers: (process.env.KAFKA_BROKERS || 'localhost:9092').split(','),

@@ -1,5 +1,6 @@
 import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
-import { Inject, Logger } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import { GetProductByIdQuery } from '../queries/get-product-by-id.query';
 import { SEARCH_QUERY_PORT, ISearchQueryPort } from '../../domain/ports';
 import { SearchDocument } from '../../domain/entities';
@@ -7,9 +8,8 @@ import { SearchMetricsService } from '../../infrastructure/metrics/search-metric
 
 @QueryHandler(GetProductByIdQuery)
 export class GetProductByIdHandler implements IQueryHandler<GetProductByIdQuery> {
-  private readonly logger = new Logger(GetProductByIdHandler.name);
-
   constructor(
+    @Inject(Logger) private readonly logger: Logger,
     @Inject(SEARCH_QUERY_PORT)
     private readonly searchQueryPort: ISearchQueryPort,
     private readonly metricsService: SearchMetricsService,

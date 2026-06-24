@@ -1,4 +1,5 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Inject, OnModuleInit } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import { DataSource } from 'typeorm';
 import { Consumer, EachMessagePayload } from 'kafkajs';
 import {
@@ -19,11 +20,11 @@ import { KafkaClientFactory } from '../kafka-client.factory';
  */
 @Injectable()
 export class InventoryEventConsumer implements OnModuleInit {
-  private readonly logger = new Logger(InventoryEventConsumer.name);
   private readonly inboxService: InboxService;
   private consumer: Consumer;
 
   constructor(
+    @Inject(Logger) private readonly logger: Logger,
     private readonly cancelOrderHandler: CancelOrderHandler,
     private readonly sagaOrchestrator: CheckoutSagaOrchestrator,
     private readonly kafkaFactory: KafkaClientFactory,

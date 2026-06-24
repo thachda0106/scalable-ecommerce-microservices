@@ -1,4 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, FindOptionsWhere, QueryFailedError } from 'typeorm';
 import { User } from '../../../domain/entities/user.entity';
@@ -14,9 +15,8 @@ import { safeExecute, StrategyType } from '@ecommerce/core';
 
 @Injectable()
 export class TypeOrmUserRepository implements IUserRepository {
-  private readonly logger = new Logger(TypeOrmUserRepository.name);
-
   constructor(
+    @Inject(Logger) private readonly logger: Logger,
     @InjectRepository(UserOrmEntity)
     private readonly repo: Repository<UserOrmEntity>,
   ) {}

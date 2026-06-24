@@ -1,4 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
+import { Logger } from 'nestjs-pino';
 import { DataSource, EntityManager } from 'typeorm';
 import { randomUUID } from 'crypto';
 import { OutboxEventEntity } from './outbox/outbox-event.entity';
@@ -29,9 +30,11 @@ export interface IDomainEvent {
  */
 @Injectable()
 export class UnitOfWork {
-  private readonly logger = new Logger(UnitOfWork.name);
 
-  constructor(private readonly dataSource: DataSource) {}
+  constructor(
+    @Inject(Logger) private readonly logger: Logger,
+    private readonly dataSource: DataSource,
+  ) {}
 
   /**
    * Execute work and persist domain events atomically in a single transaction.

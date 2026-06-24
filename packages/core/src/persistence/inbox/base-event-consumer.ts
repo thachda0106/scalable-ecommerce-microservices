@@ -1,4 +1,4 @@
-import { Logger } from '@nestjs/common';
+import { getLogger } from '../../observability';
 import { DataSource } from 'typeorm';
 import { InboxService } from './inbox.service';
 import { InboxHandlerFn, InboxEventMetadata, InboxConfig } from './inbox.types';
@@ -44,7 +44,7 @@ import { getCorrelationId } from '../../kafka/correlation';
  * ```
  */
 export abstract class BaseEventConsumer {
-  private readonly logger: Logger;
+  private readonly logger = getLogger('BaseEventConsumer');
   private readonly inboxService: InboxService;
 
   /** The event type this consumer handles (e.g., 'order.created') */
@@ -59,7 +59,6 @@ export abstract class BaseEventConsumer {
     serviceName: string,
     config?: InboxConfig,
   ) {
-    this.logger = new Logger(this.constructor.name);
     this.inboxService = new InboxService(dataSource, dlqProducer, serviceName, config);
   }
 

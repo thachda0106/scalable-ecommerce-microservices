@@ -1,4 +1,5 @@
-import { Inject, Logger } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 
 import { ProcessPaymentCommand } from '../commands/process-payment.command';
 import { Payment } from '../../domain/entities/payment.entity';
@@ -19,8 +20,6 @@ import {
 import { MetricsService } from '../../infrastructure/observability/metrics.service';
 
 export class ProcessPaymentHandler {
-  private readonly logger = new Logger(ProcessPaymentHandler.name);
-
   constructor(
     @Inject(PAYMENT_REPOSITORY)
     private readonly paymentRepository: IPaymentRepository,
@@ -29,6 +28,8 @@ export class ProcessPaymentHandler {
     @Inject(EVENT_PUBLISHER)
     private readonly eventPublisher: IEventPublisher,
     private readonly metricsService: MetricsService,
+    @Inject(Logger)
+    private readonly logger: Logger,
   ) {}
 
   async execute(

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, LessThan } from 'typeorm';
 import { IInventoryRepository } from '../../../domain/ports/inventory-repository.port';
@@ -12,13 +12,12 @@ import { OutboxEventOrmEntity } from '../entities/outbox-event.orm-entity';
 import { ProcessedEventOrmEntity } from '../entities/processed-event.orm-entity';
 import { InventoryMapper } from '../mappers/inventory.mapper';
 import { ReservationMapper } from '../mappers/reservation.mapper';
-import { safeExecute, StrategyType } from '@ecommerce/core';
+import { Logger, safeExecute, StrategyType } from '@ecommerce/core';
 
 @Injectable()
 export class TypeOrmInventoryRepository implements IInventoryRepository {
-  private readonly logger = new Logger(TypeOrmInventoryRepository.name);
-
   constructor(
+    @Inject(Logger) private readonly logger: Logger,
     @InjectRepository(ProductInventoryOrmEntity)
     private readonly inventoryRepo: Repository<ProductInventoryOrmEntity>,
     @InjectRepository(StockReservationOrmEntity)

@@ -12,12 +12,13 @@ describe('ChannelProviderFactory', () => {
   let smsProvider: TwilioSmsProvider;
   let pushProvider: FirebasePushProvider;
   let inAppProvider: InAppProvider;
+  const mockLogger = { log: jest.fn(), warn: jest.fn(), error: jest.fn(), debug: jest.fn() };
 
   beforeEach(() => {
-    emailProvider = new SendGridEmailProvider();
-    smsProvider = new TwilioSmsProvider();
-    pushProvider = new FirebasePushProvider();
-    inAppProvider = new InAppProvider();
+    emailProvider = new SendGridEmailProvider(mockLogger as any);
+    smsProvider = new TwilioSmsProvider(mockLogger as any);
+    pushProvider = new FirebasePushProvider(mockLogger as any);
+    inAppProvider = new InAppProvider(mockLogger as any);
     factory = new ChannelProviderFactory(
       emailProvider,
       smsProvider,

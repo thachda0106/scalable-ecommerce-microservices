@@ -1,4 +1,5 @@
-import { Inject, Logger } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ConfirmStockCommand } from '../commands/confirm-stock.command';
 import {
@@ -19,9 +20,8 @@ import { ReservationNotFoundError } from '../../domain/errors/reservation-not-fo
 
 @CommandHandler(ConfirmStockCommand)
 export class ConfirmStockHandler implements ICommandHandler<ConfirmStockCommand> {
-  private readonly logger = new Logger(ConfirmStockHandler.name);
-
   constructor(
+    @Inject(Logger) private readonly logger: Logger,
     @Inject(INVENTORY_REPOSITORY) private readonly repo: IInventoryRepository,
     @Inject(STOCK_CACHE) private readonly cache: IStockCache,
     @Inject(EVENT_PUBLISHER) private readonly publisher: IEventPublisher,

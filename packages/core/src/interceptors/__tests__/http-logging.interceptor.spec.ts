@@ -6,7 +6,8 @@ describe('HttpLoggingInterceptor', () => {
   let interceptor: HttpLoggingInterceptor;
 
   beforeEach(() => {
-    interceptor = new HttpLoggingInterceptor();
+    const mockLogger = { log: jest.fn(), warn: jest.fn(), error: jest.fn(), debug: jest.fn() } as any;
+    interceptor = new HttpLoggingInterceptor(mockLogger);
   });
 
   const createMockContext = () => {

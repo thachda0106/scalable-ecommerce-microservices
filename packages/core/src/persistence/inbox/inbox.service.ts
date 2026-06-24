@@ -1,4 +1,4 @@
-import { Logger } from '@nestjs/common';
+import { getLogger } from '../../observability';
 import { randomUUID } from 'crypto';
 import { DataSource, EntityManager } from 'typeorm';
 import { InboxEventEntity } from './inbox-event.entity';
@@ -41,7 +41,7 @@ import { getCorrelationId } from '../../kafka/correlation';
  * ```
  */
 export class InboxService {
-  private readonly logger = new Logger(InboxService.name);
+  private readonly logger = getLogger('InboxService');
   private readonly inboxRepo: InboxRepository;
   private readonly config: Required<InboxConfig>;
 

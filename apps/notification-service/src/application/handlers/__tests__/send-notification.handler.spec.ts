@@ -19,6 +19,7 @@ describe('SendNotificationHandler', () => {
   let mockProviderFactory: jest.Mocked<IChannelProviderFactory>;
   let mockEventPublisher: jest.Mocked<IEventPublisher>;
   let mockProvider: jest.Mocked<IChannelProvider>;
+  const mockLogger = { log: jest.fn(), warn: jest.fn(), error: jest.fn(), debug: jest.fn() };
 
   beforeEach(() => {
     mockTemplateRepo = {
@@ -46,6 +47,7 @@ describe('SendNotificationHandler', () => {
     };
 
     handler = new SendNotificationHandler(
+      mockLogger as any,
       mockTemplateRepo,
       mockProviderFactory,
       mockNotificationRepo,

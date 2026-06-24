@@ -1,10 +1,10 @@
 import {
   Injectable,
   Inject,
-  Logger,
   OnModuleInit,
   OnModuleDestroy,
 } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import { Kafka, Consumer } from 'kafkajs';
 import { DataSource } from 'typeorm';
 import {
@@ -22,11 +22,11 @@ import { NotificationOrchestrator } from '../../../application/services/notifica
  */
 @Injectable()
 export class OrderEventsConsumer implements OnModuleInit, OnModuleDestroy {
-  private readonly logger = new Logger(OrderEventsConsumer.name);
   private readonly inboxService: InboxService;
   private consumer: Consumer;
 
   constructor(
+    @Inject(Logger) private readonly logger: Logger,
     @Inject(KAFKA_CLIENT) private readonly kafka: Kafka,
     private readonly orchestrator: NotificationOrchestrator,
     private readonly dataSource: DataSource,

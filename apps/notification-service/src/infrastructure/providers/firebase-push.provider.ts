@@ -1,4 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import { NotificationChannel } from '../../domain/enums/notification-channel.enum';
 import {
   IChannelProvider,
@@ -9,7 +11,8 @@ import {
 @Injectable()
 export class FirebasePushProvider implements IChannelProvider {
   readonly channel = NotificationChannel.PUSH;
-  private readonly logger = new Logger(FirebasePushProvider.name);
+
+  constructor(@Inject(Logger) private readonly logger: Logger) {}
 
   async send(payload: ChannelPayload): Promise<ChannelResult> {
     // Mock implementation — in production, this would call Firebase Cloud Messaging

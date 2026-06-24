@@ -1,4 +1,5 @@
-import { Injectable, Inject, Logger } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import { GetProductsQuery } from '../queries/get-products.query';
 import { Product } from '../../domain/entities/product.entity';
 import {
@@ -12,9 +13,8 @@ import { ProductMetricsService } from '../../infrastructure/observability/produc
 
 @Injectable()
 export class GetProductsHandler {
-  private readonly logger = new Logger(GetProductsHandler.name);
-
   constructor(
+    @Inject(Logger) private readonly logger: Logger,
     @Inject(PRODUCT_REPOSITORY)
     private readonly productRepository: IProductRepository,
     private readonly metrics: ProductMetricsService,

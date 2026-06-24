@@ -1,4 +1,5 @@
-import { Injectable, Inject, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Inject, NotFoundException } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import { CancelOrderCommand } from '../commands/cancel-order.command';
 import { OrderId } from '../../domain/value-objects';
 import { IOrderRepository, ORDER_REPOSITORY } from '../../domain/ports';
@@ -7,9 +8,8 @@ import { OrderMetricsService } from '../../infrastructure/observability/order-me
 
 @Injectable()
 export class CancelOrderHandler {
-  private readonly logger = new Logger(CancelOrderHandler.name);
-
   constructor(
+    @Inject(Logger) private readonly logger: Logger,
     @Inject(ORDER_REPOSITORY)
     private readonly orderRepository: IOrderRepository,
     @Inject(EVENT_PUBLISHER)

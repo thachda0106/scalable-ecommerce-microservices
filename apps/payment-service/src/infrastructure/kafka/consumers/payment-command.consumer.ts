@@ -1,9 +1,10 @@
 import {
   Injectable,
-  Logger,
+  Inject,
   OnModuleInit,
   OnModuleDestroy,
 } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import { DataSource } from 'typeorm';
 import { Consumer, EachMessagePayload } from 'kafkajs';
 import {
@@ -25,11 +26,11 @@ import { ProcessPaymentCommand } from '../../../application/commands/process-pay
  */
 @Injectable()
 export class PaymentCommandConsumer implements OnModuleInit, OnModuleDestroy {
-  private readonly logger = new Logger(PaymentCommandConsumer.name);
   private readonly inboxService: InboxService;
   private consumer: Consumer;
 
   constructor(
+    @Inject(Logger) private readonly logger: Logger,
     private readonly kafkaFactory: KafkaClientFactory,
     private readonly processPaymentHandler: ProcessPaymentHandler,
     private readonly dataSource: DataSource,

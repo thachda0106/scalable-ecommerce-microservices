@@ -1,9 +1,10 @@
 import {
   Injectable,
-  Logger,
   OnModuleInit,
   OnModuleDestroy,
 } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import { Kafka, Producer } from 'kafkajs';
 import { kafkaConfig } from '../kafka/kafka.config';
 import { IDlqPublisher } from '../../domain/ports/dlq-publisher.port';
@@ -17,11 +18,10 @@ import { Notification } from '../../domain/entities/notification';
 export class KafkaDlqPublisher
   implements IDlqPublisher, OnModuleInit, OnModuleDestroy
 {
-  private readonly logger = new Logger(KafkaDlqPublisher.name);
   private readonly kafka: Kafka;
   private readonly producer: Producer;
 
-  constructor() {
+  constructor(@Inject(Logger) private readonly logger: Logger) {
     this.kafka = new Kafka({
       clientId: kafkaConfig.clientId,
       brokers: kafkaConfig.brokers,

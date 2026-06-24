@@ -1,4 +1,5 @@
-import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
+import { Injectable, Inject, OnApplicationBootstrap } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import { Producer } from 'kafkajs';
 import { IPaymentService } from '../../application/ports/payment-service.port';
 import { KafkaClientFactory } from '../kafka/kafka-client.factory';
@@ -8,10 +9,12 @@ import { publishWithResilience, setCorrelationHeaders } from '@ecommerce/core';
 export class KafkaPaymentService
   implements IPaymentService, OnApplicationBootstrap
 {
-  private readonly logger = new Logger(KafkaPaymentService.name);
   private producer: Producer;
 
-  constructor(private readonly kafkaFactory: KafkaClientFactory) {}
+  constructor(
+    @Inject(Logger) private readonly logger: Logger,
+    private readonly kafkaFactory: KafkaClientFactory,
+  ) {}
 
   async onApplicationBootstrap() {
     this.producer = this.kafkaFactory.createProducer();

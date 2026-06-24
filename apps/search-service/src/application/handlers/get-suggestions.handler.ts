@@ -1,5 +1,6 @@
 import { QueryHandler, IQueryHandler } from '@nestjs/cqrs';
-import { Inject, Logger } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import { GetSuggestionsQuery } from '../queries/get-suggestions.query';
 import { SEARCH_QUERY_PORT, ISearchQueryPort } from '../../domain/ports';
 import { SEARCH_CACHE_PORT, ISearchCachePort } from '../../domain/ports';
@@ -9,9 +10,8 @@ const SUGGEST_CACHE_TTL = 300; // seconds
 
 @QueryHandler(GetSuggestionsQuery)
 export class GetSuggestionsHandler implements IQueryHandler<GetSuggestionsQuery> {
-  private readonly logger = new Logger(GetSuggestionsHandler.name);
-
   constructor(
+    @Inject(Logger) private readonly logger: Logger,
     @Inject(SEARCH_QUERY_PORT)
     private readonly searchQueryPort: ISearchQueryPort,
     @Inject(SEARCH_CACHE_PORT)

@@ -1,4 +1,6 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import { NotificationTemplate } from '../../domain/entities/notification-template';
 import { ITemplateRepository } from '../../domain/ports/template-repository.port';
 import { createTemplateSeeds } from '../templates/template-seed';
@@ -7,8 +9,9 @@ import { createTemplateSeeds } from '../templates/template-seed';
 export class InMemoryTemplateRepository
   implements ITemplateRepository, OnModuleInit
 {
-  private readonly logger = new Logger(InMemoryTemplateRepository.name);
   private readonly templates: Map<string, NotificationTemplate> = new Map();
+
+  constructor(@Inject(Logger) private readonly logger: Logger) {}
 
   async onModuleInit(): Promise<void> {
     const seeds = createTemplateSeeds();

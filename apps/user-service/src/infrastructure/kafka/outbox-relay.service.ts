@@ -1,4 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
@@ -10,10 +11,10 @@ const MAX_RETRIES = 5;
 
 @Injectable()
 export class OutboxRelayService {
-  private readonly logger = new Logger(OutboxRelayService.name);
   private isProcessing = false;
 
   constructor(
+    @Inject(Logger) private readonly logger: Logger,
     @InjectRepository(OutboxEventOrmEntity)
     private readonly outboxRepo: Repository<OutboxEventOrmEntity>,
     private readonly kafkaClient: KafkaClientFactory,

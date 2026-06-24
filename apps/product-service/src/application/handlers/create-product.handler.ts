@@ -1,4 +1,5 @@
-import { Injectable, Inject, Logger } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import { CreateProductCommand } from '../commands/create-product.command';
 import { Product } from '../../domain/entities/product.entity';
 import { IProductRepository, PRODUCT_REPOSITORY } from '../../domain/ports';
@@ -8,8 +9,6 @@ import { ProductMetricsService } from '../../infrastructure/observability/produc
 
 @Injectable()
 export class CreateProductHandler {
-  private readonly logger = new Logger(CreateProductHandler.name);
-
   constructor(
     @Inject(PRODUCT_REPOSITORY)
     private readonly productRepository: IProductRepository,
@@ -18,6 +17,8 @@ export class CreateProductHandler {
     @Inject(PRODUCT_CACHE)
     private readonly productCache: IProductCache,
     private readonly metrics: ProductMetricsService,
+    @Inject(Logger)
+    private readonly logger: Logger,
   ) {}
 
   async execute(command: CreateProductCommand): Promise<string> {

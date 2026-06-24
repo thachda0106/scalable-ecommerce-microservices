@@ -1,4 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import { CommandBus } from '@nestjs/cqrs';
 import { SendNotificationCommand } from '../commands/send-notification.command';
 import { NotificationChannel } from '../../domain/enums/notification-channel.enum';
@@ -13,9 +15,11 @@ import { NotificationPriority } from '../../domain/enums/notification-priority.e
  */
 @Injectable()
 export class NotificationOrchestrator {
-  private readonly logger = new Logger(NotificationOrchestrator.name);
 
-  constructor(private readonly commandBus: CommandBus) {}
+  constructor(
+    @Inject(Logger) private readonly logger: Logger,
+    private readonly commandBus: CommandBus,
+  ) {}
 
   /**
    * Handles user registration event.

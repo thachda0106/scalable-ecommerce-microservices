@@ -1,7 +1,6 @@
 import {
   Injectable,
   Inject,
-  Logger,
   OnModuleInit,
   OnModuleDestroy,
 } from '@nestjs/common';
@@ -11,7 +10,7 @@ import { Cart } from '../../domain/entities/cart.entity';
 import { CartItem } from '../../domain/entities/cart-item.entity';
 import { ProductId } from '../../domain/value-objects/product-id.vo';
 import { Quantity } from '../../domain/value-objects/quantity.vo';
-import { safeExecute, StrategyType } from '@ecommerce/core';
+import { safeExecute, StrategyType, Logger } from '@ecommerce/core';
 
 const CART_TTL_SECONDS = 604800; // 7 days (per ARCHITECTURE.md)
 
@@ -19,9 +18,10 @@ const CART_TTL_SECONDS = 604800; // 7 days (per ARCHITECTURE.md)
 export class CartCacheRepository
   implements ICartCache, OnModuleInit, OnModuleDestroy
 {
-  private readonly logger = new Logger(CartCacheRepository.name);
-
-  constructor(@Inject('REDIS_CLIENT') private readonly redis: Redis) {}
+  constructor(
+    @Inject(Logger) private readonly logger: Logger,
+    @Inject('REDIS_CLIENT') private readonly redis: Redis,
+  ) {}
 
   async onModuleInit(): Promise<void> {
     try {

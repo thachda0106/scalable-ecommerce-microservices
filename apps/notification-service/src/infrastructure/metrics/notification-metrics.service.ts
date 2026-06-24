@@ -1,12 +1,14 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import { InjectMetric } from '@willsoto/nestjs-prometheus';
 import { Counter } from 'prom-client';
 
 @Injectable()
 export class NotificationMetricsService {
-  private readonly logger = new Logger(NotificationMetricsService.name);
 
   constructor(
+    @Inject(Logger) private readonly logger: Logger,
     @InjectMetric('notification_sent_total')
     private readonly sentCounter: Counter<string>,
     @InjectMetric('notification_failed_total')

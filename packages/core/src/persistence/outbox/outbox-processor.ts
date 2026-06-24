@@ -1,4 +1,4 @@
-import { Logger } from '@nestjs/common';
+import { getLogger } from '../../observability';
 import { DataSource, Repository, LessThan } from 'typeorm';
 import { OutboxEventEntity } from './outbox-event.entity';
 import { publishWithResilience } from '../../kafka/kafka-resilient';
@@ -17,7 +17,7 @@ import { KafkaProducer } from '../../kafka/dlq-producer';
  * ```
  */
 export class OutboxProcessor {
-  private readonly logger = new Logger(OutboxProcessor.name);
+  private readonly logger = getLogger('OutboxProcessor');
   private readonly repo: Repository<OutboxEventEntity>;
 
   constructor(

@@ -1,4 +1,5 @@
-import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
+import { Injectable, Inject, OnApplicationBootstrap } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import { Producer } from 'kafkajs';
 import { IInventoryService } from '../../application/ports/inventory-service.port';
 import { KafkaClientFactory } from '../kafka/kafka-client.factory';
@@ -8,10 +9,12 @@ import { publishWithResilience, setCorrelationHeaders } from '@ecommerce/core';
 export class KafkaInventoryService
   implements IInventoryService, OnApplicationBootstrap
 {
-  private readonly logger = new Logger(KafkaInventoryService.name);
   private producer: Producer;
 
-  constructor(private readonly kafkaFactory: KafkaClientFactory) {}
+  constructor(
+    @Inject(Logger) private readonly logger: Logger,
+    private readonly kafkaFactory: KafkaClientFactory,
+  ) {}
 
   async onApplicationBootstrap() {
     this.producer = this.kafkaFactory.createProducer();

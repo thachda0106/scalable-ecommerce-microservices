@@ -1,4 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import { v4 as uuidv4 } from 'uuid';
 import {
   IPaymentProvider,
@@ -11,7 +12,7 @@ import { PaymentProviderEnum } from '../../domain/enums/payment-provider.enum';
 
 @Injectable()
 export class MockProvider implements IPaymentProvider {
-  private readonly logger = new Logger(MockProvider.name);
+  constructor(@Inject(Logger) private readonly logger: Logger) {}
 
   async processPayment(
     request: PaymentProviderRequest,

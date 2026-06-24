@@ -1,4 +1,4 @@
-import { Logger } from '@nestjs/common';
+import { getLogger } from '../observability';
 import { trace, SpanStatusCode } from '@opentelemetry/api';
 import { Counter, Histogram } from 'prom-client';
 import { StrategyType, applyStrategy } from './strategies';
@@ -59,7 +59,7 @@ function getMetrics() {
 
 // ─── Logger ──────────────────────────────────────────────────────────────────
 
-const logger = new Logger('Resilience');
+const logger = getLogger('Resilience');
 
 // ─── Main API ────────────────────────────────────────────────────────────────
 

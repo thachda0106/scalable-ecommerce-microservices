@@ -1,4 +1,4 @@
-import { Injectable, Inject, Logger } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import {
   INVENTORY_REPOSITORY,
@@ -14,12 +14,13 @@ import {
   MovementType,
 } from '../../domain/entities/stock-movement';
 import { BaseDomainEvent } from '../../domain/events/base-domain.event';
+import { Logger } from '@ecommerce/core';
 
 @Injectable()
 export class ReservationExpiryWorker {
-  private readonly logger = new Logger(ReservationExpiryWorker.name);
 
   constructor(
+    @Inject(Logger) private readonly logger: Logger,
     @Inject(INVENTORY_REPOSITORY) private readonly repo: IInventoryRepository,
     @Inject(STOCK_CACHE) private readonly cache: IStockCache,
     @Inject(EVENT_PUBLISHER) private readonly publisher: IEventPublisher,

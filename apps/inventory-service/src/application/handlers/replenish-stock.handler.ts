@@ -1,4 +1,5 @@
-import { Inject, Logger } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ReplenishStockCommand } from '../commands/replenish-stock.command';
 import {
@@ -19,9 +20,8 @@ import { BaseDomainEvent } from '../../domain/events/base-domain.event';
 
 @CommandHandler(ReplenishStockCommand)
 export class ReplenishStockHandler implements ICommandHandler<ReplenishStockCommand> {
-  private readonly logger = new Logger(ReplenishStockHandler.name);
-
   constructor(
+    @Inject(Logger) private readonly logger: Logger,
     @Inject(INVENTORY_REPOSITORY) private readonly repo: IInventoryRepository,
     @Inject(STOCK_CACHE) private readonly cache: IStockCache,
     @Inject(EVENT_PUBLISHER) private readonly publisher: IEventPublisher,

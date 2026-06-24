@@ -1,4 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Payment } from '../../../domain/entities/payment.entity';
@@ -10,9 +11,8 @@ import { safeExecute, StrategyType } from '@ecommerce/core';
 
 @Injectable()
 export class TypeOrmPaymentRepository implements IPaymentRepository {
-  private readonly logger = new Logger(TypeOrmPaymentRepository.name);
-
   constructor(
+    @Inject(Logger) private readonly logger: Logger,
     @InjectRepository(PaymentOrmEntity)
     private readonly paymentRepo: Repository<PaymentOrmEntity>,
   ) {}

@@ -1,4 +1,4 @@
-import { Logger } from '@nestjs/common';
+import { getLogger } from '../observability';
 
 /**
  * Lightweight environment variable validation.
@@ -18,7 +18,7 @@ export interface EnvValidationResult {
   warnings: string[];
 }
 
-const logger = new Logger('EnvValidator');
+const logger = getLogger('EnvValidator');
 
 export function validateEnv(
   vars: EnvVarDescriptor[],

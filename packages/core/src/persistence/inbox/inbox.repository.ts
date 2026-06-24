@@ -1,4 +1,4 @@
-import { Logger } from '@nestjs/common';
+import { getLogger } from '../../observability';
 import { DataSource, Repository, LessThanOrEqual, In } from 'typeorm';
 import { InboxEventEntity } from './inbox-event.entity';
 import { InboxEventStatus } from './inbox.types';
@@ -10,7 +10,7 @@ import { InboxEventStatus } from './inbox.types';
  * remain focused on orchestration logic.
  */
 export class InboxRepository {
-  private readonly logger = new Logger(InboxRepository.name);
+  private readonly logger = getLogger('InboxRepository');
   private readonly repo: Repository<InboxEventEntity>;
 
   constructor(private readonly dataSource: DataSource) {

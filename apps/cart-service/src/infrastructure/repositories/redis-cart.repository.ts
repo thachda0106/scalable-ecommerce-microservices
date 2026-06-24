@@ -1,4 +1,5 @@
-import { Injectable, Inject, Logger } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import Redis from 'ioredis';
 import { ICartRepository } from '../../domain/repositories/cart-repository.interface';
 import { Cart } from '../../domain/entities/cart.entity';
@@ -19,9 +20,10 @@ const CART_DATA_TTL = 30 * 24 * 60 * 60;
  */
 @Injectable()
 export class RedisCartRepository implements ICartRepository {
-  private readonly logger = new Logger(RedisCartRepository.name);
-
-  constructor(@Inject('REDIS_CLIENT') private readonly redis: Redis) {}
+  constructor(
+    @Inject(Logger) private readonly logger: Logger,
+    @Inject('REDIS_CLIENT') private readonly redis: Redis,
+  ) {}
 
   async findByUserId(userId: string): Promise<Cart | null> {
     const raw = await this.redis.get(this.key(userId));

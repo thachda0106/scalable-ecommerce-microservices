@@ -1,8 +1,8 @@
-import { Logger } from '@nestjs/common';
+import { getLogger } from './logging';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 
-const logger = new Logger('Tracing');
+const logger = getLogger('Tracing');
 
 let sdk: NodeSDK | null = null;
 

@@ -1,4 +1,5 @@
-import { Injectable, Inject, Logger } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import { Client } from '@opensearch-project/opensearch';
 import { OPENSEARCH_CLIENT } from './opensearch-client.provider';
 import {
@@ -9,9 +10,8 @@ import {
 
 @Injectable()
 export class IndexManagementService {
-  private readonly logger = new Logger(IndexManagementService.name);
-
   constructor(
+    @Inject(Logger) private readonly logger: Logger,
     @Inject(OPENSEARCH_CLIENT)
     private readonly client: Client,
   ) {}

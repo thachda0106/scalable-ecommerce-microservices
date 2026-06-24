@@ -1,9 +1,10 @@
 import {
   Injectable,
-  Logger,
+  Inject,
   OnApplicationBootstrap,
   OnApplicationShutdown,
 } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
@@ -16,11 +17,11 @@ import { publishWithResilience } from '@ecommerce/core';
 export class OutboxRelayService
   implements OnApplicationBootstrap, OnApplicationShutdown
 {
-  private readonly logger = new Logger(OutboxRelayService.name);
   private producer: Producer;
   private consecutiveFailures = 0;
 
   constructor(
+    @Inject(Logger) private readonly logger: Logger,
     @InjectRepository(OutboxEventOrmEntity)
     private readonly outboxRepo: Repository<OutboxEventOrmEntity>,
     private readonly kafkaFactory: KafkaClientFactory,

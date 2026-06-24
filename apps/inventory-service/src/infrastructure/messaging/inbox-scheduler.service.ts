@@ -1,7 +1,8 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Inject, OnModuleInit } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { DataSource } from 'typeorm';
 import {
+  Logger,
   InboxProcessor,
   InboxCleanupService,
   KafkaDlqProducer,
@@ -15,11 +16,13 @@ import {
  */
 @Injectable()
 export class InboxSchedulerService implements OnModuleInit {
-  private readonly logger = new Logger(InboxSchedulerService.name);
   private readonly inboxProcessor: InboxProcessor;
   private readonly inboxCleanup: InboxCleanupService;
 
-  constructor(private readonly dataSource: DataSource) {
+  constructor(
+    @Inject(Logger) private readonly logger: Logger,
+    private readonly dataSource: DataSource,
+  ) {
     // DLQ producer for retry escalation
     const dlqProducer = new KafkaDlqProducer(
       { send: async () => [] }, // Placeholder — retries go through InboxService which has its own DLQ

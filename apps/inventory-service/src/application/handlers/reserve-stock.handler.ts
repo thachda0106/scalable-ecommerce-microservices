@@ -1,9 +1,9 @@
 import {
   Inject,
-  Logger,
   ConflictException,
   NotFoundException,
 } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ReserveStockCommand } from '../commands/reserve-stock.command';
 import {
@@ -25,9 +25,8 @@ import { InsufficientStockError } from '../../domain/errors/insufficient-stock.e
 
 @CommandHandler(ReserveStockCommand)
 export class ReserveStockHandler implements ICommandHandler<ReserveStockCommand> {
-  private readonly logger = new Logger(ReserveStockHandler.name);
-
   constructor(
+    @Inject(Logger) private readonly logger: Logger,
     @Inject(INVENTORY_REPOSITORY) private readonly repo: IInventoryRepository,
     @Inject(STOCK_CACHE) private readonly cache: IStockCache,
     @Inject(EVENT_PUBLISHER) private readonly publisher: IEventPublisher,

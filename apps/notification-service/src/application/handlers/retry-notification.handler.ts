@@ -1,5 +1,6 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Inject, Logger } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import { RetryNotificationCommand } from '../commands/retry-notification.command';
 import {
   NOTIFICATION_REPOSITORY,
@@ -16,9 +17,9 @@ import {
 
 @CommandHandler(RetryNotificationCommand)
 export class RetryNotificationHandler implements ICommandHandler<RetryNotificationCommand> {
-  private readonly logger = new Logger(RetryNotificationHandler.name);
 
   constructor(
+    @Inject(Logger) private readonly logger: Logger,
     @Inject(NOTIFICATION_REPOSITORY)
     private readonly notificationRepo: INotificationRepository,
     @Inject(CHANNEL_PROVIDER_FACTORY)

@@ -4,6 +4,7 @@ import {
   initTracing,
   GlobalExceptionFilter,
   HttpLoggingInterceptor,
+  Logger,
   MetricsInterceptor,
 } from '@ecommerce/core';
 
@@ -11,11 +12,13 @@ initTracing('order-service');
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  app.useLogger(app.get(Logger));
   app.enableShutdownHooks();
 
-  app.useGlobalFilters(new GlobalExceptionFilter());
+  const logger = app.get(Logger);
+  app.useGlobalFilters(new GlobalExceptionFilter(logger));
   app.useGlobalInterceptors(
-    new HttpLoggingInterceptor(),
+    new HttpLoggingInterceptor(logger),
     new MetricsInterceptor('order-service'),
   );
 

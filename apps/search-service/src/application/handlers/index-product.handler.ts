@@ -1,5 +1,6 @@
 import { CommandHandler, ICommandHandler, EventBus } from '@nestjs/cqrs';
-import { Inject, Logger } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import { IndexProductCommand } from '../commands/index-product.command';
 import { SEARCH_INDEX_PORT, ISearchIndexPort } from '../../domain/ports';
 import { SEARCH_CACHE_PORT, ISearchCachePort } from '../../domain/ports';
@@ -9,9 +10,8 @@ import { SearchMetricsService } from '../../infrastructure/metrics/search-metric
 
 @CommandHandler(IndexProductCommand)
 export class IndexProductHandler implements ICommandHandler<IndexProductCommand> {
-  private readonly logger = new Logger(IndexProductHandler.name);
-
   constructor(
+    @Inject(Logger) private readonly logger: Logger,
     @Inject(SEARCH_INDEX_PORT)
     private readonly searchIndexPort: ISearchIndexPort,
     @Inject(SEARCH_CACHE_PORT)

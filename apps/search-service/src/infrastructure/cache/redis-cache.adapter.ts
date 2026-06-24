@@ -1,4 +1,5 @@
-import { Injectable, Inject, Logger } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import Redis from 'ioredis';
 import { ISearchCachePort } from '../../domain/ports/search-cache.port';
 import { SearchQuery } from '../../domain/value-objects/search-query.vo';
@@ -8,9 +9,8 @@ export const REDIS_CLIENT = Symbol('REDIS_CLIENT');
 
 @Injectable()
 export class RedisCacheAdapter implements ISearchCachePort {
-  private readonly logger = new Logger(RedisCacheAdapter.name);
-
   constructor(
+    @Inject(Logger) private readonly logger: Logger,
     @Inject(REDIS_CLIENT)
     private readonly redis: Redis,
   ) {}

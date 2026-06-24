@@ -1,5 +1,6 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Inject, Logger } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import { MoveToDlqCommand } from '../commands/move-to-dlq.command';
 import { NotificationStatus } from '../../domain/enums/notification-status.enum';
 import {
@@ -17,9 +18,8 @@ import {
 
 @CommandHandler(MoveToDlqCommand)
 export class MoveToDlqHandler implements ICommandHandler<MoveToDlqCommand> {
-  private readonly logger = new Logger(MoveToDlqHandler.name);
-
   constructor(
+    @Inject(Logger) private readonly logger: Logger,
     @Inject(NOTIFICATION_REPOSITORY)
     private readonly notificationRepo: INotificationRepository,
     @Inject(EVENT_PUBLISHER)

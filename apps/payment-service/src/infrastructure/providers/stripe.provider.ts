@@ -1,4 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import { v4 as uuidv4 } from 'uuid';
 import {
   IPaymentProvider,
@@ -16,7 +17,7 @@ const PROVIDER_TIMEOUT_MS = parseInt(
 
 @Injectable()
 export class StripeProvider implements IPaymentProvider {
-  private readonly logger = new Logger(StripeProvider.name);
+  constructor(@Inject(Logger) private readonly logger: Logger) {}
 
   async processPayment(
     request: PaymentProviderRequest,

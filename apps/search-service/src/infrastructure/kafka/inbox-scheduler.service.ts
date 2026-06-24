@@ -1,10 +1,11 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Inject, OnModuleInit } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { DataSource } from 'typeorm';
 import {
   InboxProcessor,
   InboxCleanupService,
   KafkaDlqProducer,
+  Logger,
 } from '@ecommerce/core';
 
 /**
@@ -12,11 +13,13 @@ import {
  */
 @Injectable()
 export class InboxSchedulerService implements OnModuleInit {
-  private readonly logger = new Logger(InboxSchedulerService.name);
   private readonly inboxProcessor: InboxProcessor;
   private readonly inboxCleanup: InboxCleanupService;
 
-  constructor(private readonly dataSource: DataSource) {
+  constructor(
+    @Inject(Logger) private readonly logger: Logger,
+    private readonly dataSource: DataSource,
+  ) {
     const dlqProducer = new KafkaDlqProducer(
       { send: async () => [] },
       'search-service',

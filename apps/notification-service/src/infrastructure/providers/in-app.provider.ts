@@ -1,4 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
+import { Logger } from '@ecommerce/core';
 import { NotificationChannel } from '../../domain/enums/notification-channel.enum';
 import {
   IChannelProvider,
@@ -9,7 +11,8 @@ import {
 @Injectable()
 export class InAppProvider implements IChannelProvider {
   readonly channel = NotificationChannel.IN_APP;
-  private readonly logger = new Logger(InAppProvider.name);
+
+  constructor(@Inject(Logger) private readonly logger: Logger) {}
 
   async send(payload: ChannelPayload): Promise<ChannelResult> {
     // In-app notifications are stored in the database and displayed in the UI.

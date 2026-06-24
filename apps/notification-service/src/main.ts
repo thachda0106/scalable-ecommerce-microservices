@@ -16,9 +16,10 @@ async function bootstrap() {
   app.useLogger(app.get(Logger));
   app.enableShutdownHooks();
 
-  app.useGlobalFilters(new GlobalExceptionFilter());
+  const logger = app.get(Logger);
+  app.useGlobalFilters(new GlobalExceptionFilter(logger));
   app.useGlobalInterceptors(
-    new HttpLoggingInterceptor(),
+    new HttpLoggingInterceptor(logger),
     new MetricsInterceptor('notification-service'),
   );
 

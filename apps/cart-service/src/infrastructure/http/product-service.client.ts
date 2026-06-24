@@ -1,15 +1,17 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
-import { safeExecute, StrategyType } from '@ecommerce/core';
+import { safeExecute, StrategyType, Logger } from '@ecommerce/core';
 
 @Injectable()
 export class ProductServiceClient {
-  private readonly logger = new Logger(ProductServiceClient.name);
   private readonly baseUrl =
     process.env.PRODUCT_SERVICE_URL ?? 'http://product-service:3003';
 
-  constructor(private readonly httpService: HttpService) {}
+  constructor(
+    @Inject(Logger) private readonly logger: Logger,
+    private readonly httpService: HttpService,
+  ) {}
 
   /**
    * Validates that a product exists in the product-service.

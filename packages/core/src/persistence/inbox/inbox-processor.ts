@@ -1,4 +1,4 @@
-import { Logger } from '@nestjs/common';
+import { getLogger } from '../../observability';
 import { DataSource } from 'typeorm';
 import { InboxRepository } from './inbox.repository';
 import { InboxService } from './inbox.service';
@@ -26,7 +26,7 @@ import { KafkaDlqProducer } from '../../kafka/dlq-producer';
  * ```
  */
 export class InboxProcessor {
-  private readonly logger = new Logger(InboxProcessor.name);
+  private readonly logger = getLogger('InboxProcessor');
   private readonly inboxRepo: InboxRepository;
   private readonly inboxService: InboxService;
   private readonly config: Required<InboxConfig>;
